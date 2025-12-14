@@ -366,7 +366,9 @@ class OneBot11Adapter extends Service {
       } else if (msgType === 44) {
         const tip = Notify.GroupAdmin.decode(sysMsg.body.msgContent)
         this.ctx.logger.info('收到管理员变动通知', tip)
-        const uin = await this.ctx.ntUserApi.getUinByUid(tip.isPromote ? tip.body.extraEnable!.adminUid : tip.body.extraDisable!.adminUid)
+        const uid =  tip.isPromote ? tip.body.extraEnable?.adminUid : tip.body.extraDisable?.adminUid
+        if (!uid) return null
+        const uin = await this.ctx.ntUserApi.getUinByUid(uid)
         const event = new OB11GroupAdminNoticeEvent(
           tip.isPromote ? 'set' : 'unset',
           tip.groupCode,
