@@ -36,6 +36,8 @@ const external = [
   'ws',
   'silk-wasm',
   '@minatojs/sql.js',
+  'has-flag',
+  ...getModuleDependencies('reggol'),
   ...getModuleDependencies('file-type'),
 ]
 
