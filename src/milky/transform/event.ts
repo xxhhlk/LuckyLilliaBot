@@ -371,7 +371,9 @@ export async function transformSystemMessageEvent(
       }
     } else if (msgType === 44) {
       const tip = Notify.GroupAdmin.decode(sysMsg.body.msgContent)
-      const uin = await ctx.ntUserApi.getUinByUid(tip.isPromote ? tip.body.extraEnable!.adminUid : tip.body.extraDisable!.adminUid)
+      const uid =  tip.isPromote ? tip.body.extraEnable?.adminUid : tip.body.extraDisable?.adminUid
+      if (!uid) return null
+      const uin = await ctx.ntUserApi.getUinByUid(uid)
       return {
         eventType: 'group_admin_change',
         data: {
