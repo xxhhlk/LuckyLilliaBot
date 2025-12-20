@@ -3,6 +3,7 @@ V7.2.0
 
 * WebUI 新增日志查看功能
 * OneBot 11 新增 API `scan_qrcode`
+* 优化 Linux CLI，Ctrl + C 现可以正常退出
 * 破坏性改动：Release 的 LLOneBot.zip 改名为 LLBot.zip，llonebot.js 改名为 llbot.js
 
 =================

@@ -37,7 +37,7 @@ if [ ! -f "/opt/QQ/qq" ]; then
             exit 1
         fi
         echo "正在安装 QQ..."
-        
+
         sudo apt install -y "$QQ_DEB"
         if [ $? -ne 0 ]; then
             echo "错误：QQ 安装失败"
@@ -57,7 +57,7 @@ if [ ! -f "/opt/QQ/qq" ]; then
             LIBASOUND_PKG="alsa-utils"
         fi
         echo "使用 ALSA 库包: $LIBASOUND_PKG"
-        
+
         sudo apt-get install -y \
             x11-utils \
             libgtk-3-0 \
@@ -128,12 +128,12 @@ if ! command -v xvfb-run &> /dev/null; then
     fi
 fi
 
+SUB_CMD="$SCRIPT_DIR/llbot/node --enable-source-maps $SCRIPT_DIR/llbot/llbot.js -- --pmhq-port=$AVAILABLE_PORT"
 
 if [ $USE_XVFB -eq 1 ]; then
-    sudo xvfb-run $SCRIPT_DIR/llbot/pmhq --port=$AVAILABLE_PORT &
+    sudo xvfb-run $SCRIPT_DIR/llbot/pmhq --port=$AVAILABLE_PORT --sub-cmd="$SUB_CMD"
 else
-    sudo $SCRIPT_DIR/llbot/pmhq --port=$AVAILABLE_PORT &
+    sudo $SCRIPT_DIR/llbot/pmhq --port=$AVAILABLE_PORT --sub-cmd="$SUB_CMD"
 fi
-sleep 5
 
-$SCRIPT_DIR/llbot/node $SCRIPT_DIR/llbot/llonebot.js -- --pmhq-port=$AVAILABLE_PORT &
+
