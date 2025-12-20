@@ -101,8 +101,8 @@ export class MessageEncoder {
   }
 
   private async forward(msgId: string, srcPeer: NT.Peer, destPeer: NT.Peer) {
-    const list = await this.ctx.ntMsgApi.forwardMsg(srcPeer, destPeer, [msgId])
-    return list[0]
+    const msg = await this.ctx.ntMsgApi.forwardMsg(srcPeer, destPeer, [msgId])
+    return msg
   }
 
   private async multiForward() {

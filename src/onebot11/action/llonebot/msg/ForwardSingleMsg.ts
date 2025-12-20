@@ -41,13 +41,8 @@ abstract class ForwardSingleMsg extends BaseAction<Payload, Response> {
     // 转发消息
     const ret = await this.ctx.ntMsgApi.forwardMsg(msg.peer, peer, [msg.msgId])
 
-    // 判断是否成功
-    if (ret.length === 0) {
-      throw new Error(`转发消息失败`)
-    }
-
     // 创建消息id
-    const msgShortId = this.ctx.store.createMsgShortId(ret[0])
+    const msgShortId = this.ctx.store.createMsgShortId(ret)
     return { message_id: msgShortId }
   }
 }
