@@ -21,6 +21,7 @@ import {
   transformGroupMessageEvent,
   transformPrivateMessageEvent,
   transformOlpushEvent,
+  transformTempMessageCreated,
 } from './transform/event'
 import { ChatType } from '@/ntqqapi/types'
 
@@ -133,6 +134,16 @@ export class MilkyAdapter extends Service {
         if (result) {
           this.emitEvent(result.eventType, result.data)
         }
+      } else if (message.chatType === ChatType.TempC2CFromGroup) {
+        // Temp message
+        const eventData = await transformTempMessageCreated(this.ctx, message)
+        if (eventData) {
+          this.emitEvent('message_receive', eventData)
+        }
+        const result = await transformPrivateMessageEvent(this.ctx, message)
+        if (result) {
+          this.emitEvent(result.eventType, result.data)
+        }
       }
     })
 
@@ -163,6 +174,11 @@ export class MilkyAdapter extends Service {
         }
       } else if (message.chatType === ChatType.Group) {
         const eventData = await transformGroupMessageCreated(this.ctx, message)
+        if (eventData) {
+          this.emitEvent('message_receive', eventData)
+        }
+      } else if (message.chatType === ChatType.TempC2CFromGroup) {
+        const eventData = await transformTempMessageCreated(this.ctx, message)
         if (eventData) {
           this.emitEvent('message_receive', eventData)
         }

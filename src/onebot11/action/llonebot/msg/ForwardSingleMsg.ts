@@ -1,3 +1,4 @@
+import { RawMessage } from '@/ntqqapi/types'
 import { BaseAction, Schema } from '../../BaseAction'
 import { ActionName } from '../../types'
 import { createPeer } from '@/onebot11/helper/createMessage'
@@ -35,11 +36,22 @@ abstract class ForwardSingleMsg extends BaseAction<Payload, Response> {
       throw new Error(`无法找到消息${payload.message_id}`)
     }
 
+    // 获取源消息内容
+    const srcMsg = await this.ctx.ntMsgApi.getMsgsByMsgId(msg.peer, [msg.msgId])
+    if (srcMsg.msgList.length === 0) {
+      throw new Error(`无法找到消息内容${payload.message_id}`)
+    }
+
     // 发送目标的peer
     const peer = await createPeer(this.ctx, payload)
 
     // 转发消息
-    const ret = await this.ctx.ntMsgApi.forwardMsg(msg.peer, peer, [msg.msgId])
+    let ret: RawMessage
+    if (srcMsg.msgList[0].msgType === 8) {
+      ret = await this.ctx.ntMsgApi.forwardMultiMsg(msg.peer, peer, [msg.msgId])
+    } else {
+      ret = await this.ctx.ntMsgApi.forwardMsg(msg.peer, peer, [msg.msgId])
+    }
 
     // 创建消息id
     const msgShortId = this.ctx.store.createMsgShortId(ret)

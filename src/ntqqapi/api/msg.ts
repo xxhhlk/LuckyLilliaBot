@@ -136,12 +136,62 @@ export class NTQQMsgApi extends Service {
     return data.find(msgRecord => msgRecord.guildId === uniqueId)!
   }
 
+  async forwardMultiMsg(srcPeer: Peer, destPeer: Peer, msgIds: string[]) {
+    const data = await invoke<RawMessage[]>(
+      'nodeIKernelMsgService/forwardMsgWithComment',
+      [
+        msgIds,
+        srcPeer,
+        [destPeer],
+        [],
+        new Map(),
+      ],
+      {
+        resultCmd: 'nodeIKernelMsgListener/onMsgInfoListUpdate',
+        resultCb: payload => {
+          for (const msgRecord of payload) {
+            if (
+              msgRecord.msgType === 11 &&
+              msgRecord.subMsgType === 7 &&
+              msgRecord.peerUid === destPeer.peerUid &&
+              msgRecord.senderUid === selfInfo.uid
+            ) {
+              const element = msgRecord.elements[0]
+              const data = JSON.parse(element.arkElement!.bytesData)
+              if (data.app !== 'com.tencent.multimsg' || !data.meta.detail.resid) {
+                continue
+              }
+              return true
+            }
+          }
+          return false
+        },
+        timeout: 3000,
+      },
+    )
+    return data.find(msgRecord => {
+      if (
+        msgRecord.msgType === 11 &&
+        msgRecord.subMsgType === 7 &&
+        msgRecord.peerUid === destPeer.peerUid &&
+        msgRecord.senderUid === selfInfo.uid
+      ) {
+        const element = msgRecord.elements[0]
+        const data = JSON.parse(element.arkElement!.bytesData)
+        if (data.app !== 'com.tencent.multimsg' || !data.meta.detail.resid) {
+          return false
+        }
+        return true
+      }
+      return false
+    })!
+  }
+
   async multiForwardMsg(srcPeer: Peer, destPeer: Peer, msgIds: string[]): Promise<RawMessage> {
     const senderShowName = await this.ctx.ntUserApi.getSelfNick(false)
     const msgInfos = msgIds.map(id => {
       return { msgId: id, senderShowName }
     })
-    const selfUid = selfInfo.uid
     const commentElements: unknown[] = []
     const msgAttributeInfos = new Map()
     const data = await invoke<RawMessage[]>(
@@ -161,7 +211,7 @@ export class NTQQMsgApi extends Service {
               msgRecord.msgType === 11 &&
               msgRecord.subMsgType === 7 &&
               msgRecord.peerUid === destPeer.peerUid &&
-              msgRecord.senderUid === selfUid
+              msgRecord.senderUid === selfInfo.uid
             ) {
               const element = msgRecord.elements[0]
               const data = JSON.parse(element.arkElement!.bytesData)
@@ -180,7 +230,7 @@ export class NTQQMsgApi extends Service {
         msgRecord.msgType === 11 &&
         msgRecord.subMsgType === 7 &&
         msgRecord.peerUid === destPeer.peerUid &&
-        msgRecord.senderUid === selfUid
+        msgRecord.senderUid === selfInfo.uid
       ) {
         const element = msgRecord.elements[0]
         const data = JSON.parse(element.arkElement!.bytesData)

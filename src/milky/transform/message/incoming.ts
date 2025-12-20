@@ -43,6 +43,22 @@ export async function transformIncomingGroupMessage(
   }
 }
 
+export async function transformIncomingTempMessage(
+  ctx: Context,
+  group: GroupAllInfo,
+  message: RawMessage,
+): Promise<IncomingMessage> {
+  return {
+    message_scene: 'temp',
+    peer_id: +message.peerUin,
+    message_seq: +message.msgSeq,
+    sender_id: +message.senderUin,
+    time: +message.msgTime,
+    segments: await transformIncomingSegments(ctx, message),
+    group: transformGroup(group),
+  }
+}
+
 export async function transformIncomingSegments(ctx: Context, message: RawMessage): Promise<IncomingSegment[]> {
   const segments: IncomingSegment[] = []
 

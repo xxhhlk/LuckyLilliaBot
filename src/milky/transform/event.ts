@@ -1,6 +1,6 @@
 import { MilkyEventTypes } from '@/milky/common/event'
 import { RawMessage, GroupNotify, FriendRequest, GroupNotifyType, GroupNotifyStatus } from '@/ntqqapi/types'
-import { transformIncomingPrivateMessage, transformIncomingGroupMessage } from './message/incoming'
+import { transformIncomingPrivateMessage, transformIncomingGroupMessage, transformIncomingTempMessage } from './message/incoming'
 import { Context } from 'cordis'
 import { selfInfo } from '@/common/globalVars'
 import { Msg, Notify } from '@/ntqqapi/proto'
@@ -39,6 +39,25 @@ export async function transformGroupMessageCreated(
     return await transformIncomingGroupMessage(ctx, group, member, message)
   } catch (error) {
     ctx.logger.error('Failed to transform group message created event:', error)
+    return null
+  }
+}
+
+/**
+ * Transform NTQQ message-created event to Milky message_receive event (temp)
+ */
+export async function transformTempMessageCreated(
+  ctx: Context,
+  message: RawMessage
+): Promise<MilkyEventTypes['message_receive'] | null> {
+  try {
+    if (!message.senderUid) return null
+    const { tmpChatInfo } = await ctx.ntMsgApi.getTempChatInfo(100, message.peerUid)
+    const group = await ctx.ntGroupApi.getGroupAllInfo(tmpChatInfo.groupCode)
+
+    return await transformIncomingTempMessage(ctx, group, message)
+  } catch (error) {
+    ctx.logger.error('Failed to transform temp message created event:', error)
     return null
   }
 }

@@ -8,9 +8,9 @@ import cors from 'cors'
 import { Context } from 'cordis'
 
 class MilkyHttpHandler {
-  readonly app: Express
   readonly eventPushClients = new Set<WebSocket>()
   readonly sseClients = new Set<Response>()
+  private app: Express | undefined
   private httpServer: http.Server | undefined
   private wsServer: WebSocketServer | undefined
 
@@ -34,16 +34,19 @@ class MilkyHttpHandler {
   }
 
   constructor(readonly milkyAdapter: MilkyAdapter, readonly ctx: Context, readonly config: MilkyHttpHandler.Config) {
+  }
+
+  start() {
     this.app = express()
 
     this.app.use(cors())
     this.app.use(express.json({ limit: '1024mb' }))
 
     // Access token middleware for API routes
-    if (config.accessToken) {
-      this.app.use(`${config.prefix}/api`, (req, res, next) => {
+    if (this.config.accessToken) {
+      this.app.use(`${this.config.prefix}/api`, (req, res, next) => {
         if (req.headers['content-type'] !== 'application/json') {
-          ctx.logger.warn(
+          this.ctx.logger.warn(
             'MilkyHttp',
             `${req.ip} -> ${req.path} (Content-Type not application/json)`
           )
@@ -52,13 +55,13 @@ class MilkyHttpHandler {
 
         const authorization = req.headers['authorization']
         if (!authorization || !authorization.startsWith('Bearer ')) {
-          ctx.logger.warn('MilkyHttp', `${req.ip} -> ${req.path} (Credentials missing)`)
+          this.ctx.logger.warn('MilkyHttp', `${req.ip} -> ${req.path} (Credentials missing)`)
           return res.status(401).json(Failed(-401, 'Unauthorized'))
         }
         const inputToken = authorization.slice(7)
 
-        if (inputToken !== config.accessToken) {
-          ctx.logger.warn('MilkyHttp', `${req.ip} -> ${req.path} (Credentials wrong)`)
+        if (inputToken !== this.config.accessToken) {
+          this.ctx.logger.warn('MilkyHttp', `${req.ip} -> ${req.path} (Credentials wrong)`)
           return res.status(401).json(Failed(-401, 'Unauthorized'))
         }
 
@@ -67,7 +70,7 @@ class MilkyHttpHandler {
     }
 
     // API endpoint
-    this.app.post(`${config.prefix}/api/:endpoint`, async (req, res) => {
+    this.app.post(`${this.config.prefix}/api/:endpoint`, async (req, res) => {
       const endpoint = req.params.endpoint
       const payload = req.body
 
@@ -114,9 +117,7 @@ class MilkyHttpHandler {
         this.ctx.logger.info('MilkyHttp', `${req.ip} -> /event SSE (Disconnected)`)
       })
     })
-  }
 
-  start() {
     const host = this.config.onlyLocalhost ? '127.0.0.1' : ''
     this.httpServer = this.app.listen(this.config.port, host, () => {
       this.ctx.logger.info(
@@ -170,6 +171,7 @@ class MilkyHttpHandler {
 
     this.wsServer?.close()
     this.httpServer?.close()
+    this.app = undefined
   }
 
   broadcast(msg: string) {

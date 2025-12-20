@@ -1,6 +1,6 @@
 import { defineApi, Failed, MilkyApiHandler, Ok } from '@/milky/common/api'
 import { transformOutgoingForwardMessages, transformOutgoingMessage } from '@/milky/transform/message/outgoing'
-import { transformIncomingPrivateMessage, transformIncomingGroupMessage, transformIncomingForwardedMessage } from '@/milky/transform/message/incoming'
+import { transformIncomingPrivateMessage, transformIncomingGroupMessage, transformIncomingForwardedMessage, transformIncomingTempMessage } from '@/milky/transform/message/incoming'
 import {
   SendPrivateMessageInput,
   SendPrivateMessageOutput,
@@ -33,7 +33,14 @@ const SendPrivateMessage = defineApi(
     if (!uid) {
       return Failed(-404, 'User not found')
     }
-    const peer = { chatType: 1, peerUid: uid, guildId: '' } // ChatType.C2C = 1
+    const peer = { chatType: 1, peerUid: uid, guildId: '' }
+    const isBuddy = await ctx.ntFriendApi.isBuddy(uid)
+    if (!isBuddy) {
+      const result = await ctx.ntMsgApi.getTempChatInfo(100, uid)
+      if (result.tmpChatInfo.groupCode) {
+        peer.chatType = 100
+      }
+    }
 
     let result: RawMessage
     if (payload.message[0].type === 'forward') {
@@ -253,11 +260,17 @@ const GetMessage = defineApi(
       return Ok({
         message: await transformIncomingPrivateMessage(ctx, friend, category, rawMsg),
       })
-    } else {
+    } else if (payload.message_scene === 'group') {
       const group = await ctx.ntGroupApi.getGroupAllInfo(rawMsg.peerUid)
       const member = await ctx.ntGroupApi.getGroupMember(rawMsg.peerUin, rawMsg.senderUid)
       return Ok({
         message: await transformIncomingGroupMessage(ctx, group, member, rawMsg),
+      })
+    } else {
+      const { tmpChatInfo } = await ctx.ntMsgApi.getTempChatInfo(100, rawMsg.peerUid)
+      const group = await ctx.ntGroupApi.getGroupAllInfo(tmpChatInfo.groupCode)
+      return Ok({
+        message: await transformIncomingTempMessage(ctx, group, rawMsg),
       })
     }
   }
@@ -297,14 +310,19 @@ const GetHistoryMessages = defineApi(
         const category = await ctx.ntFriendApi.getCategoryById(friend.baseInfo.categoryId)
         transformedMessages.push(await transformIncomingPrivateMessage(ctx, friend, category, msg))
       }
-    } else {
+    } else if (payload.message_scene === 'group') {
       const group = await ctx.ntGroupApi.getGroupAllInfo(payload.peer_id.toString())
       for (const msg of msgList) {
         if (!msg.senderUid) continue
         const member = await ctx.ntGroupApi.getGroupMember(msg.peerUid, msg.senderUid)
-        if (member) {
-          transformedMessages.push(await transformIncomingGroupMessage(ctx, group, member, msg))
-        }
+        transformedMessages.push(await transformIncomingGroupMessage(ctx, group, member, msg))
+      }
+    } else {
+      for (const msg of msgList) {
+        if (!msg.senderUid) continue
+        const { tmpChatInfo } = await ctx.ntMsgApi.getTempChatInfo(100, msg.peerUid)
+        const group = await ctx.ntGroupApi.getGroupAllInfo(tmpChatInfo.groupCode)
+        transformedMessages.push(await transformIncomingTempMessage(ctx, group, msg))
       }
     }
 
