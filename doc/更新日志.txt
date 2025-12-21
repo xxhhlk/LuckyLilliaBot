@@ -6,6 +6,7 @@ V7.2.0
 * OneBot 新增识别二维码 API `scan_qrcode`
 * OneBot 支持 API `get_file` 获取语音直链
 * OneBot 修复 API `forward_friend_single_msg`、`forward_group_single_msg` 转发合并转发消息时报错
+* OneBot 没有快速操作返回时不再显示无用报错 #662
 * Milky 新增有关设置个人资料的 API `set_avatar`、`set_nickname`、`set_bio`
 * Milky 新增删除好友 API `delete_friend`
 * Milky 新增获取收藏表情 API `get_custom_face_url_list`
