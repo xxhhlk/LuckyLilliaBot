@@ -2,7 +2,6 @@ V7.2.0
 更新时间 2025-12-
 
 * WebUI 新增日志查看功能
-* OneBot 11 新增 API `scan_qrcode`
 * 优化 Linux CLI，Ctrl + C 现可以正常退出
 * OneBot 新增识别二维码 API `scan_qrcode`
 * OneBot 支持 API `get_file` 获取语音直链
