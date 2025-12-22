@@ -82,7 +82,7 @@ export class WebUIServer extends Service {
   private connections = new Set<Socket>()
   private currentPort?: number
   public port?: number = undefined
-  static inject = ['ntLoginApi', 'ntFriendApi', 'ntGroupApi']
+  static inject = ['ntLoginApi', 'ntFriendApi', 'ntGroupApi', 'ntSystemApi']
 
   constructor(ctx: Context, public config: WebUIServerConfig) {
     super(ctx, 'webuiServer', true)
@@ -331,6 +331,19 @@ export class WebUIServer extends Service {
         res.status(500).json({ success: false, message: '获取统计数据失败', error: e })
       }
     })
+    // 获取设备信息（QQ 版本号）
+    this.app.get('/api/device-info', async (req, res) => {
+      try {
+        const deviceInfo = await this.ctx.ntSystemApi.getDeviceInfo()
+        res.json({
+          success: true,
+          data: deviceInfo,
+        })
+      } catch (e) {
+        res.status(500).json({ success: false, message: '获取设备信息失败', error: e })
+      }
+    })
+
     // SSE 日志流端点
     this.app.get('/api/logs/stream', (req: Request, res: Response) => {
       res.setHeader('Content-Type', 'text/event-stream')

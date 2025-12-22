@@ -30,6 +30,7 @@ function App() {
   const [showMilkyToken, setShowMilkyToken] = useState(false);
   const [showMilkyWebhookToken, setShowMilkyWebhookToken] = useState(false);
   const [showChangePasswordDialog, setShowChangePasswordDialog] = useState(false);
+  const [qqVersion, setQqVersion] = useState<string>('');
 
   // 设置密码提示处理器
   useEffect(() => {
@@ -68,6 +69,15 @@ function App() {
             uin: response.data.selfInfo.uin,
           });
           setConfig(response.data.config)
+          // 获取 QQ 版本号（单独 try-catch，不影响登录状态）
+          try {
+            const deviceInfoRes = await apiFetch<{ devType: string; buildVer: string }>('/api/device-info');
+            if (deviceInfoRes.success && deviceInfoRes.data?.buildVer) {
+              setQqVersion(deviceInfoRes.data.buildVer);
+            }
+          } catch (e) {
+            console.error('Failed to fetch device info:', e);
+          }
         } else {
           setIsLoggedIn(false);
         }
@@ -725,6 +735,7 @@ function App() {
                     <div>
                       <div className="text-sm font-medium text-gray-800">版本信息</div>
                       <div className="text-xs text-gray-500">Lucky Lillia Bot {version}</div>
+                      {qqVersion && <div className="text-xs text-gray-500">QQ {qqVersion}</div>}
                     </div>
                   </div>
                   <div className="text-sm text-gray-600">
