@@ -229,7 +229,7 @@ const Dashboard: React.FC = () => {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
+        <div className="w-12 h-12 border-4 border-pink-500 border-t-transparent rounded-full animate-spin" />
       </div>
     )
   }
@@ -249,7 +249,7 @@ const Dashboard: React.FC = () => {
         {/* 运行时间 */}
         <div className="card p-4 flex flex-col">
           <div className="flex items-center gap-3 mb-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-md">
+            <div className="w-10 h-10 rounded-xl gradient-primary-br flex items-center justify-center shadow-md">
               <Clock size={20} className="text-white" />
             </div>
             <h3 className="text-base font-semibold text-gray-800">运行时间</h3>
@@ -259,9 +259,9 @@ const Dashboard: React.FC = () => {
             </div>
           </div>
           <div className="flex-1 flex flex-col justify-center space-y-2">
-            <div className="p-3 rounded-xl bg-gradient-to-r from-indigo-50 to-purple-50">
+            <div className="p-3 rounded-xl bg-gradient-to-r from-pink-50 to-rose-50">
               <p className="text-xs text-gray-500">已运行</p>
-              <p className="text-xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
+              <p className="text-xl font-bold bg-gradient-to-r from-pink-500 to-rose-500 bg-clip-text text-transparent">
                 {uptime}
               </p>
             </div>
@@ -278,13 +278,13 @@ const Dashboard: React.FC = () => {
             icon={<Users size={20} className="text-white" />}
             label="好友数量"
             value={stats.friendCount.toLocaleString()}
-            gradient="bg-gradient-to-br from-blue-500 to-cyan-500"
+            gradient="bg-gradient-to-br from-sky-500 to-blue-500"
           />
           <StatItem
             icon={<UsersRound size={20} className="text-white" />}
             label="群组数量"
             value={stats.groupCount.toLocaleString()}
-            gradient="bg-gradient-to-br from-purple-500 to-pink-500"
+            gradient="bg-gradient-to-br from-violet-500 to-purple-500"
           />
         </div>
 
@@ -310,28 +310,28 @@ const Dashboard: React.FC = () => {
         <ResourceCard
           title="QQ 资源"
           icon={<MessageCircle size={16} className="text-white" />}
-          gradient="bg-gradient-to-br from-blue-500 to-cyan-500"
+          gradient="bg-gradient-to-br from-cyan-500 to-teal-500"
           cpu={stats.qq.cpu}
           memory={stats.qq.memory}
           totalMemory={stats.qq.totalMemory}
           memoryPercent={stats.qq.memoryPercent}
           cpuGradientId="qqCpuGradient"
           memGradientId="qqMemGradient"
-          cpuColors={['#3b82f6', '#06b6d4']}
+          cpuColors={['#06b6d4', '#14b8a6']}
           memColors={['#0ea5e9', '#22d3ee']}
         />
         <ResourceCard
           title="Bot 资源"
           icon={<Bot size={16} className="text-white" />}
-          gradient="bg-gradient-to-br from-violet-500 to-purple-600"
+          gradient="bg-gradient-to-br from-fuchsia-500 to-pink-500"
           cpu={stats.bot.cpu}
           memory={stats.bot.memory}
           totalMemory={stats.bot.totalMemory}
           memoryPercent={stats.bot.memoryPercent}
           cpuGradientId="botCpuGradient"
           memGradientId="botMemGradient"
-          cpuColors={['#8b5cf6', '#a855f7']}
-          memColors={['#6366f1', '#8b5cf6']}
+          cpuColors={['#d946ef', '#ec4899']}
+          memColors={['#a855f7', '#d946ef']}
         />
       </div>
     </div>

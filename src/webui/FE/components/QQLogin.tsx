@@ -317,7 +317,7 @@ const QQLogin: React.FC<QQLoginProps> = ({ onLoginSuccess }) => {
                 {accounts.map((account) => (
                   <div
                     key={account.uin}
-                    className="flex flex-col items-center p-4 rounded-2xl cursor-pointer transition-all border-2 border-transparent hover:bg-blue-50 hover:border-blue-500"
+                    className="flex flex-col items-center p-4 rounded-2xl cursor-pointer transition-all border-2 border-transparent hover:bg-pink-50 hover:border-pink-500"
                     onClick={() => selectAccount(account)}
                   >
                     <div className="w-[60px] h-[60px] rounded-full overflow-hidden mb-2 shadow-md">
@@ -350,15 +350,15 @@ const QQLogin: React.FC<QQLoginProps> = ({ onLoginSuccess }) => {
             {/* Action Links */}
             <div className="flex gap-6 justify-center">
               {!showAccountList && (
-                <button onClick={toggleAccountList} className="text-blue-600 text-sm hover:underline">
+                <button onClick={toggleAccountList} className="text-pink-500 text-sm hover:underline">
                   切换账号
                 </button>
               )}
-              <button onClick={() => setLoginMode('qr')} className="text-blue-600 text-sm hover:underline">
+              <button onClick={() => setLoginMode('qr')} className="text-pink-500 text-sm hover:underline">
                 扫码登录
               </button>
               {/* 暂时注释掉移除账号功能 */}
-              {/* <button onClick={() => setShowRemoveAccount(true)} className="text-blue-600 text-sm hover:underline">
+              {/* <button onClick={() => setShowRemoveAccount(true)} className="text-pink-500 text-sm hover:underline">
                 移除账号
               </button> */}
             </div>
@@ -407,7 +407,7 @@ const QQLogin: React.FC<QQLoginProps> = ({ onLoginSuccess }) => {
         {/* Mode Switch */}
         <div className="mt-6">
           {loginMode === 'qr' && accounts.length > 0 && (
-            <button onClick={() => setLoginMode('quick')} className="text-blue-600 text-sm hover:underline">
+            <button onClick={() => setLoginMode('quick')} className="text-pink-500 text-sm hover:underline">
               快速登录
             </button>
           )}

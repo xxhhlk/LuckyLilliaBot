@@ -50,7 +50,7 @@ const OtherConfig: React.FC<OtherConfigProps> = ({ config, onChange, onOpenChang
           <div
             className='flex items-center justify-between p-4 bg-gray-50/50 rounded-xl hover:bg-gray-100/50 transition-colors'>
             <div className='flex items-center gap-3'>
-              <Globe size={20} className='text-blue-600' />
+              <Globe size={20} className='text-pink-500' />
               <div>
                 <div className='text-sm font-medium text-gray-800'>只监听本地地址</div>
                 <div className='text-xs text-gray-500 mt-0.5'>取消后可能会暴露在公网</div>
@@ -66,8 +66,8 @@ const OtherConfig: React.FC<OtherConfigProps> = ({ config, onChange, onOpenChang
           <div
             className='flex items-center justify-between p-4 bg-gray-50/50 rounded-xl hover:bg-gray-100/50 transition-colors'>
             <div className='flex items-center gap-3'>
-              {/*<FileText size={20} className='text-blue-600' />*/}
-              <Paperclip size={20} className='text-blue-600'/>
+              {/*<FileText size={20} className='text-pink-500' />*/}
+              <Paperclip size={20} className='text-pink-500'/>
               <div>
                 <div className='text-sm font-medium text-gray-800'>本地文件转URL</div>
                 <div className='text-xs text-gray-500 mt-0.5'>启用后可将本地文件转换为URL链接</div>
@@ -142,7 +142,7 @@ const OtherConfig: React.FC<OtherConfigProps> = ({ config, onChange, onOpenChang
       <div className='card p-6'>
         <div className='flex items-center gap-3 mb-6'>
           <div
-            className='w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500 to-pink-600 flex items-center justify-center'>
+            className='w-10 h-10 rounded-xl bg-gradient-to-br from-pink-400 to-rose-500 flex items-center justify-center'>
             <Clock size={20} className='text-white' />
           </div>
           <div>
@@ -153,7 +153,7 @@ const OtherConfig: React.FC<OtherConfigProps> = ({ config, onChange, onOpenChang
 
         <label className='block'>
           <div className='flex items-center gap-2 mb-2'>
-            <Clock size={16} className='text-purple-600' />
+            <Clock size={16} className='text-pink-500' />
             <span className='text-sm font-medium text-gray-700'>消息缓存过期时间（秒）</span>
           </div>
           <input

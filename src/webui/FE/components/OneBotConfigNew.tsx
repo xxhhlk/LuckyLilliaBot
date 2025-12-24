@@ -189,7 +189,7 @@ const OneBotConfigNew: React.FC<OneBotConfigProps> = ({ config, onChange, onSave
               <div
                 key={index}
                 className={`card p-6 cursor-pointer hover:scale-105 transition-all ${
-                  adapter.enable ? 'ring-2 ring-blue-500' : ''
+                  adapter.enable ? 'ring-2 ring-pink-500' : ''
                 }`}
                 onClick={() => handleAdapterClick(adapter, index)}
               >
@@ -272,12 +272,12 @@ const OneBotConfigNew: React.FC<OneBotConfigProps> = ({ config, onChange, onSave
                         if (e.key === 'Escape') handleCancelEditName();
                       }}
                       placeholder="输入自定义名称"
-                      className="flex-1 px-3 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="flex-1 px-3 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-pink-500"
                       autoFocus
                     />
                     <button
                       onClick={handleSaveName}
-                      className="px-4 py-2 bg-blue-500 text-white rounded-xl hover:bg-blue-600 transition-colors"
+                      className="px-4 py-2 bg-pink-500 text-white rounded-xl hover:bg-pink-600 transition-colors"
                     >
                       确定
                     </button>
@@ -296,7 +296,7 @@ const OneBotConfigNew: React.FC<OneBotConfigProps> = ({ config, onChange, onSave
                     </h3>
                     <button
                       onClick={handleStartEditName}
-                      className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                      className="p-2 text-gray-400 hover:text-pink-500 hover:bg-pink-50 rounded-lg transition-colors"
                       title="编辑名称"
                     >
                       <Edit2 size={18} />

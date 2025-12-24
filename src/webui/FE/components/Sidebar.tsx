@@ -85,7 +85,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange, accountInfo }
               }}
             />
             <div
-              className='w-10 h-10 bg-gradient-to-br from-green-400 to-blue-500 rounded-full items-center justify-center text-white font-semibold hidden'
+              className='w-10 h-10 bg-gradient-to-br from-pink-400 to-rose-500 rounded-full items-center justify-center text-white font-semibold hidden'
               style={{ display: 'none' }}
             >
               {accountInfo.nick.charAt(0).toUpperCase()}

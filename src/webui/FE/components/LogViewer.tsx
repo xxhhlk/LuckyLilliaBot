@@ -114,7 +114,7 @@ const LogViewer: React.FC = () => {
       case 'info':
         return {
           bg: 'bg-blue-50/50',
-          badge: 'text-blue-600 bg-blue-100/70',
+          badge: 'text-pink-500 bg-pink-100/70',
         }
       case 'debug':
         return {
@@ -202,11 +202,11 @@ const LogViewer: React.FC = () => {
               placeholder="搜索日志..."
               value={filter}
               onChange={(e) => setFilter(e.target.value)}
-              className="px-3 py-1.5 text-sm bg-white/50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent w-40"
+              className="px-3 py-1.5 text-sm bg-white/50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent w-40"
             />
             <button
               onClick={() => setAutoScroll(!autoScroll)}
-              className={`p-2 rounded-lg transition-all ${autoScroll ? 'bg-gradient-to-br from-blue-500 to-cyan-500 text-white shadow-md' : 'bg-white/50 text-gray-600 hover:bg-white/80'}`}
+              className={`p-2 rounded-lg transition-all ${autoScroll ? 'gradient-primary text-white shadow-md' : 'bg-white/50 text-gray-600 hover:bg-white/80'}`}
               title={autoScroll ? '自动滚动已开启' : '自动滚动已关闭'}
             >
               <ArrowDown size={18} />

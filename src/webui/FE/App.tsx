@@ -128,7 +128,7 @@ function App() {
         <AnimatedBackground />
 
         <div className="relative flex items-center justify-center min-h-screen z-10">
-          <Loader2 size={48} className="animate-spin text-blue-500" />
+          <Loader2 size={48} className="animate-spin text-pink-500" />
         </div>
 
         {/* Password Dialog - 支持加载时的 401 设置密码 */}
@@ -216,7 +216,7 @@ function App() {
           {activeTab === 'satori' && (
             <div className="card p-6">
               <div className="flex items-center gap-3 mb-6">
-                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center">
+                <div className="w-12 h-12 rounded-xl gradient-primary-br flex items-center justify-center">
                   <Settings size={24} className="text-white" />
                 </div>
                 <div>
@@ -505,7 +505,7 @@ function App() {
                                 }
                               });
                             }}
-                            className="flex items-center gap-2 px-4 py-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors text-sm font-medium"
+                            className="flex items-center gap-2 px-4 py-2 text-pink-500 hover:bg-pink-50 rounded-lg transition-colors text-sm font-medium"
                           >
                             <Plus size={18} />
                             添加 Webhook URL
@@ -661,7 +661,7 @@ function App() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="card p-6">
                   <div className="flex items-center gap-3 mb-4">
-                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-600 flex items-center justify-center">
+                    <div className="w-12 h-12 rounded-xl gradient-primary-br flex items-center justify-center">
                       <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24">
                         <path d="M16.5 3c-1.862 0-3.505.928-4.5 2.344C11.005 3.928 9.362 3 7.5 3 4.462 3 2 5.462 2 8.5c0 4.171 4.912 8.213 6.281 9.49a2.94 2.94 0 0 0 2.438.94 2.94 2.94 0 0 0 2.438-.94C14.588 16.713 19.5 12.671 19.5 8.5 19.5 5.462 17.038 3 16.5 3z" />
                       </svg>
@@ -675,7 +675,7 @@ function App() {
                     href="https://t.me/+nLZEnpne-pQ1OWFl"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-blue-600 hover:text-blue-700 hover:underline text-sm break-all"
+                    className="text-pink-500 hover:text-pink-600 hover:underline text-sm break-all"
                   >
                     https://t.me/+nLZEnpne-pQ1OWFl
                   </a>
@@ -697,7 +697,7 @@ function App() {
                       href="https://qm.qq.com/q/EZndy3xntQ"
                       target="_blank"
                       rel="noopener noreferrer"
-                      className=" text-blue-600 hover:text-blue-700 hover:underline"
+                      className=" text-pink-500 hover:text-pink-600 hover:underline"
                     >
                       545402644
                     </a>
@@ -709,7 +709,7 @@ function App() {
               <div className="card p-6">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500 to-pink-600 flex items-center justify-center">
+                    <div className="w-10 h-10 rounded-xl gradient-primary-br flex items-center justify-center">
                       <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                       </svg>
@@ -721,7 +721,7 @@ function App() {
                     </div>
                   </div>
                   <div className="text-sm text-gray-600">
-                    WebUI Powered by  <span className="font-semibold text-purple-600">React + Tailwind</span>
+                    WebUI Powered by  <span className="font-semibold text-pink-500">React + Tailwind</span>
                   </div>
                 </div>
               </div>
@@ -734,7 +734,7 @@ function App() {
       {loading && (
         <div className="fixed inset-0 bg-black/20 flex items-center justify-center" style={{ zIndex: 9000 }}>
           <div className="bg-white rounded-2xl p-6 shadow-2xl">
-            <Loader2 size={48} className="animate-spin text-blue-600 mx-auto" />
+            <Loader2 size={48} className="animate-spin text-pink-500 mx-auto" />
             <p className="mt-4 text-gray-700">加载中...</p>
           </div>
         </div>

@@ -105,7 +105,7 @@ const TokenDialog: React.FC<TokenDialogProps> = ({ visible, onConfirm, onClose, 
                   className={`w-full px-4 py-3 pr-12 border rounded-xl focus:outline-none focus:ring-2 transition-all bg-white/50 backdrop-blur-sm ${
                     validationError 
                       ? 'border-red-300 focus:ring-red-500 focus:border-red-500' 
-                      : 'border-gray-300 focus:ring-blue-500 focus:border-transparent'
+                      : 'border-gray-300 focus:ring-pink-500 focus:border-transparent'
                   }`}
                   autoComplete="off"
                 />
