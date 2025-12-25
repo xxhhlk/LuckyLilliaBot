@@ -700,17 +700,25 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ session, onShowMembers, onNewMe
     }
   }, [onNewMessageCallback])
 
-  const loadMessages = useCallback(async (beforeMsgId?: string) => {
+  // 需要滚动到的目标消息 ID
+  const scrollToMsgIdRef = useRef<string | null>(null)
+  
+  const loadMessages = useCallback(async (beforeMsgSeq?: string) => {
     if (!session) return
 
-    if (beforeMsgId) {
+    if (beforeMsgSeq) {
       setLoadingMore(true)
     } else {
       setLoading(true)
     }
 
+    // 记录加载前的第一条消息 ID，用于加载后滚动定位
+    if (beforeMsgSeq && messages.length > 0) {
+      scrollToMsgIdRef.current = messages[0]?.msgId || null
+    }
+
     try {
-      const result = await getMessages(session.chatType, session.peerId, beforeMsgId)
+      const result = await getMessages(session.chatType, session.peerId, beforeMsgSeq)
       const validMessages = result.messages.filter((msg): msg is RawMessage => 
         msg !== null && msg !== undefined && msg.elements && Array.isArray(msg.elements)
       )
@@ -718,14 +726,15 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ session, onShowMembers, onNewMe
       setMessages(prev => {
         const existingIds = new Set(prev.map(m => m.msgId))
         const newMsgs = validMessages.filter(m => !existingIds.has(m.msgId))
-        const merged = beforeMsgId ? [...newMsgs, ...prev] : [...prev, ...newMsgs]
+        const merged = beforeMsgSeq ? [...newMsgs, ...prev] : [...prev, ...newMsgs]
         merged.sort((a, b) => parseInt(a.msgTime) - parseInt(b.msgTime))
         setCachedMessages(session.chatType, session.peerId, merged)
         return merged
       })
       setHasMore(result.hasMore)
     } catch (e: any) {
-      if (!beforeMsgId) {
+      scrollToMsgIdRef.current = null
+      if (!beforeMsgSeq) {
         showToast('加载消息失败', 'error')
       } else {
         showToast('加载更多消息失败', 'error')
@@ -734,7 +743,19 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ session, onShowMembers, onNewMe
       setLoading(false)
       setLoadingMore(false)
     }
-  }, [session])
+  }, [session, messages])
+  
+  // 加载更多后滚动到之前的第一条消息
+  useEffect(() => {
+    const targetMsgId = scrollToMsgIdRef.current
+    if (targetMsgId && allItems.length > 0) {
+      const targetIndex = allItems.findIndex(item => item.type === 'raw' && item.data.msgId === targetMsgId)
+      if (targetIndex !== -1) {
+        virtualizer.scrollToIndex(targetIndex, { align: 'start' })
+      }
+      scrollToMsgIdRef.current = null
+    }
+  }, [allItems, virtualizer])
 
   // 内存缓存：存储每个聊天的消息，避免切换时闪烁
   const messageCacheRef = useRef<Map<string, RawMessage[]>>(new Map())
@@ -790,20 +811,49 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ session, onShowMembers, onNewMe
     }
   }, [messages, session?.chatType, session?.peerId])
 
+  // 顶部哨兵 ref，用于检测滚动到顶部
+  const topSentinelRef = useRef<HTMLDivElement>(null)
+  // 防止重复加载的 ref
+  const isLoadingMoreRef = useRef(false)
+  
+  // 使用 IntersectionObserver 检测滚动到顶部
+  useEffect(() => {
+    const sentinel = topSentinelRef.current
+    const container = parentRef.current
+    if (!sentinel || !container) return
+    
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const entry = entries[0]
+        if (entry.isIntersecting && hasMore && !isLoadingMoreRef.current && messages.length > 0) {
+          const firstMsgSeq = messages[0]?.msgSeq
+          if (firstMsgSeq) {
+            isLoadingMoreRef.current = true
+            loadMessages(firstMsgSeq).finally(() => {
+              isLoadingMoreRef.current = false
+            })
+          }
+        }
+      },
+      {
+        root: container,
+        rootMargin: '50px 0px 0px 0px',
+        threshold: 0
+      }
+    )
+    
+    observer.observe(sentinel)
+    return () => observer.disconnect()
+  }, [hasMore, messages, loadMessages])
+
   const handleScroll = useCallback(() => {
     const container = parentRef.current
-    if (!container || loadingMore || messages.length === 0) return
+    if (!container || messages.length === 0) return
     
     // 检查是否在底部附近
     const isNearBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 100
     shouldScrollRef.current = isNearBottom
-    
-    // 加载更多历史消息
-    if (hasMore && container.scrollTop < 50) {
-      const firstMsgId = messages[0]?.msgId
-      if (firstMsgId) loadMessages(firstMsgId)
-    }
-  }, [loadingMore, hasMore, messages, loadMessages])
+  }, [messages])
 
   const handleSendText = useCallback(async () => {
     if (!session || isEmptyMessage(inputText)) return
@@ -933,6 +983,8 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ session, onShowMembers, onNewMe
       </div>
 
       <div ref={parentRef} onScroll={handleScroll} className="flex-1 overflow-y-auto p-4">
+        {/* 顶部哨兵元素，用于检测滚动到顶部 */}
+        <div ref={topSentinelRef} className="h-1" />
         {loadingMore && <div className="flex justify-center py-2"><Loader2 size={20} className="animate-spin text-pink-500" /></div>}
         {loading ? (
           <div className="flex items-center justify-center h-full"><Loader2 size={32} className="animate-spin text-pink-500" /></div>

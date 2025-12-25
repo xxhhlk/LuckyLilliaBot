@@ -144,7 +144,7 @@ function extractAbstractContent(abstractContent: any[]): string {
 export async function getMessages(
   chatType: number,
   peerId: string,
-  beforeMsgId?: string,
+  beforeMsgSeq?: string,
   limit: number = 20
 ): Promise<MessagesResponse> {
   const params = new URLSearchParams({
@@ -152,8 +152,8 @@ export async function getMessages(
     peerId,
     limit: limit.toString()
   })
-  if (beforeMsgId) {
-    params.append('beforeMsgId', beforeMsgId)
+  if (beforeMsgSeq) {
+    params.append('beforeMsgSeq', beforeMsgSeq)
   }
   
   const response = await apiFetch<MessagesResponse>(`/api/webqq/messages?${params}`)
