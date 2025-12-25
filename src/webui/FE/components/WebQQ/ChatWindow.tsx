@@ -218,12 +218,10 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ session, onShowMembers, onNewMe
   })
 
   const scrollToBottom = useCallback(() => {
-    if (parentRef.current) {
-      requestAnimationFrame(() => {
-        parentRef.current?.scrollTo({ top: parentRef.current.scrollHeight, behavior: 'smooth' })
-      })
+    if (allItemsRef.current.length > 0) {
+      virtualizer.scrollToIndex(allItemsRef.current.length - 1, { align: 'end' })
     }
-  }, [])
+  }, [virtualizer])
 
   // 消息变化时处理滚动
   useEffect(() => {
@@ -234,15 +232,21 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ session, onShowMembers, onNewMe
     
     if (isNewSession) {
       prevSessionKeyRef.current = currentKey
-      // 切换聊天时直接滚动到底部
-      if (parentRef.current) {
-        parentRef.current.scrollTop = parentRef.current.scrollHeight
+      // 切换聊天时多次尝试滚动到底部，确保虚拟列表渲染完成
+      const scrollToEnd = () => {
+        virtualizer.scrollToIndex(allItems.length - 1, { align: 'end' })
       }
+      // 立即尝试一次
+      scrollToEnd()
+      // 延迟再尝试几次，确保元素测量完成
+      setTimeout(scrollToEnd, 50)
+      setTimeout(scrollToEnd, 150)
+      setTimeout(scrollToEnd, 300)
       shouldScrollRef.current = true
     } else if (shouldScrollRef.current) {
       scrollToBottom()
     }
-  }, [allItems.length, scrollToBottom, session])
+  }, [allItems.length, scrollToBottom, session, virtualizer])
 
   useEffect(() => {
     if (onNewMessageCallback) {
