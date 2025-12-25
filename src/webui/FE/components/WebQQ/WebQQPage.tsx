@@ -250,8 +250,8 @@ const WebQQPage: React.FC = () => {
   }
 
   return (
-    <div className="flex h-[calc(100vh-120px)] bg-white/50 dark:bg-neutral-800/70 backdrop-blur-xl rounded-2xl overflow-hidden shadow-xl">
-      <div className="w-72 border-r border-gray-200/50 dark:border-neutral-700/50 flex-shrink-0">
+    <div className="flex h-[calc(100vh-120px)] bg-theme-card backdrop-blur-xl rounded-2xl overflow-hidden shadow-xl border border-theme">
+      <div className="w-72 border-r border-theme-divider flex-shrink-0">
         <ContactList
           activeTab={activeTab}
           onTabChange={setActiveTab}
@@ -275,7 +275,7 @@ const WebQQPage: React.FC = () => {
       </div>
 
       {showMemberPanel && currentChat?.chatType === 'group' && (
-        <div className="w-64 border-l border-gray-200/50 dark:border-neutral-700/50 flex-shrink-0">
+        <div className="w-64 border-l border-theme-divider flex-shrink-0">
           <GroupMemberPanel groupCode={currentChat.peerId} onClose={() => setShowMemberPanel(false)} />
         </div>
       )}

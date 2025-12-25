@@ -253,7 +253,7 @@ const Dashboard: React.FC = () => {
               <Clock size={20} className="text-white" />
             </div>
             <h3 className="text-base font-semibold text-theme">运行时间</h3>
-            <div className="ml-auto flex items-center gap-1 px-2 py-0.5 rounded-full bg-green-100 text-green-600 text-xs font-medium">
+            <div className="ml-auto flex items-center gap-1 px-2 py-0.5 rounded-full bg-green-500/20 text-green-500 dark:text-green-400 text-xs font-medium">
               <Zap size={12} />
               运行中
             </div>

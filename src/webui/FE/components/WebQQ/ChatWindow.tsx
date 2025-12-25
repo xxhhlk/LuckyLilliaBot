@@ -110,10 +110,10 @@ const RawMessageBubble = memo<{ message: RawMessage; allMessages: RawMessage[] }
       <img src={senderAvatar} alt={senderName} loading="lazy" className="w-8 h-8 rounded-full object-cover flex-shrink-0" />
       <div className={`flex flex-col ${isSelf ? 'items-end' : 'items-start'} max-w-[70%]`}>
         <span className="text-xs text-theme-hint mb-1">{senderName}</span>
-        <div className={`rounded-2xl px-4 py-2 min-w-[80px] break-all ${isSelf ? 'bg-pink-500 text-white rounded-br-sm' : 'bg-white dark:bg-neutral-700 text-theme rounded-tl-sm shadow-sm'}`}>
+        <div className={`rounded-2xl px-4 py-2 min-w-[80px] break-all ${isSelf ? 'bg-pink-500 text-white rounded-br-sm' : 'bg-theme-item text-theme rounded-tl-sm shadow-sm'}`}>
           {replyElement && (
             <div className={`text-xs mb-2 pb-2 border-b ${isSelf ? 'border-pink-400/50' : 'border-theme-divider'}`}>
-              <div className={`${isSelf ? 'bg-pink-400/30' : 'bg-theme-item'} rounded px-2 py-1`}>
+              <div className={`${isSelf ? 'bg-pink-400/30' : 'bg-theme-input'} rounded px-2 py-1`}>
                 {replySourceMsg ? (
                   <div className="space-y-1">
                     <div className={`font-medium ${isSelf ? 'text-pink-100' : 'text-theme-secondary'}`}>
@@ -455,7 +455,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ session, onShowMembers, onNewMe
 
   if (!session) {
     return (
-      <div className="flex-1 flex items-center justify-center bg-gray-50/30 dark:bg-neutral-900/30">
+      <div className="flex-1 flex items-center justify-center bg-theme-item">
         <div className="text-center text-theme-hint">
           <div className="text-6xl mb-4">💬</div>
           <p>选择一个联系人开始聊天</p>
@@ -466,7 +466,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ session, onShowMembers, onNewMe
 
   return (
     <div className="flex flex-col h-full">
-      <div className="flex items-center justify-between px-4 py-3 border-b border-theme-divider bg-white/30 dark:bg-neutral-800/50">
+      <div className="flex items-center justify-between px-4 py-3 border-b border-theme-divider bg-theme-card">
         <div className="flex items-center gap-3">
           <img src={session.peerAvatar} alt={session.peerName} className="w-10 h-10 rounded-full object-cover" />
           <div>
@@ -526,7 +526,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ session, onShowMembers, onNewMe
         </div>
       )}
 
-      <div className="px-4 py-3 border-t border-theme-divider bg-white/30 dark:bg-neutral-800/50">
+      <div className="px-4 py-3 border-t border-theme-divider bg-theme-card">
         <div className="flex items-center gap-2">
           <input type="file" ref={fileInputRef} onChange={handleImageSelect} accept="image/jpeg,image/png,image/gif" className="hidden" />
           <div className="flex-1">

@@ -189,7 +189,7 @@ export const FriendListItem: React.FC<FriendListItemProps> = ({ friend, isSelect
     <div
       onClick={onClick}
       className={`flex items-center gap-3 px-3 py-2.5 cursor-pointer transition-colors ${
-        isSelected ? 'bg-pink-50 dark:bg-pink-900/30' : 'hover:bg-theme-item-hover'
+        isSelected ? 'bg-pink-500/20' : 'hover:bg-theme-item-hover'
       }`}
     >
       <div className="relative flex-shrink-0">
@@ -259,7 +259,7 @@ export const GroupListItem: React.FC<GroupListItemProps> = ({ group, isSelected,
     <div
       onClick={onClick}
       className={`flex items-center gap-3 px-3 py-2.5 cursor-pointer transition-colors ${
-        isSelected ? 'bg-pink-50 dark:bg-pink-900/30' : 'hover:bg-theme-item-hover'
+        isSelected ? 'bg-pink-500/20' : 'hover:bg-theme-item-hover'
       }`}
     >
       <img
@@ -323,7 +323,7 @@ export const RecentListItem: React.FC<RecentListItemProps> = ({ item, unreadCoun
     <div
       onClick={onClick}
       className={`flex items-center gap-3 px-3 py-2.5 cursor-pointer transition-colors ${
-        isSelected ? 'bg-pink-50 dark:bg-pink-900/30' : 'hover:bg-theme-item-hover'
+        isSelected ? 'bg-pink-500/20' : 'hover:bg-theme-item-hover'
       }`}
     >
       <div className="relative flex-shrink-0">
