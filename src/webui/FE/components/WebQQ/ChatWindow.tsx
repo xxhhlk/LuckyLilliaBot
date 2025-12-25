@@ -461,8 +461,9 @@ const RawMessageBubble = memo<{ message: RawMessage; allMessages: RawMessage[]; 
   // 查找被引用的原消息
   const replySourceMsg = replyElement ? allMessages.find(m => m.msgId === replyElement.replayMsgId || m.msgSeq === replyElement.replayMsgSeq) : null
 
-  const handleContextMenu = (e: React.MouseEvent) => {
+  const handleBubbleContextMenu = (e: React.MouseEvent) => {
     e.preventDefault()
+    e.stopPropagation()
     contextMenuContext?.showMenu(e, message)
   }
 
@@ -473,11 +474,14 @@ const RawMessageBubble = memo<{ message: RawMessage; allMessages: RawMessage[]; 
   }
 
   return (
-    <div className={`flex gap-2 ${isSelf ? 'flex-row-reverse' : ''} ${isHighlighted ? 'animate-pulse bg-pink-100 dark:bg-pink-900/30 rounded-lg -mx-2 px-2' : ''}`} onContextMenu={handleContextMenu}>
+    <div className={`flex gap-2 ${isSelf ? 'flex-row-reverse' : ''} ${isHighlighted ? 'animate-pulse bg-pink-100 dark:bg-pink-900/30 rounded-lg -mx-2 px-2' : ''}`}>
       <img src={senderAvatar} alt={senderName} loading="lazy" className="w-8 h-8 rounded-full object-cover flex-shrink-0" />
       <div className={`flex flex-col ${isSelf ? 'items-end' : 'items-start'} max-w-[70%]`}>
         <span className="text-xs text-theme-hint mb-1">{senderName}</span>
-        <div className={`rounded-2xl px-4 py-2 min-w-[80px] break-all ${isSelf ? 'bg-pink-500 text-white rounded-br-sm' : 'bg-theme-item text-theme rounded-tl-sm shadow-sm'}`}>
+        <div 
+          className={`rounded-2xl px-4 py-2 min-w-[80px] break-all ${isSelf ? 'bg-pink-500 text-white rounded-br-sm' : 'bg-theme-item text-theme rounded-tl-sm shadow-sm'}`}
+          onContextMenu={handleBubbleContextMenu}
+        >
           {replyElement && (
             <div 
               className={`text-xs mb-2 pb-2 border-b cursor-pointer hover:opacity-80 transition-opacity ${isSelf ? 'border-pink-400/50' : 'border-theme-divider'}`}
@@ -1086,15 +1090,15 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ session, onShowMembers, onNewMe
               const isGroup = msg.chatType === 2
               // 获取缓存的群成员信息判断自己是否是管理员
               const cachedMembers = isGroup && session ? getCachedMembers(session.peerId) : null
-              const selfMember = cachedMembers && selfUid ? Object.values(cachedMembers).find((m: any) => m.uid === selfUid) : null
-              const selfRole = selfMember ? Number(selfMember.role) : 0 // 3=管理员, 4=群主
-              const isOwner = selfRole === 4
-              const isAdmin = selfRole === 3 || selfRole === 4
+              const selfMember = cachedMembers && selfUid ? cachedMembers.find((m) => m.uid === selfUid) : null
+              const selfRole = selfMember?.role // 'owner' | 'admin' | 'member'
+              const isOwner = selfRole === 'owner'
+              const isAdmin = selfRole === 'admin' || selfRole === 'owner'
               
               // 获取消息发送者的角色
-              const targetMember = cachedMembers ? Object.values(cachedMembers).find((m: any) => m.uid === msg.senderUid) : null
-              const targetRole = targetMember ? Number(targetMember.role) : 0
-              const targetIsAdmin = targetRole === 3 || targetRole === 4
+              const targetMember = cachedMembers ? cachedMembers.find((m) => m.uid === msg.senderUid) : null
+              const targetRole = targetMember?.role
+              const targetIsAdmin = targetRole === 'admin' || targetRole === 'owner'
               
               // 判断是否可以撤回：
               // 1. 自己的消息可以撤回
