@@ -34,6 +34,9 @@ export type {
 
 // ==================== WebQQ 业务类型 ====================
 
+// ChatType: 1=私聊, 2=群聊
+export type WebChatType = 1 | 2
+
 // 好友项
 export interface FriendItem {
   uid: string
@@ -64,7 +67,7 @@ export interface GroupItem {
 
 // 最近会话项
 export interface RecentChatItem {
-  chatType: 'friend' | 'group'
+  chatType: WebChatType
   peerId: string
   peerName: string
   peerAvatar: string
@@ -76,7 +79,7 @@ export interface RecentChatItem {
 
 // 聊天会话
 export interface ChatSession {
-  chatType: 'friend' | 'group'
+  chatType: WebChatType
   peerId: string
   peerName: string
   peerAvatar: string
@@ -107,7 +110,7 @@ export interface MessagesResponse {
 
 // 发送消息请求
 export interface SendMessageRequest {
-  chatType: 'friend' | 'group'
+  chatType: WebChatType
   peerId: string
   content: { type: 'text' | 'image' | 'reply'; text?: string; imagePath?: string; msgId?: string; msgSeq?: string }[]
 }

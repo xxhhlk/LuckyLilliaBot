@@ -414,105 +414,6 @@ export class WebUIServer extends Service {
 
   // WebQQ API 路由初始化
   private initWebQQRoutes() {
-    // 获取好友列表
-    this.app.get('/api/webqq/friends', async (req, res) => {
-      try {
-        // 获取带分组的好友列表
-        const buddyV2Result = await this.ctx.ntFriendApi.getBuddyV2(true)
-        const buddyList = await this.ctx.ntFriendApi.getBuddyList()
-        
-        // 创建 uid -> SimpleInfo 的映射
-        const buddyMap = new Map<string, typeof buddyList[0]>()
-        for (const buddy of buddyList) {
-          buddyMap.set(buddy.uid!, buddy)
-        }
-        
-        // 构建分组数据
-        const categories = (buddyV2Result.data || []).map((category: any) => {
-          const friends = (category.buddyUids || [])
-            .map((uid: string) => buddyMap.get(uid))
-            .filter((buddy: any) => buddy)
-            .map((buddy: any) => ({
-              uid: buddy.uid,
-              uin: buddy.uin,
-              nickname: buddy.coreInfo.nick,
-              remark: buddy.coreInfo.remark || '',
-              avatar: `https://q1.qlogo.cn/g?b=qq&nk=${buddy.uin}&s=640`,
-              online: buddy.status?.status === 10 || false
-            }))
-          
-          return {
-            categoryId: category.categoryId,
-            categoryName: category.categroyName || '我的好友',
-            categorySort: category.categorySortId,
-            onlineCount: category.onlineCount || 0,
-            memberCount: category.categroyMbCount || friends.length,
-            friends
-          }
-        })
-        
-        // 按 categorySort 排序
-        categories.sort((a: any, b: any) => a.categorySort - b.categorySort)
-        
-        res.json({ success: true, data: categories })
-      } catch (e: any) {
-        this.ctx.logger.error('获取好友列表失败:', e)
-        res.status(500).json({ success: false, message: '获取好友列表失败', error: e.message })
-      }
-    })
-
-    // 获取群组列表
-    this.app.get('/api/webqq/groups', async (req, res) => {
-      try {
-        const groups = await this.ctx.ntGroupApi.getGroups(false)
-        const groupItems = groups.map(group => ({
-          groupCode: group.groupCode,
-          groupName: group.groupName,
-          avatar: `https://p.qlogo.cn/gh/${group.groupCode}/${group.groupCode}/640/`,
-          memberCount: group.memberCount
-        }))
-        res.json({ success: true, data: groupItems })
-      } catch (e: any) {
-        this.ctx.logger.error('获取群组列表失败:', e)
-        res.status(500).json({ success: false, message: '获取群组列表失败', error: e.message })
-      }
-    })
-
-    // 获取最近会话列表
-    this.app.get('/api/webqq/recent', async (req, res) => {
-      try {
-        const result = await this.ctx.ntUserApi.getRecentContactListSnapShot(50)
-        const recentItems = result.info.changedList
-          .filter(item => {
-            // 过滤掉无效的会话（peerId 为空或为 0）
-            const peerId = item.peerUin || item.peerUid
-            return peerId && peerId !== '0' && peerId !== ''
-          })
-          .map(item => {
-            const isC2C = item.chatType === ChatType.C2C
-            // For groups, peerUin contains the group code (number as string)
-            const groupCode = item.peerUin || item.peerUid
-            return {
-              chatType: isC2C ? 'friend' : 'group',
-              peerId: isC2C ? item.peerUin : groupCode,
-              peerName: item.peerName || item.remark || item.peerUin,
-              peerAvatar: isC2C
-                ? `https://q1.qlogo.cn/g?b=qq&nk=${item.peerUin}&s=640`
-                : `https://p.qlogo.cn/gh/${groupCode}/${groupCode}/640/`,
-              lastMessage: this.extractAbstractContent(item.abstractContent),
-              lastTime: parseInt(item.msgTime) * 1000,
-              unreadCount: parseInt(item.unreadCnt) || 0
-            }
-          })
-        // 按时间排序
-        recentItems.sort((a, b) => b.lastTime - a.lastTime)
-        res.json({ success: true, data: recentItems })
-      } catch (e: any) {
-        this.ctx.logger.error('获取最近会话失败:', e)
-        res.status(500).json({ success: false, message: '获取最近会话失败', error: e.message })
-      }
-    })
-
     // 获取消息历史 - 返回原始 RawMessage 数据
     this.app.get('/api/webqq/messages', async (req, res) => {
       try {
@@ -528,11 +429,17 @@ export class WebUIServer extends Service {
           return
         }
 
+        const chatTypeNum = Number(chatType)
+        if (chatTypeNum !== ChatType.C2C && chatTypeNum !== ChatType.Group) {
+          res.status(400).json({ success: false, message: `无效的 chatType: ${chatType}，应为 1(私聊) 或 2(群聊)` })
+          return
+        }
+        
         // 构建 peer 对象
         // 对于私聊，peerUid 需要是 uid（内部ID），不是 uin（QQ号）
         // 对于群聊，peerUid 直接用群号
         let peerUid = peerId
-        if (chatType === 'friend') {
+        if (chatTypeNum === ChatType.C2C) {
           // 将 uin（QQ号）转换为 uid
           const uid = await this.ctx.ntUserApi.getUidByUin(peerId)
           if (!uid) {
@@ -543,7 +450,7 @@ export class WebUIServer extends Service {
         }
 
         const peer = {
-          chatType: chatType === 'friend' ? ChatType.C2C : ChatType.Group,
+          chatType: chatTypeNum,
           peerUid,
           guildId: ''
         }
@@ -578,21 +485,26 @@ export class WebUIServer extends Service {
     this.app.post('/api/webqq/messages', async (req, res) => {
       try {
         const { chatType, peerId, content } = req.body as {
-          chatType: string
+          chatType: number | string
           peerId: string
           content: { type: string; text?: string; imagePath?: string; msgId?: string; msgSeq?: string }[]
         }
 
-        if (!chatType || !peerId || !content || content.length === 0) {
+        if (chatType === undefined || chatType === null || !peerId || !content || content.length === 0) {
           res.status(400).json({ success: false, message: '缺少必要参数' })
           return
         }
 
+        const chatTypeNum = Number(chatType)
+        if (chatTypeNum !== ChatType.C2C && chatTypeNum !== ChatType.Group) {
+          res.status(400).json({ success: false, message: `无效的 chatType: ${chatType}，应为 1(私聊) 或 2(群聊)` })
+          return
+        }
         // 构建 peer 对象
         // 对于私聊，peerUid 需要是 uid（内部ID），不是 uin（QQ号）
         // 对于群聊，peerUid 直接用群号
         let peerUid = peerId
-        if (chatType === 'friend') {
+        if (chatTypeNum === ChatType.C2C) {
           const uid = await this.ctx.ntUserApi.getUidByUin(peerId)
           if (!uid) {
             res.status(400).json({ success: false, message: '无法获取用户信息' })
@@ -602,7 +514,7 @@ export class WebUIServer extends Service {
         }
 
         const peer = {
-          chatType: chatType === 'friend' ? ChatType.C2C : ChatType.Group,
+          chatType: chatTypeNum,
           peerUid,
           guildId: ''
         }
@@ -746,30 +658,26 @@ export class WebUIServer extends Service {
     })
 
     // 通用 NT API 调用接口
-    this.app.post('/api/webqq/nt-call', async (req, res) => {
+    this.app.post('/api/ntcall/:service/:method', async (req, res) => {
       try {
-        const { service, method, args } = req.body as {
-          service: string
-          method: string
-          args: any[]
-        }
+        const { service, method } = req.params
+        const args = req.body?.args || []
 
         if (!service || !method) {
           res.status(400).json({ success: false, message: '缺少 service 或 method 参数' })
           return
         }
 
-        // 白名单：只允许调用特定的服务
-        const allowedServices: Record<string, any> = {
-          'ntUserApi': this.ctx.ntUserApi,
-          'ntGroupApi': this.ctx.ntGroupApi,
-          'ntFriendApi': this.ctx.ntFriendApi,
-          'ntFileApi': this.ctx.ntFileApi,
+        // 白名单：只允许调用 inject 中声明的服务
+        const allowedServices = ['ntUserApi', 'ntGroupApi', 'ntFriendApi', 'ntFileApi', 'ntMsgApi']
+        if (!allowedServices.includes(service)) {
+          res.status(400).json({ success: false, message: `不支持的服务: ${service}` })
+          return
         }
 
-        const serviceInstance = allowedServices[service]
+        const serviceInstance = (this.ctx as any)[service]
         if (!serviceInstance) {
-          res.status(400).json({ success: false, message: `不支持的服务: ${service}` })
+          res.status(400).json({ success: false, message: `服务 ${service} 未注入` })
           return
         }
 

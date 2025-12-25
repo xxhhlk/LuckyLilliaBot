@@ -111,7 +111,7 @@ const WebQQPage: React.FC = () => {
             return
           }
           
-          const chatType = rawMessage.chatType === 1 ? 'friend' : 'group'
+          const chatType = rawMessage.chatType as 1 | 2
           // peerUin 可能为空，优先用 peerUin，否则用 peerUid
           const peerId = rawMessage.peerUin || rawMessage.peerUid
           const chatKey = `${chatType}_${peerId}`
@@ -137,7 +137,7 @@ const WebQQPage: React.FC = () => {
           let peerName: string | undefined
           let peerAvatar: string | undefined
           
-          if (chatType === 'group') {
+          if (chatType === 2) {
             // 群聊使用群名称
             peerName = rawMessage.peerName || undefined
             peerAvatar = `https://p.qlogo.cn/gh/${peerId}/${peerId}/640/`
@@ -165,7 +165,7 @@ const WebQQPage: React.FC = () => {
     pendingMessagesRef.current = []
     
     setCurrentChat(session)
-    if (session.chatType !== 'group') {
+    if (session.chatType !== 2) {
       setShowMemberPanel(false)
     }
     
@@ -182,7 +182,7 @@ const WebQQPage: React.FC = () => {
 
   const handleSelectFriend = useCallback((friend: FriendItem) => {
     handleSelectChat({
-      chatType: 'friend',
+      chatType: 1,
       peerId: friend.uin,
       peerName: friend.remark || friend.nickname,
       peerAvatar: friend.avatar
@@ -191,7 +191,7 @@ const WebQQPage: React.FC = () => {
 
   const handleSelectGroup = useCallback((group: GroupItem) => {
     handleSelectChat({
-      chatType: 'group',
+      chatType: 2,
       peerId: group.groupCode,
       peerName: group.groupName,
       peerAvatar: group.avatar
@@ -257,7 +257,7 @@ const WebQQPage: React.FC = () => {
         />
       </div>
 
-      {showMemberPanel && currentChat?.chatType === 'group' && (
+      {showMemberPanel && currentChat?.chatType === 2 && (
         <div className="w-64 border-l border-theme-divider flex-shrink-0">
           <GroupMemberPanel groupCode={currentChat.peerId} onClose={() => setShowMemberPanel(false)} />
         </div>

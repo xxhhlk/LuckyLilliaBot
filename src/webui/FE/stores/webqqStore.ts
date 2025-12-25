@@ -30,12 +30,12 @@ export const resetVisitedChats = () => {
 }
 
 // 检查是否已访问过
-export const hasVisitedChat = (chatType: string, peerId: string): boolean => {
+export const hasVisitedChat = (chatType: number, peerId: string): boolean => {
   return visitedChats.has(`${chatType}_${peerId}`)
 }
 
 // 标记为已访问
-export const markChatVisited = (chatType: string, peerId: string) => {
+export const markChatVisited = (chatType: number, peerId: string) => {
   visitedChats.add(`${chatType}_${peerId}`)
 }
 
@@ -109,13 +109,13 @@ interface WebQQState {
   refreshContacts: () => Promise<void>
   
   // 更新最近会话
-  updateRecentChat: (chatType: string, peerId: string, lastMessage: string, lastTime: number, peerName?: string, peerAvatar?: string) => void
+  updateRecentChat: (chatType: number, peerId: string, lastMessage: string, lastTime: number, peerName?: string, peerAvatar?: string) => void
   
   // 置顶/取消置顶会话
-  togglePinChat: (chatType: string, peerId: string) => void
+  togglePinChat: (chatType: number, peerId: string) => void
   
   // 删除最近会话
-  removeRecentChat: (chatType: string, peerId: string) => void
+  removeRecentChat: (chatType: number, peerId: string) => void
   
   // 检查缓存是否有效
   isContactsCacheValid: () => boolean
@@ -437,7 +437,7 @@ export const useWebQQStore = create<WebQQState>()(
           let name = peerName || peerId
           let avatar = peerAvatar || ''
           
-          if (chatType === 'friend') {
+          if (chatType === 1) {
             // 从好友列表查找
             for (const category of state.friendCategories) {
               const friend = category.friends.find(f => f.uin === peerId)
@@ -450,7 +450,7 @@ export const useWebQQStore = create<WebQQState>()(
             if (!avatar) {
               avatar = `https://q1.qlogo.cn/g?b=qq&nk=${peerId}&s=640`
             }
-          } else if (chatType === 'group') {
+          } else if (chatType === 2) {
             // 从群组列表查找
             const group = state.groups.find(g => g.groupCode === peerId)
             if (group) {
@@ -463,7 +463,7 @@ export const useWebQQStore = create<WebQQState>()(
           }
           
           const newChat: RecentChatItem = {
-            chatType: chatType as 'friend' | 'group',
+            chatType: chatType as 1 | 2,
             peerId,
             peerName: name,
             peerAvatar: avatar,
@@ -496,11 +496,13 @@ export const useWebQQStore = create<WebQQState>()(
       }),
 
       // 删除最近会话
-      removeRecentChat: (chatType, peerId) => set((state) => ({
-        recentChats: state.recentChats.filter(
-          item => !(item.chatType === chatType && item.peerId === peerId)
-        )
-      }))
+      removeRecentChat: (chatType, peerId) => set((state) => {
+        return {
+          recentChats: state.recentChats.filter(
+            item => !(item.chatType === chatType && item.peerId === peerId)
+          )
+        }
+      })
     }),
     {
       name: 'webqq-storage',
@@ -525,7 +527,6 @@ export const useWebQQStore = create<WebQQState>()(
           // 去重最近会话，并过滤掉无效的 peerId
           const seen = new Set<string>()
           state.recentChats = state.recentChats.filter(item => {
-            // 过滤掉无效的 peerId
             if (!item.peerId || item.peerId === '0' || item.peerId === '') {
               return false
             }

@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo, memo } from 'react'
 import { createPortal } from 'react-dom'
 import { useVirtualizer } from '@tanstack/react-virtual'
-import { Users, Send, Image as ImageIcon, X, Loader2, AlertCircle, RefreshCw, Reply } from 'lucide-react'
+import { Users, Send, Image as ImageIcon, X, Loader2, AlertCircle, RefreshCw, Reply, Trash2 } from 'lucide-react'
 import type { ChatSession, RawMessage, MessageElement } from '../../types/webqq'
-import { getMessages, sendMessage, uploadImage, formatMessageTime, isEmptyMessage, isValidImageFormat, getSelfUid, getSelfUin, getUserDisplayName, getVideoUrl } from '../../utils/webqqApi'
+import { getMessages, sendMessage, uploadImage, formatMessageTime, isEmptyMessage, isValidImageFormat, getSelfUid, getSelfUin, getUserDisplayName, getVideoUrl, recallMessage } from '../../utils/webqqApi'
 import { useWebQQStore, hasVisitedChat, markChatVisited } from '../../stores/webqqStore'
-import { getCachedMessages, setCachedMessages, appendCachedMessage } from '../../utils/messageDb'
+import { getCachedMessages, setCachedMessages, appendCachedMessage, removeCachedMessage } from '../../utils/messageDb'
 import { getToken } from '../../utils/api'
 import { showToast } from '../Toast'
 
@@ -739,34 +739,40 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ session, onShowMembers, onNewMe
   // 内存缓存：存储每个聊天的消息，避免切换时闪烁
   const messageCacheRef = useRef<Map<string, RawMessage[]>>(new Map())
   
-  const getSessionKey = (chatType: string, peerId: string) => `${chatType}_${peerId}`
+  const getSessionKey = (chatType: number | string, peerId: string) => `${chatType}_${peerId}`
 
+  // 组件挂载标记，用于首次进入时加载消息
+  const isFirstMountRef = useRef(true)
+  
   useEffect(() => {
     if (session) {
       const sessionKey = getSessionKey(session.chatType, session.peerId)
       
-      // 先从内存缓存读取
+      // 先从内存缓存读取，避免空白闪烁
       const cachedInMemory = messageCacheRef.current.get(sessionKey)
       if (cachedInMemory && cachedInMemory.length > 0) {
         setMessages(cachedInMemory)
-      } else {
-        // 内存没有，从 IndexedDB 加载
-        setMessages([])
-        getCachedMessages(session.chatType, session.peerId).then(cachedMessages => {
-          if (cachedMessages && cachedMessages.length > 0) {
-            const validMessages = cachedMessages.filter(m => m.elements && Array.isArray(m.elements))
-            if (validMessages.length > 0) {
-              messageCacheRef.current.set(sessionKey, validMessages)
-              setMessages(validMessages)
-            }
-          }
-        })
       }
+      
+      // 总是从 IndexedDB 加载最新数据（SSE 消息会写入 IndexedDB）
+      getCachedMessages(session.chatType, session.peerId).then(cachedMessages => {
+        if (cachedMessages && cachedMessages.length > 0) {
+          const validMessages = cachedMessages.filter(m => m.elements && Array.isArray(m.elements))
+          if (validMessages.length > 0) {
+            messageCacheRef.current.set(sessionKey, validMessages)
+            setMessages(validMessages)
+          }
+        } else if (!cachedInMemory || cachedInMemory.length === 0) {
+          setMessages([])
+        }
+      })
+      
       setTempMessages([])
       shouldScrollRef.current = true
       
-      // 只有首次访问该聊天时才调用 messages 接口
-      if (!hasVisitedChat(session.chatType, session.peerId)) {
+      // 首次挂载或首次访问该聊天时调用 messages 接口
+      if (isFirstMountRef.current || !hasVisitedChat(session.chatType, session.peerId)) {
+        isFirstMountRef.current = false
         markChatVisited(session.chatType, session.peerId)
         loadMessages()
       }
@@ -916,10 +922,10 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ session, onShowMembers, onNewMe
             <img src={session.peerAvatar} alt={session.peerName} className="w-10 h-10 rounded-full object-cover" />
             <div>
               <div className="font-medium text-theme">{session.peerName}</div>
-              <div className="text-xs text-theme-hint">{session.chatType === 'group' ? '群聊' : '私聊'}</div>
+              <div className="text-xs text-theme-hint">{session.chatType === 2 ? '群聊' : '私聊'}</div>
             </div>
           </div>
-          {session.chatType === 'group' && onShowMembers && (
+          {session.chatType === 2 && onShowMembers && (
             <button onClick={onShowMembers} className="p-2 text-theme-muted hover:text-theme hover:bg-theme-item rounded-lg" title="查看群成员">
             <Users size={20} />
           </button>
@@ -1020,6 +1026,63 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ session, onShowMembers, onNewMe
               <Reply size={14} />
               回复
             </button>
+            {(() => {
+              const msg = contextMenu.message
+              const selfUid = getSelfUid()
+              const isSelfMessage = selfUid && msg.senderUid === selfUid
+              // 私聊只能撤回自己的消息，群聊可以撤回自己的或者群主/管理员撤回他人的
+              const isGroup = msg.chatType === 2
+              // 获取缓存的群成员信息判断自己是否是管理员
+              const cachedMembers = isGroup && session ? getCachedMembers(session.peerId) : null
+              const selfMember = cachedMembers && selfUid ? Object.values(cachedMembers).find((m: any) => m.uid === selfUid) : null
+              const selfRole = selfMember ? Number(selfMember.role) : 0 // 3=管理员, 4=群主
+              const isOwner = selfRole === 4
+              const isAdmin = selfRole === 3 || selfRole === 4
+              
+              // 获取消息发送者的角色
+              const targetMember = cachedMembers ? Object.values(cachedMembers).find((m: any) => m.uid === msg.senderUid) : null
+              const targetRole = targetMember ? Number(targetMember.role) : 0
+              const targetIsAdmin = targetRole === 3 || targetRole === 4
+              
+              // 判断是否可以撤回：
+              // 1. 自己的消息可以撤回
+              // 2. 群主可以撤回任何人的消息
+              // 3. 管理员只能撤回普通成员的消息（不能撤回其他管理员或群主的）
+              const canRecall = isSelfMessage || (isGroup && (isOwner || (isAdmin && !targetIsAdmin)))
+              
+              if (!canRecall) return null
+              
+              return (
+                <button
+                  onClick={async () => {
+                    setContextMenu(null)
+                    try {
+                      const chatType = msg.chatType
+                      await recallMessage(chatType, msg.peerUid, msg.msgId)
+                      // 从消息列表中移除
+                      setMessages(prev => prev.filter(m => m.msgId !== msg.msgId))
+                      // 从内存缓存中移除
+                      if (session) {
+                        const sessionKey = `${session.chatType}_${session.peerId}`
+                        const cached = messageCacheRef.current.get(sessionKey)
+                        if (cached) {
+                          messageCacheRef.current.set(sessionKey, cached.filter(m => m.msgId !== msg.msgId))
+                        }
+                        // 从 IndexedDB 中移除
+                        removeCachedMessage(session.chatType, session.peerId, msg.msgId)
+                      }
+                      showToast('消息已撤回', 'success')
+                    } catch (e: any) {
+                      showToast(e.message || '撤回失败', 'error')
+                    }
+                  }}
+                  className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-500 hover:bg-theme-item-hover transition-colors"
+                >
+                  <Trash2 size={14} />
+                  撤回
+                </button>
+              )
+            })()}
           </div>
         </>,
         document.body

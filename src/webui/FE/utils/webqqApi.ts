@@ -28,6 +28,15 @@ export function getSelfUin(): string | null {
   return selfUin
 }
 
+// 获取头像 URL
+export function getUserAvatar(uin: string): string {
+  return `https://q1.qlogo.cn/g?b=qq&nk=${uin}&s=640`
+}
+
+export function getGroupAvatar(groupCode: string): string {
+  return `https://p.qlogo.cn/gh/${groupCode}/${groupCode}/640/`
+}
+
 // 获取登录信息
 export async function getLoginInfo(): Promise<{ uid: string; uin: string; nick: string }> {
   const response = await apiFetch<{ uid: string; uin: string; nick: string }>('/api/login-info')
@@ -42,40 +51,104 @@ export async function getLoginInfo(): Promise<{ uid: string; uin: string; nick: 
 
 // 获取好友列表（带分组）
 export async function getFriends(): Promise<FriendCategory[]> {
-  const response = await apiFetch<FriendCategory[]>('/api/webqq/friends')
-  if (!response.success) {
-    throw new Error(response.message || '获取好友列表失败')
+  // 获取带分组的好友列表
+  const buddyV2Result = await ntCall<{ data: any[] }>('ntFriendApi', 'getBuddyV2', [true])
+  const buddyList = await ntCall<any[]>('ntFriendApi', 'getBuddyList', [])
+  
+  // 创建 uid -> SimpleInfo 的映射
+  const buddyMap = new Map<string, any>()
+  for (const buddy of buddyList) {
+    buddyMap.set(buddy.uid, buddy)
   }
-  return response.data || []
+  
+  // 构建分组数据
+  const categories = (buddyV2Result.data || []).map((category: any) => {
+    const friends = (category.buddyUids || [])
+      .map((uid: string) => buddyMap.get(uid))
+      .filter((buddy: any) => buddy)
+      .map((buddy: any) => ({
+        uid: buddy.uid,
+        uin: buddy.uin,
+        nickname: buddy.coreInfo?.nick || '',
+        remark: buddy.coreInfo?.remark || '',
+        avatar: getUserAvatar(buddy.uin),
+        online: buddy.status?.status === 10 || false
+      }))
+    
+    return {
+      categoryId: category.categoryId,
+      categoryName: category.categroyName || '我的好友',
+      categorySort: category.categorySortId,
+      onlineCount: category.onlineCount || 0,
+      memberCount: category.categroyMbCount || friends.length,
+      friends
+    }
+  })
+  
+  // 按 categorySort 排序
+  categories.sort((a: any, b: any) => a.categorySort - b.categorySort)
+  
+  return categories
 }
 
 // 获取群组列表
 export async function getGroups(): Promise<GroupItem[]> {
-  const response = await apiFetch<GroupItem[]>('/api/webqq/groups')
-  if (!response.success) {
-    throw new Error(response.message || '获取群组列表失败')
-  }
-  return response.data || []
+  const groups = await ntCall<any[]>('ntGroupApi', 'getGroups', [false])
+  return groups.map(group => ({
+    groupCode: group.groupCode,
+    groupName: group.groupName,
+    avatar: getGroupAvatar(group.groupCode),
+    memberCount: group.memberCount
+  }))
 }
 
 // 获取最近会话列表
 export async function getRecentChats(): Promise<RecentChatItem[]> {
-  const response = await apiFetch<RecentChatItem[]>('/api/webqq/recent')
-  if (!response.success) {
-    throw new Error(response.message || '获取最近会话失败')
-  }
-  return response.data || []
+  const result = await ntCall<{ info: { changedList: any[] } }>('ntUserApi', 'getRecentContactListSnapShot', [50])
+  return result.info.changedList
+    .filter(item => {
+      const peerId = item.peerUin || item.peerUid
+      return peerId && peerId !== '0' && peerId !== ''
+    })
+    .map(item => {
+      const chatType = item.chatType as 1 | 2
+      const groupCode = item.peerUin || item.peerUid
+      return {
+        chatType,
+        peerId: chatType === 1 ? item.peerUin : groupCode,
+        peerName: item.peerName || item.remark || item.peerUin,
+        peerAvatar: chatType === 1 ? getUserAvatar(item.peerUin) : getGroupAvatar(groupCode),
+        lastMessage: extractAbstractContent(item.abstractContent),
+        lastTime: parseInt(item.msgTime) * 1000,
+        unreadCount: parseInt(item.unreadCnt) || 0
+      }
+    })
+    .sort((a, b) => b.lastTime - a.lastTime)
+}
+
+// 提取消息摘要
+function extractAbstractContent(abstractContent: any[]): string {
+  if (!abstractContent || !Array.isArray(abstractContent)) return ''
+  return abstractContent
+    .map(item => {
+      if (item.type === 1) return item.content || ''
+      if (item.type === 2) return '[图片]'
+      if (item.type === 3) return '[表情]'
+      if (item.type === 6) return '[文件]'
+      return ''
+    })
+    .join('')
 }
 
 // 获取消息历史
 export async function getMessages(
-  chatType: 'friend' | 'group',
+  chatType: number,
   peerId: string,
   beforeMsgId?: string,
   limit: number = 20
 ): Promise<MessagesResponse> {
   const params = new URLSearchParams({
-    chatType,
+    chatType: String(chatType),
     peerId,
     limit: limit.toString()
   })
@@ -138,10 +211,10 @@ export async function getUserInfo(uid: string): Promise<{ uid: string; uin: stri
 
 // 通用 NT API 调用
 export async function ntCall<T = any>(service: string, method: string, args: any[] = []): Promise<T> {
-  const response = await apiFetch<T>('/api/webqq/nt-call', {
+  const response = await apiFetch<T>(`/api/ntcall/${service}/${method}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ service, method, args })
+    body: JSON.stringify({ args })
   })
   if (!response.success) {
     throw new Error(response.message || 'NT API 调用失败')
@@ -155,13 +228,18 @@ export async function getVideoUrl(chatType: number, peerUid: string, msgId: stri
   return await ntCall<string>('ntFileApi', 'getVideoUrl', [peer, msgId, elementId])
 }
 
+// 撤回消息
+export async function recallMessage(chatType: number, peerUid: string, msgId: string): Promise<void> {
+  const peer = { chatType, peerUid, guildId: '' }
+  await ntCall('ntMsgApi', 'recallMsg', [peer, [msgId]])
+}
+
 // 获取用户显示名称（群聊用群名片，私聊用备注）
 export async function getUserDisplayName(uid: string, groupCode?: string): Promise<string> {
   try {
     if (groupCode) {
-      // 群聊：获取群成员信息，优先显示群名片
-      const members = await ntCall<{ result: { infos: Record<string, any> } }>('ntGroupApi', 'getGroupMembers', [groupCode])
-      const memberInfo = members?.result?.infos?.[uid]
+      // 群聊：获取单个群成员信息，优先显示群名片
+      const memberInfo = await ntCall<{ nick: string; cardName?: string } | null>('ntGroupApi', 'getGroupMember', [groupCode, uid, false])
       if (memberInfo) {
         return memberInfo.cardName || memberInfo.nick || '未知用户'
       }
