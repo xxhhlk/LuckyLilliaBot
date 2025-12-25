@@ -1,21 +1,12 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import type { FriendCategory, GroupItem, RecentChatItem, ChatSession, GroupMemberItem, RawMessage } from '../types/webqq'
+import type { FriendCategory, GroupItem, RecentChatItem, ChatSession, GroupMemberItem } from '../types/webqq'
 import { getFriends, getGroups, getRecentChats } from '../utils/webqqApi'
 
 // 缓存过期时间（1小时）
 const CACHE_EXPIRY_MS = 60 * 60 * 1000
-// 消息缓存过期时间（24小时）
-const MESSAGE_CACHE_EXPIRY_MS = 24 * 60 * 60 * 1000
 // 群成员缓存过期时间（30分钟）
 const MEMBERS_CACHE_EXPIRY_MS = 30 * 60 * 1000
-// 每个会话最多缓存消息数
-const CACHE_MAX_MESSAGES = 50
-
-interface MessageCacheEntry {
-  messages: RawMessage[]
-  timestamp: number
-}
 
 interface MembersCacheEntry {
   members: GroupMemberItem[]
@@ -70,9 +61,6 @@ interface WebQQState {
   // 好友分组展开状态（空数组表示全部折叠）
   expandedCategories: number[]
   
-  // 消息缓存
-  messageCache: Record<string, MessageCacheEntry>
-  
   // 群成员缓存
   membersCache: Record<string, MembersCacheEntry>
   
@@ -103,11 +91,6 @@ interface WebQQState {
   // 分组展开操作
   toggleCategory: (categoryId: number) => void
   setExpandedCategories: (ids: number[]) => void
-  
-  // 消息缓存操作
-  getCachedMessages: (chatType: string, peerId: string) => RawMessage[] | null
-  setCachedMessages: (chatType: string, peerId: string, messages: RawMessage[]) => void
-  appendCachedMessage: (chatType: string, peerId: string, message: RawMessage) => void
   
   // 群成员缓存操作
   getCachedMembers: (groupCode: string) => GroupMemberItem[] | null
@@ -151,7 +134,6 @@ export const useWebQQStore = create<WebQQState>()(
       activeTab: 'recent',
       unreadCounts: {},
       expandedCategories: [],
-      messageCache: {},
       membersCache: {},
       showMemberPanel: false,
       scrollPositions: {},
@@ -205,57 +187,6 @@ export const useWebQQStore = create<WebQQState>()(
       }),
       
       setExpandedCategories: (ids) => set({ expandedCategories: ids }),
-
-      // 消息缓存操作
-      getCachedMessages: (chatType, peerId) => {
-        const state = get()
-        const key = `${chatType}_${peerId}`
-        const entry = state.messageCache[key]
-        
-        if (entry && Date.now() - entry.timestamp < MESSAGE_CACHE_EXPIRY_MS) {
-          return entry.messages
-        }
-        return null
-      },
-      
-      setCachedMessages: (chatType, peerId, messages) => set((state) => {
-        const key = `${chatType}_${peerId}`
-        const messagesToCache = messages.slice(-CACHE_MAX_MESSAGES)
-        
-        // 清理过期缓存
-        const now = Date.now()
-        const cleanedCache: Record<string, MessageCacheEntry> = {}
-        for (const [k, v] of Object.entries(state.messageCache)) {
-          if (now - v.timestamp < MESSAGE_CACHE_EXPIRY_MS) {
-            cleanedCache[k] = v
-          }
-        }
-        
-        return {
-          messageCache: {
-            ...cleanedCache,
-            [key]: { messages: messagesToCache, timestamp: now }
-          }
-        }
-      }),
-      
-      appendCachedMessage: (chatType, peerId, message) => set((state) => {
-        const key = `${chatType}_${peerId}`
-        const entry = state.messageCache[key]
-        
-        if (entry) {
-          return {
-            messageCache: {
-              ...state.messageCache,
-              [key]: {
-                messages: [...entry.messages.slice(-(CACHE_MAX_MESSAGES - 1)), message],
-                timestamp: Date.now()
-              }
-            }
-          }
-        }
-        return state
-      }),
 
       // 群成员缓存操作
       getCachedMembers: (groupCode) => {
@@ -574,12 +505,12 @@ export const useWebQQStore = create<WebQQState>()(
     {
       name: 'webqq-storage',
       partialize: (state) => ({
-        // 只持久化这些字段
+        // 只持久化这些字段（不包含消息缓存，太大了）
         friendCategories: state.friendCategories,
         groups: state.groups,
         recentChats: state.recentChats,
         expandedCategories: state.expandedCategories,
-        messageCache: state.messageCache,
+        // messageCache 不持久化，太大会超出 localStorage 配额
         membersCache: state.membersCache,
         showMemberPanel: state.showMemberPanel,
         scrollPositions: state.scrollPositions,

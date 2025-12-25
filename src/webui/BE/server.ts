@@ -563,10 +563,10 @@ export class WebUIServer extends Service {
 
         res.json({
           success: true,
-          data: {
+          data: this.serializeResult({
             messages,
             hasMore: messages.length >= parseInt(limit)
-          }
+          })
         })
       } catch (e: any) {
         this.ctx.logger.error('获取消息历史失败:', e)
@@ -807,6 +807,44 @@ export class WebUIServer extends Service {
       })
     })
 
+    // 本地文件代理接口 - 用于视频封面等本地文件
+    this.app.get('/api/webqq/file-proxy', async (req: Request, res: Response) => {
+      try {
+        const filePath = req.query.path as string
+        if (!filePath) {
+          res.status(400).json({ success: false, message: '缺少文件路径参数' })
+          return
+        }
+
+        // 安全检查：只允许访问特定目录下的文件
+        const normalizedPath = path.normalize(filePath)
+        if (!existsSync(normalizedPath)) {
+          res.status(404).json({ success: false, message: '文件不存在' })
+          return
+        }
+
+        // 获取文件扩展名来设置 Content-Type
+        const ext = path.extname(normalizedPath).toLowerCase()
+        const mimeTypes: Record<string, string> = {
+          '.jpg': 'image/jpeg',
+          '.jpeg': 'image/jpeg',
+          '.png': 'image/png',
+          '.gif': 'image/gif',
+          '.webp': 'image/webp',
+          '.mp4': 'video/mp4',
+          '.webm': 'video/webm',
+        }
+        const contentType = mimeTypes[ext] || 'application/octet-stream'
+
+        res.setHeader('Content-Type', contentType)
+        res.setHeader('Cache-Control', 'public, max-age=86400')
+        res.sendFile(normalizedPath)
+      } catch (e: any) {
+        this.ctx.logger.error('文件代理失败:', e)
+        res.status(500).json({ success: false, message: '文件代理失败', error: e.message })
+      }
+    })
+
     // 图片代理接口 - 解决跨域和 Referer 问题
     this.app.get('/api/webqq/image-proxy', async (req: Request, res: Response) => {
       try {
@@ -926,7 +964,8 @@ export class WebUIServer extends Service {
 
   // 广播消息到所有 SSE 客户端
   public broadcastMessage(event: string, data: any) {
-    const message = `event: ${event}\ndata: ${JSON.stringify(data)}\n\n`
+    const serializedData = this.serializeResult(data)
+    const message = `event: ${event}\ndata: ${JSON.stringify(serializedData)}\n\n`
     for (const client of this.sseClients) {
       client.write(message)
     }

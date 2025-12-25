@@ -5,6 +5,7 @@ import GroupMemberPanel from './GroupMemberPanel'
 import type { ChatSession, FriendItem, GroupItem, RecentChatItem, RawMessage } from '../../types/webqq'
 import { createEventSource, getLoginInfo } from '../../utils/webqqApi'
 import { useWebQQStore, resetVisitedChats } from '../../stores/webqqStore'
+import { appendCachedMessage } from '../../utils/messageDb'
 import { showToast } from '../Toast'
 import { Loader2 } from 'lucide-react'
 
@@ -62,8 +63,7 @@ const WebQQPage: React.FC = () => {
     incrementUnreadCount,
     updateRecentChat,
     loadContacts,
-    setRecentChats,
-    appendCachedMessage
+    setRecentChats
   } = useWebQQStore()
 
   useEffect(() => {

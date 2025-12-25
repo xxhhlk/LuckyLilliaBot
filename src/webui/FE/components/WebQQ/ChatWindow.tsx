@@ -5,6 +5,7 @@ import { Users, Send, Image as ImageIcon, X, Loader2, AlertCircle, RefreshCw, Re
 import type { ChatSession, RawMessage, MessageElement } from '../../types/webqq'
 import { getMessages, sendMessage, uploadImage, formatMessageTime, isEmptyMessage, isValidImageFormat, getSelfUid, getSelfUin, getUserDisplayName, getVideoUrl } from '../../utils/webqqApi'
 import { useWebQQStore, hasVisitedChat, markChatVisited } from '../../stores/webqqStore'
+import { getCachedMessages, setCachedMessages, appendCachedMessage } from '../../utils/messageDb'
 import { getToken } from '../../utils/api'
 import { showToast } from '../Toast'
 
@@ -44,6 +45,11 @@ const VideoPreviewContext = React.createContext<{
 // 消息右键菜单上下文
 const MessageContextMenuContext = React.createContext<{
   showMenu: (e: React.MouseEvent, message: RawMessage) => void
+} | null>(null)
+
+// 跳转到消息上下文
+const ScrollToMessageContext = React.createContext<{
+  scrollToMessage: (msgId: string, msgSeq?: string) => void
 } | null>(null)
 
 // 图片预览弹窗组件
@@ -208,11 +214,20 @@ const MessageElementRenderer = memo<{ element: MessageElement; message?: RawMess
       displayWidth = maxWidth
     }
     
-    // 获取缩略图 URL（从 thumbPath Map 中取第一个）
+    // 获取缩略图 URL（thumbPath 可能是 Map 或普通对象，通过代理访问）
     let thumbUrl = ''
-    if (video.thumbPath && video.thumbPath instanceof Map) {
-      const firstThumb = video.thumbPath.values().next().value
-      if (firstThumb) thumbUrl = `file://${firstThumb}`
+    if (video.thumbPath) {
+      let firstThumb: string | undefined
+      if (video.thumbPath instanceof Map) {
+        firstThumb = video.thumbPath.values().next().value
+      } else if (typeof video.thumbPath === 'object') {
+        // JSON 序列化后 Map 变成普通对象
+        const values = Object.values(video.thumbPath as Record<string, string>)
+        firstThumb = values[0]
+      }
+      if (firstThumb) {
+        thumbUrl = `/api/webqq/file-proxy?path=${encodeURIComponent(firstThumb)}&token=${encodeURIComponent(getToken() || '')}`
+      }
     }
     
     // 格式化时长
@@ -234,26 +249,32 @@ const MessageElementRenderer = memo<{ element: MessageElement; message?: RawMess
         style={{ width: displayWidth, height: displayHeight }}
         onClick={handleClick}
       >
-        {!videoThumbLoaded && !videoThumbError && (
-          <div className="absolute inset-0 flex items-center justify-center text-theme-hint bg-gray-200 dark:bg-gray-700">
-            <Loader2 size={24} className="animate-spin" />
-          </div>
-        )}
-        {videoThumbError && (
-          <div className="absolute inset-0 flex items-center justify-center text-theme-hint text-xs bg-gray-200 dark:bg-gray-700">
+        {/* 背景/占位 */}
+        <div className="absolute inset-0 bg-gray-200 dark:bg-gray-700" />
+        
+        {/* 缩略图 */}
+        {thumbUrl ? (
+          <>
+            {!videoThumbLoaded && !videoThumbError && (
+              <div className="absolute inset-0 flex items-center justify-center text-theme-hint">
+                <Loader2 size={24} className="animate-spin" />
+              </div>
+            )}
+            <img 
+              src={thumbUrl} 
+              alt="视频缩略图" 
+              loading="lazy" 
+              className={`absolute inset-0 w-full h-full object-cover transition-opacity ${videoThumbLoaded ? 'opacity-100' : 'opacity-0'}`}
+              onLoad={() => setVideoThumbLoaded(true)}
+              onError={() => setVideoThumbError(true)}
+            />
+          </>
+        ) : (
+          <div className="absolute inset-0 flex items-center justify-center text-theme-hint text-xs">
             视频
           </div>
         )}
-        {thumbUrl && (
-          <img 
-            src={thumbUrl} 
-            alt="视频缩略图" 
-            loading="lazy" 
-            className={`w-full h-full object-cover transition-opacity ${videoThumbLoaded ? 'opacity-100' : 'opacity-0'}`}
-            onLoad={() => setVideoThumbLoaded(true)}
-            onError={() => setVideoThumbError(true)}
-          />
-        )}
+        
         {/* 播放按钮 */}
         <div className="absolute inset-0 flex items-center justify-center">
           <div className="w-12 h-12 rounded-full bg-black/50 flex items-center justify-center group-hover:bg-black/70 transition-colors">
@@ -331,21 +352,35 @@ const parseGrayTipItems = (message: RawMessage): { items: any[]; hasUid: boolean
   return null
 }
 
+// 系统提示消息内容缓存（按 msgId 缓存已解析的内容）
+const systemTipContentCache = new Map<string, React.ReactNode>()
+
 // 系统提示消息组件（居中显示）
 const SystemTipMessage = memo<{ message: RawMessage; groupCode?: string }>(({ message, groupCode }) => {
-  const [content, setContent] = useState<React.ReactNode>('[系统提示]')
+  // 先检查缓存
+  const cachedContent = systemTipContentCache.get(message.msgId)
+  const [content, setContent] = useState<React.ReactNode>(cachedContent ?? '[系统提示]')
   const selfUid = getSelfUid()
   
   useEffect(() => {
+    // 如果已有缓存，直接使用
+    if (systemTipContentCache.has(message.msgId)) {
+      setContent(systemTipContentCache.get(message.msgId)!)
+      return
+    }
+    
     const parsed = parseGrayTipItems(message)
     if (!parsed) {
       // 尝试解析 XML
       for (const el of message.elements) {
         if (el.grayTipElement?.xmlElement?.content) {
-          setContent(el.grayTipElement.xmlElement.content.replace(/<[^>]+>/g, ''))
+          const xmlContent = el.grayTipElement.xmlElement.content.replace(/<[^>]+>/g, '')
+          systemTipContentCache.set(message.msgId, xmlContent)
+          setContent(xmlContent)
           return
         }
       }
+      systemTipContentCache.set(message.msgId, '[系统提示]')
       setContent('[系统提示]')
       return
     }
@@ -355,7 +390,9 @@ const SystemTipMessage = memo<{ message: RawMessage; groupCode?: string }>(({ me
     if (!hasUid) {
       // 没有 uid，直接拼接文本
       const result = items.map((item: any) => item.txt || '').join('')
-      setContent(result || '[系统提示]')
+      const finalContent = result || '[系统提示]'
+      systemTipContentCache.set(message.msgId, finalContent)
+      setContent(finalContent)
       return
     }
     
@@ -378,11 +415,13 @@ const SystemTipMessage = memo<{ message: RawMessage; groupCode?: string }>(({ me
           // 图片类型，跳过
         }
       }
-      setContent(parts.length > 0 ? parts : '[系统提示]')
+      const finalContent = parts.length > 0 ? parts : '[系统提示]'
+      systemTipContentCache.set(message.msgId, finalContent)
+      setContent(finalContent)
     }
     
     resolveContent()
-  }, [message, selfUid, groupCode])
+  }, [message.msgId, selfUid, groupCode])
   
   return (
     <div className="flex justify-center py-2">
@@ -393,7 +432,7 @@ const SystemTipMessage = memo<{ message: RawMessage; groupCode?: string }>(({ me
   )
 })
 
-const RawMessageBubble = memo<{ message: RawMessage; allMessages: RawMessage[] }>(({ message, allMessages }) => {
+const RawMessageBubble = memo<{ message: RawMessage; allMessages: RawMessage[]; isHighlighted?: boolean }>(({ message, allMessages, isHighlighted }) => {
   // 如果是系统提示消息，使用不同的渲染方式
   if (isSystemTipMessage(message)) {
     // 群聊时传入群号
@@ -407,6 +446,7 @@ const RawMessageBubble = memo<{ message: RawMessage; allMessages: RawMessage[] }
   const senderAvatar = `https://q1.qlogo.cn/g?b=qq&nk=${message.senderUin}&s=640`
   const timestamp = parseInt(message.msgTime) * 1000
   const contextMenuContext = React.useContext(MessageContextMenuContext)
+  const scrollToMessageContext = React.useContext(ScrollToMessageContext)
   
   if (!message.elements || !Array.isArray(message.elements)) return null
 
@@ -426,14 +466,23 @@ const RawMessageBubble = memo<{ message: RawMessage; allMessages: RawMessage[] }
     contextMenuContext?.showMenu(e, message)
   }
 
+  const handleReplyClick = () => {
+    if (replyElement) {
+      scrollToMessageContext?.scrollToMessage(replyElement.replayMsgId, replyElement.replayMsgSeq)
+    }
+  }
+
   return (
-    <div className={`flex gap-2 ${isSelf ? 'flex-row-reverse' : ''}`} onContextMenu={handleContextMenu}>
+    <div className={`flex gap-2 ${isSelf ? 'flex-row-reverse' : ''} ${isHighlighted ? 'animate-pulse bg-pink-100 dark:bg-pink-900/30 rounded-lg -mx-2 px-2' : ''}`} onContextMenu={handleContextMenu}>
       <img src={senderAvatar} alt={senderName} loading="lazy" className="w-8 h-8 rounded-full object-cover flex-shrink-0" />
       <div className={`flex flex-col ${isSelf ? 'items-end' : 'items-start'} max-w-[70%]`}>
         <span className="text-xs text-theme-hint mb-1">{senderName}</span>
         <div className={`rounded-2xl px-4 py-2 min-w-[80px] break-all ${isSelf ? 'bg-pink-500 text-white rounded-br-sm' : 'bg-theme-item text-theme rounded-tl-sm shadow-sm'}`}>
           {replyElement && (
-            <div className={`text-xs mb-2 pb-2 border-b ${isSelf ? 'border-pink-400/50' : 'border-theme-divider'}`}>
+            <div 
+              className={`text-xs mb-2 pb-2 border-b cursor-pointer hover:opacity-80 transition-opacity ${isSelf ? 'border-pink-400/50' : 'border-theme-divider'}`}
+              onClick={handleReplyClick}
+            >
               <div className={`${isSelf ? 'bg-pink-400/30' : 'bg-theme-input'} rounded px-2 py-1`}>
                 {replySourceMsg ? (
                   <div className="space-y-1">
@@ -502,6 +551,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ session, onShowMembers, onNewMe
   const [previewVideoUrl, setPreviewVideoUrl] = useState<{ chatType: number; peerUid: string; msgId: string; elementId: string } | null>(null)
   const [replyTo, setReplyTo] = useState<RawMessage | null>(null)
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; message: RawMessage } | null>(null)
+  const [isScrollReady, setIsScrollReady] = useState(false)
   
   const imagePreviewContextValue = useMemo(() => ({
     showPreview: (url: string) => setPreviewImageUrl(url)
@@ -518,7 +568,9 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ session, onShowMembers, onNewMe
     }
   }), [])
   
-  const { getCachedMessages, setCachedMessages, appendCachedMessage } = useWebQQStore()
+  const [highlightMsgId, setHighlightMsgId] = useState<string | null>(null)
+  
+  const { getCachedMembers, setCachedMembers } = useWebQQStore()
   
   const parentRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -558,36 +610,72 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ session, onShowMembers, onNewMe
     overscan: 5,
   })
 
+  // 跳转到指定消息
+  const scrollToMessage = useCallback((msgId: string, msgSeq?: string) => {
+    const index = allItems.findIndex(item => {
+      if (item.type !== 'raw') return false
+      return item.data.msgId === msgId || (msgSeq && item.data.msgSeq === msgSeq)
+    })
+    if (index !== -1) {
+      virtualizer.scrollToIndex(index, { align: 'center' })
+      // 高亮显示目标消息
+      const targetMsg = allItems[index]
+      if (targetMsg.type === 'raw') {
+        setHighlightMsgId(targetMsg.data.msgId)
+        setTimeout(() => setHighlightMsgId(null), 2000)
+      }
+    }
+  }, [allItems, virtualizer])
+
+  const scrollToMessageContextValue = useMemo(() => ({
+    scrollToMessage
+  }), [scrollToMessage])
+
   const scrollToBottom = useCallback(() => {
     if (allItemsRef.current.length > 0) {
       virtualizer.scrollToIndex(allItemsRef.current.length - 1, { align: 'end' })
     }
   }, [virtualizer])
 
-  // 消息变化时处理滚动
+  // 切换聊天时滚动到底部
   useEffect(() => {
     if (allItems.length === 0) return
     
     const currentKey = session ? `${session.chatType}_${session.peerId}` : null
     const isNewSession = currentKey !== prevSessionKeyRef.current
     
-    if (isNewSession) {
+    if (isNewSession && currentKey) {
       prevSessionKeyRef.current = currentKey
-      // 切换聊天时多次尝试滚动到底部，确保虚拟列表渲染完成
+      setIsScrollReady(false)
+      // 滚动到底部，延迟确保虚拟列表高度计算完成
       const scrollToEnd = () => {
-        virtualizer.scrollToIndex(allItems.length - 1, { align: 'end' })
+        if (parentRef.current) {
+          parentRef.current.scrollTop = parentRef.current.scrollHeight
+        }
       }
       // 立即尝试一次
       scrollToEnd()
-      // 延迟再尝试几次，确保元素测量完成
-      setTimeout(scrollToEnd, 50)
-      setTimeout(scrollToEnd, 150)
-      setTimeout(scrollToEnd, 300)
-      shouldScrollRef.current = true
-    } else if (shouldScrollRef.current) {
-      scrollToBottom()
+      // 延迟再试一次，确保虚拟列表渲染完成，然后显示内容
+      setTimeout(() => {
+        scrollToEnd()
+        setIsScrollReady(true)
+      }, 50)
     }
-  }, [allItems.length, scrollToBottom, session, virtualizer])
+  }, [session?.chatType, session?.peerId, allItems.length])
+
+  // 当 session 变化时重置状态
+  useEffect(() => {
+    prevSessionKeyRef.current = null
+    setIsScrollReady(false)
+  }, [session?.chatType, session?.peerId])
+
+  // 新消息到达时，如果在底部则滚动
+  useEffect(() => {
+    if (shouldScrollRef.current && allItems.length > 0) {
+      scrollToBottom()
+      shouldScrollRef.current = false
+    }
+  }, [allItems.length, scrollToBottom])
 
   useEffect(() => {
     if (onNewMessageCallback) {
@@ -598,7 +686,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ session, onShowMembers, onNewMe
           const newMessages = [...prev, msg]
           const currentSession = sessionRef.current
           if (currentSession) {
-            appendCachedMessage(currentSession.chatType, currentSession.peerId, msg as any)
+            appendCachedMessage(currentSession.chatType, currentSession.peerId, msg)
           }
           return newMessages
         })
@@ -610,7 +698,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ session, onShowMembers, onNewMe
     return () => {
       if (onNewMessageCallback) onNewMessageCallback(null)
     }
-  }, [onNewMessageCallback, appendCachedMessage])
+  }, [onNewMessageCallback])
 
   const loadMessages = useCallback(async (beforeMsgId?: string) => {
     if (!session) return
@@ -618,14 +706,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ session, onShowMembers, onNewMe
     if (beforeMsgId) {
       setLoadingMore(true)
     } else {
-      const cachedMessages = getCachedMessages(session.chatType, session.peerId) as RawMessage[] | null
-      const validCached = cachedMessages?.filter(m => m && m.elements && Array.isArray(m.elements)) || []
-      if (validCached.length > 0) {
-        setMessages(validCached)
-        shouldScrollRef.current = true
-      } else {
-        setLoading(true)
-      }
+      setLoading(true)
     }
 
     try {
@@ -634,33 +715,18 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ session, onShowMembers, onNewMe
         msg !== null && msg !== undefined && msg.elements && Array.isArray(msg.elements)
       )
       
-      if (beforeMsgId) {
-        setMessages(prev => {
-          const existingIds = new Set(prev.map(m => m.msgId))
-          const newMsgs = validMessages.filter(m => !existingIds.has(m.msgId))
-          const merged = [...newMsgs, ...prev]
-          merged.sort((a, b) => parseInt(a.msgTime) - parseInt(b.msgTime))
-          setCachedMessages(session.chatType, session.peerId, merged as any)
-          return merged
-        })
-      } else {
-        setMessages(prev => {
-          const existingIds = new Set(prev.map(m => m.msgId))
-          const newMsgs = validMessages.filter(m => !existingIds.has(m.msgId))
-          const merged = [...newMsgs, ...prev]
-          merged.sort((a, b) => parseInt(a.msgTime) - parseInt(b.msgTime))
-          setCachedMessages(session.chatType, session.peerId, merged as any)
-          return merged
-        })
-        shouldScrollRef.current = true
-      }
+      setMessages(prev => {
+        const existingIds = new Set(prev.map(m => m.msgId))
+        const newMsgs = validMessages.filter(m => !existingIds.has(m.msgId))
+        const merged = beforeMsgId ? [...newMsgs, ...prev] : [...prev, ...newMsgs]
+        merged.sort((a, b) => parseInt(a.msgTime) - parseInt(b.msgTime))
+        setCachedMessages(session.chatType, session.peerId, merged)
+        return merged
+      })
       setHasMore(result.hasMore)
     } catch (e: any) {
       if (!beforeMsgId) {
-        const cachedMessages = getCachedMessages(session.chatType, session.peerId)
-        if (!cachedMessages || cachedMessages.length === 0) {
-          showToast('加载消息失败', 'error')
-        }
+        showToast('加载消息失败', 'error')
       } else {
         showToast('加载更多消息失败', 'error')
       }
@@ -668,21 +734,36 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ session, onShowMembers, onNewMe
       setLoading(false)
       setLoadingMore(false)
     }
-  }, [session, getCachedMessages, setCachedMessages])
+  }, [session])
+
+  // 内存缓存：存储每个聊天的消息，避免切换时闪烁
+  const messageCacheRef = useRef<Map<string, RawMessage[]>>(new Map())
+  
+  const getSessionKey = (chatType: string, peerId: string) => `${chatType}_${peerId}`
 
   useEffect(() => {
     if (session) {
-      // 切换聊天时重置滚动标记
-      shouldScrollRef.current = true
+      const sessionKey = getSessionKey(session.chatType, session.peerId)
       
-      const cachedMessages = getCachedMessages(session.chatType, session.peerId) as RawMessage[] | null
-      if (cachedMessages && cachedMessages.length > 0) {
-        const validMessages = cachedMessages.filter(m => m.elements && Array.isArray(m.elements))
-        setMessages(validMessages.length > 0 ? validMessages : [])
+      // 先从内存缓存读取
+      const cachedInMemory = messageCacheRef.current.get(sessionKey)
+      if (cachedInMemory && cachedInMemory.length > 0) {
+        setMessages(cachedInMemory)
       } else {
+        // 内存没有，从 IndexedDB 加载
         setMessages([])
+        getCachedMessages(session.chatType, session.peerId).then(cachedMessages => {
+          if (cachedMessages && cachedMessages.length > 0) {
+            const validMessages = cachedMessages.filter(m => m.elements && Array.isArray(m.elements))
+            if (validMessages.length > 0) {
+              messageCacheRef.current.set(sessionKey, validMessages)
+              setMessages(validMessages)
+            }
+          }
+        })
       }
       setTempMessages([])
+      shouldScrollRef.current = true
       
       // 只有首次访问该聊天时才调用 messages 接口
       if (!hasVisitedChat(session.chatType, session.peerId)) {
@@ -694,6 +775,14 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ session, onShowMembers, onNewMe
       setTempMessages([])
     }
   }, [session?.peerId, session?.chatType])
+
+  // 消息变化时同步到内存缓存
+  useEffect(() => {
+    if (session && messages.length > 0) {
+      const sessionKey = getSessionKey(session.chatType, session.peerId)
+      messageCacheRef.current.set(sessionKey, messages)
+    }
+  }, [messages, session?.chatType, session?.peerId])
 
   const handleScroll = useCallback(() => {
     const container = parentRef.current
@@ -820,6 +909,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ session, onShowMembers, onNewMe
     <ImagePreviewContext.Provider value={imagePreviewContextValue}>
     <VideoPreviewContext.Provider value={videoPreviewContextValue}>
     <MessageContextMenuContext.Provider value={messageContextMenuValue}>
+    <ScrollToMessageContext.Provider value={scrollToMessageContextValue}>
       <div className="flex flex-col h-full">
         <div className="flex items-center justify-between px-4 py-3 border-b border-theme-divider bg-theme-card">
           <div className="flex items-center gap-3">
@@ -843,7 +933,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ session, onShowMembers, onNewMe
         ) : allItems.length === 0 ? (
           <div className="flex items-center justify-center h-full text-theme-hint">暂无消息</div>
         ) : (
-          <div style={{ height: `${virtualizer.getTotalSize()}px`, width: '100%', position: 'relative' }}>
+          <div style={{ height: `${virtualizer.getTotalSize()}px`, width: '100%', position: 'relative', opacity: isScrollReady ? 1 : 0 }}>
             {virtualizer.getVirtualItems().map(virtualRow => {
               const item = allItems[virtualRow.index]
               return (
@@ -861,7 +951,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ session, onShowMembers, onNewMe
                   ref={virtualizer.measureElement}
                 >
                   {item.type === 'raw' ? (
-                    <RawMessageBubble message={item.data} allMessages={messages} />
+                    <RawMessageBubble message={item.data} allMessages={messages} isHighlighted={highlightMsgId === item.data.msgId} />
                   ) : (
                     <TempMessageBubble message={item.data} onRetry={() => handleRetryTemp(item.data)} />
                   )}
@@ -937,6 +1027,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ session, onShowMembers, onNewMe
       
       <ImagePreviewModal url={previewImageUrl} onClose={() => setPreviewImageUrl(null)} />
       <VideoPreviewModal videoInfo={previewVideoUrl} onClose={() => setPreviewVideoUrl(null)} />
+    </ScrollToMessageContext.Provider>
     </MessageContextMenuContext.Provider>
     </VideoPreviewContext.Provider>
     </ImagePreviewContext.Provider>
