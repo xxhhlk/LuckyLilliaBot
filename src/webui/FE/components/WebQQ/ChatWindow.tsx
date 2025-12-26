@@ -3,12 +3,13 @@ import { createPortal } from 'react-dom'
 import { useVirtualizer } from '@tanstack/react-virtual'
 import { Users, Send, Image as ImageIcon, X, Loader2, Reply, Trash2, AtSign, Hand, User, UserMinus } from 'lucide-react'
 import type { ChatSession, RawMessage } from '../../types/webqq'
-import { getMessages, sendMessage, uploadImage, isEmptyMessage, isValidImageFormat, getSelfUid, recallMessage, sendPoke, getUserProfile, UserProfile, getGroupMembers, kickGroupMember } from '../../utils/webqqApi'
+import { getMessages, sendMessage, uploadImage, isEmptyMessage, isValidImageFormat, getSelfUid, recallMessage, sendPoke, getUserProfile, UserProfile, getGroupMembers, kickGroupMember, getGroupProfile, GroupProfile, quitGroup } from '../../utils/webqqApi'
 import { useWebQQStore, hasVisitedChat, markChatVisited, unmarkChatVisited } from '../../stores/webqqStore'
 import { getCachedMessages, setCachedMessages, appendCachedMessage, removeCachedMessage } from '../../utils/messageDb'
 import { showToast } from '../Toast'
 
 import { UserProfileCard } from './UserProfileCard'
+import { GroupProfileCard } from './GroupProfileCard'
 import { ImagePreviewModal, VideoPreviewModal } from './PreviewModals'
 import { ImagePreviewContext, VideoPreviewContext } from './MessageElements'
 import { RawMessageBubble, TempMessageBubble, MessageContextMenuContext, AvatarContextMenuContext, ScrollToMessageContext, GroupMembersContext } from './MessageBubble'
@@ -39,9 +40,11 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ session, onShowMembers, onNewMe
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; message: RawMessage } | null>(null)
   const [avatarContextMenu, setAvatarContextMenu] = useState<AvatarContextMenuInfo | null>(null)
   const [userProfile, setUserProfile] = useState<{ profile: UserProfile | null; loading: boolean; position: { x: number; y: number } } | null>(null)
+  const [groupProfile, setGroupProfile] = useState<{ profile: GroupProfile | null; loading: boolean; position: { x: number; y: number } } | null>(null)
   const [isScrollReady, setIsScrollReady] = useState(false)
   const [highlightMsgId, setHighlightMsgId] = useState<string | null>(null)
   const [kickConfirm, setKickConfirm] = useState<{ uid: string; name: string; groupCode: string; groupName: string } | null>(null)
+  const [pendingAts, setPendingAts] = useState<{ uid: string; uin: string; name: string }[]>([])
 
   const imagePreviewContextValue = useMemo(() => ({
     showPreview: (url: string) => setPreviewImageUrl(url)
@@ -155,20 +158,49 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ session, onShowMembers, onNewMe
     }
   }, [virtualizer])
 
+  // 切换会话时重置状态并滚动到底部
+  const [needScrollToBottom, setNeedScrollToBottom] = useState(false)
+  const scrollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  
   useEffect(() => {
-    if (allItems.length === 0) return
     const currentKey = session ? `${session.chatType}_${session.peerId}` : null
-    const isNewSession = currentKey !== prevSessionKeyRef.current
-    if (isNewSession && currentKey) {
+    
+    // 检测会话切换
+    if (currentKey !== prevSessionKeyRef.current) {
       prevSessionKeyRef.current = currentKey
       setIsScrollReady(false)
-      const scrollToEnd = () => { if (parentRef.current) parentRef.current.scrollTop = parentRef.current.scrollHeight }
-      scrollToEnd()
-      setTimeout(() => { scrollToEnd(); setIsScrollReady(true) }, 50)
+      setNeedScrollToBottom(true)
     }
-  }, [session?.chatType, session?.peerId, allItems.length])
-
-  useEffect(() => { prevSessionKeyRef.current = null; setIsScrollReady(false) }, [session?.chatType, session?.peerId])
+  }, [session?.chatType, session?.peerId])
+  
+  // 当消息变化时，如果需要滚动到底部，延迟执行（等待所有消息加载完成）
+  useEffect(() => {
+    if (allItems.length === 0 || !needScrollToBottom) return
+    
+    // 清除之前的定时器
+    if (scrollTimerRef.current) {
+      clearTimeout(scrollTimerRef.current)
+    }
+    
+    // 延迟 200ms 执行滚动，等待所有消息加载完成
+    scrollTimerRef.current = setTimeout(() => {
+      setNeedScrollToBottom(false)
+      const scrollToEnd = () => {
+        virtualizer.scrollToIndex(allItems.length - 1, { align: 'end' })
+      }
+      requestAnimationFrame(() => {
+        scrollToEnd()
+        setTimeout(scrollToEnd, 50)
+        setTimeout(() => { scrollToEnd(); setIsScrollReady(true) }, 100)
+      })
+    }, 200)
+    
+    return () => {
+      if (scrollTimerRef.current) {
+        clearTimeout(scrollTimerRef.current)
+      }
+    }
+  }, [allItems.length, needScrollToBottom, virtualizer])
 
   useEffect(() => {
     if (shouldScrollRef.current && allItems.length > 0) {
@@ -331,22 +363,58 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ session, onShowMembers, onNewMe
     shouldScrollRef.current = isNearBottom
   }, [messages])
 
-  const handleSendText = useCallback(async () => {
-    if (!session || isEmptyMessage(inputText)) return
+  const handleSend = useCallback(async () => {
+    if (!session) return
+    const hasText = !isEmptyMessage(inputText)
+    const hasImage = !!imagePreview
+    const hasAts = pendingAts.length > 0
+    if (!hasText && !hasImage && !hasAts) return
+    
     setSending(true)
     const text = inputText.trim()
     const currentReplyTo = replyTo
+    const currentImagePreview = imagePreview
+    const currentAts = [...pendingAts]
     setInputText('')
     setReplyTo(null)
+    setImagePreview(null)
+    setPendingAts([])
     shouldScrollRef.current = true
 
     const tempId = `temp_${Date.now()}`
-    setTempMessages(prev => [...prev, { msgId: tempId, text, timestamp: Date.now(), status: 'sending' }])
+    const atText = currentAts.map(a => `@${a.name}`).join(' ')
+    setTempMessages(prev => [...prev, { 
+      msgId: tempId, 
+      text: hasText || hasAts ? `${atText}${atText && hasText ? ' ' : ''}${text}` : undefined, 
+      imageUrl: currentImagePreview?.url,
+      timestamp: Date.now(), 
+      status: 'sending' 
+    }])
 
     try {
-      const content: { type: 'text' | 'image' | 'reply'; text?: string; msgId?: string; msgSeq?: string }[] = []
-      if (currentReplyTo) content.push({ type: 'reply', msgId: currentReplyTo.msgId, msgSeq: currentReplyTo.msgSeq })
-      content.push({ type: 'text', text })
+      const content: { type: 'text' | 'image' | 'reply' | 'at'; text?: string; imagePath?: string; msgId?: string; msgSeq?: string; uid?: string; uin?: string; name?: string }[] = []
+      
+      // 添加回复
+      if (currentReplyTo) {
+        content.push({ type: 'reply', msgId: currentReplyTo.msgId, msgSeq: currentReplyTo.msgSeq })
+      }
+      
+      // 添加 @ 消息
+      for (const at of currentAts) {
+        content.push({ type: 'at', uid: at.uid, uin: at.uin, name: at.name })
+      }
+      
+      // 添加图片（先上传）
+      if (currentImagePreview) {
+        const uploadResult = await uploadImage(currentImagePreview.file)
+        content.push({ type: 'image', imagePath: uploadResult.imagePath })
+      }
+      
+      // 添加文字
+      if (hasText) {
+        content.push({ type: 'text', text })
+      }
+      
       await sendMessage({ chatType: session.chatType, peerId: session.peerId, content })
       setTempMessages(prev => prev.filter(t => t.msgId !== tempId))
     } catch (e: any) {
@@ -354,8 +422,11 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ session, onShowMembers, onNewMe
       setTempMessages(prev => prev.map(t => t.msgId === tempId ? { ...t, status: 'failed' as const } : t))
     } finally {
       setSending(false)
+      if (currentImagePreview) {
+        URL.revokeObjectURL(currentImagePreview.url)
+      }
     }
-  }, [session, inputText, replyTo])
+  }, [session, inputText, replyTo, imagePreview, pendingAts])
 
   const handleImageSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -368,37 +439,14 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ session, onShowMembers, onNewMe
     if (fileInputRef.current) fileInputRef.current.value = ''
   }, [])
 
-  const handleSendImage = useCallback(async () => {
-    if (!session || !imagePreview) return
-    setSending(true)
-    const { file, url } = imagePreview
-    setImagePreview(null)
-    shouldScrollRef.current = true
-
-    const tempId = `temp_${Date.now()}`
-    setTempMessages(prev => [...prev, { msgId: tempId, imageUrl: url, timestamp: Date.now(), status: 'sending' }])
-
-    try {
-      const uploadResult = await uploadImage(file)
-      await sendMessage({ chatType: session.chatType, peerId: session.peerId, content: [{ type: 'image', imagePath: uploadResult.imagePath }] })
-      setTempMessages(prev => prev.filter(t => t.msgId !== tempId))
-    } catch (e: any) {
-      showToast('发送图片失败', 'error')
-      setTempMessages(prev => prev.map(t => t.msgId === tempId ? { ...t, status: 'failed' as const } : t))
-    } finally {
-      setSending(false)
-      URL.revokeObjectURL(url)
-    }
-  }, [session, imagePreview])
-
   const handleRetryTemp = useCallback((tempMsg: TempMessage) => {
     setTempMessages(prev => prev.filter(t => t.msgId !== tempMsg.msgId))
     if (tempMsg.text) setInputText(tempMsg.text)
   }, [])
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSendText() }
-  }, [handleSendText])
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend() }
+  }, [handleSend])
 
   const handlePaste = useCallback((e: React.ClipboardEvent) => {
     const items = e.clipboardData?.items
@@ -451,11 +499,73 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ session, onShowMembers, onNewMe
     <GroupMembersContext.Provider value={groupMembersContextValue}>
       <div className="flex flex-col h-full">
         <div className="flex items-center justify-between px-4 py-3 border-b border-theme-divider bg-theme-card">
-          <div className="flex items-center gap-3">
+          <div 
+            className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition-opacity"
+            onClick={async (e) => {
+              const rect = e.currentTarget.getBoundingClientRect()
+              const x = rect.left
+              const y = rect.bottom + 8
+              
+              if (session.chatType === 2) {
+                // 群聊 - 显示群资料卡
+                setGroupProfile({ profile: null, loading: true, position: { x, y } })
+                try {
+                  const profile = await getGroupProfile(session.peerId)
+                  setGroupProfile({ profile, loading: false, position: { x, y } })
+                } catch {
+                  setGroupProfile(null)
+                  showToast('获取群资料失败', 'error')
+                }
+              } else {
+                // 私聊 - 显示用户资料卡
+                setUserProfile({ profile: null, loading: true, position: { x, y } })
+                try {
+                  const { friendCategories } = useWebQQStore.getState()
+                  let uid = ''
+                  for (const category of friendCategories) {
+                    const friend = category.friends.find(f => f.uin === session.peerId)
+                    if (friend) {
+                      uid = friend.uid
+                      break
+                    }
+                  }
+                  const profile = await getUserProfile(uid || undefined, session.peerId)
+                  setUserProfile({ profile, loading: false, position: { x, y } })
+                } catch {
+                  setUserProfile(null)
+                  showToast('获取用户资料失败', 'error')
+                }
+              }
+            }}
+          >
             <img src={session.peerAvatar} alt={session.peerName} className="w-10 h-10 rounded-full object-cover" />
             <div>
-              <div className="font-medium text-theme">{session.peerName}</div>
-              <div className="text-xs text-theme-hint">{session.chatType === 2 ? '群聊' : '私聊'}</div>
+              <div className="font-medium text-theme">
+                {(() => {
+                  const { groups, friendCategories } = useWebQQStore.getState()
+                  if (session.chatType === 2) {
+                    const group = groups.find(g => g.groupCode === session.peerId)
+                    if (group?.remarkName && group.remarkName !== group.groupName) {
+                      return `${group.remarkName}(${group.groupName})`
+                    }
+                  } else {
+                    for (const category of friendCategories) {
+                      const friend = category.friends.find(f => f.uin === session.peerId)
+                      if (friend?.remark && friend.remark !== friend.nickname) {
+                        return `${friend.remark}(${friend.nickname})`
+                      }
+                    }
+                  }
+                  return session.peerName
+                })()}
+              </div>
+              <div className="text-xs text-theme-hint">
+                {session.chatType === 2 ? (() => {
+                  const { groups } = useWebQQStore.getState()
+                  const group = groups.find(g => g.groupCode === session.peerId)
+                  return `群聊 ${session.peerId}${group?.memberCount ? ` · ${group.memberCount}人` : ''}`
+                })() : `私聊 ${session.peerId}`}
+              </div>
             </div>
           </div>
           {session.chatType === 2 && onShowMembers && (
@@ -516,6 +626,22 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ session, onShowMembers, onNewMe
           </div>
         )}
 
+        {pendingAts.length > 0 && (
+          <div className="px-4 py-2 border-t border-theme-divider bg-theme-item">
+            <div className="flex items-center gap-2 flex-wrap">
+              <AtSign size={16} className="text-blue-500 flex-shrink-0" />
+              {pendingAts.map((at, i) => (
+                <span key={at.uid} className="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-300 text-sm rounded">
+                  @{at.name}
+                  <button onClick={() => setPendingAts(prev => prev.filter((_, idx) => idx !== i))} className="hover:text-blue-800 dark:hover:text-blue-100">
+                    <X size={12} />
+                  </button>
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+
         <div className="px-4 py-3 border-t border-theme-divider bg-theme-card">
           <div className="flex items-center gap-2">
             <input type="file" ref={fileInputRef} onChange={handleImageSelect} accept="image/jpeg,image/png,image/gif" className="hidden" />
@@ -525,7 +651,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ session, onShowMembers, onNewMe
             <button onClick={() => fileInputRef.current?.click()} disabled={sending} className="p-2.5 text-theme-muted hover:text-pink-500 hover:bg-pink-50 dark:hover:bg-pink-900/30 rounded-xl disabled:opacity-50" title="发送图片">
               <ImageIcon size={20} />
             </button>
-            <button onClick={imagePreview ? handleSendImage : handleSendText} disabled={sending || (!imagePreview && isEmptyMessage(inputText))} className="p-2.5 bg-pink-500 text-white rounded-xl hover:bg-pink-600 disabled:opacity-50 disabled:cursor-not-allowed">
+            <button onClick={handleSend} disabled={sending || (!imagePreview && !pendingAts.length && isEmptyMessage(inputText))} className="p-2.5 bg-pink-500 text-white rounded-xl hover:bg-pink-600 disabled:opacity-50 disabled:cursor-not-allowed">
               {sending ? <Loader2 size={20} className="animate-spin" /> : <Send size={20} />}
             </button>
           </div>
@@ -589,9 +715,17 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ session, onShowMembers, onNewMe
           <div className="fixed inset-0 z-40" onClick={() => setAvatarContextMenu(null)} onContextMenu={(e) => { e.preventDefault(); setAvatarContextMenu(null) }} />
           <div className="fixed z-50 bg-popup backdrop-blur-sm border border-theme-divider rounded-lg shadow-lg py-1 min-w-[120px]" style={{ left: avatarContextMenu.x, top: Math.min(avatarContextMenu.y, window.innerHeight - 150) }} onContextMenu={(e) => e.preventDefault()}>
             {avatarContextMenu.chatType === 2 && (
-              <button onClick={() => { setInputText(prev => prev + `@${avatarContextMenu.senderName} `); setAvatarContextMenu(null); textareaRef.current?.focus() }} className="w-full flex items-center gap-2 px-3 py-2 text-sm text-theme hover:bg-theme-item-hover transition-colors">
+              <button onClick={() => { 
+                setPendingAts(prev => {
+                  // 避免重复添加
+                  if (prev.some(a => a.uid === avatarContextMenu.senderUid)) return prev
+                  return [...prev, { uid: avatarContextMenu.senderUid, uin: avatarContextMenu.senderUin, name: avatarContextMenu.senderName }]
+                })
+                setAvatarContextMenu(null)
+                textareaRef.current?.focus() 
+              }} className="w-full flex items-center gap-2 px-3 py-2 text-sm text-theme hover:bg-theme-item-hover transition-colors">
                 <AtSign size={14} />
-                @ta
+                召唤ta
               </button>
             )}
             <button onClick={async () => {
@@ -650,6 +784,28 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ session, onShowMembers, onNewMe
       {/* 用户资料卡 */}
       {userProfile && (
         <UserProfileCard profile={userProfile.profile} loading={userProfile.loading} position={userProfile.position} onClose={() => setUserProfile(null)} />
+      )}
+      
+      {/* 群资料卡 */}
+      {groupProfile && (
+        <GroupProfileCard 
+          profile={groupProfile.profile} 
+          loading={groupProfile.loading} 
+          position={groupProfile.position} 
+          onClose={() => setGroupProfile(null)}
+          onQuitGroup={async (groupCode, isOwner) => {
+            try {
+              await quitGroup(groupCode)
+              showToast(isOwner ? '群已解散' : '已退出群聊', 'success')
+              // 清除当前会话
+              const { setCurrentChat, removeRecentChat } = useWebQQStore.getState()
+              setCurrentChat(null)
+              removeRecentChat(2, groupCode)
+            } catch (e: any) {
+              showToast(e.message || (isOwner ? '解散失败' : '退群失败'), 'error')
+            }
+          }}
+        />
       )}
       
       {/* 踢出群确认对话框 */}

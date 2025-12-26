@@ -97,6 +97,7 @@ export async function getGroups(): Promise<GroupItem[]> {
   return groups.map(group => ({
     groupCode: group.groupCode,
     groupName: group.groupName,
+    remarkName: group.remarkName || '',
     avatar: getGroupAvatar(group.groupCode),
     memberCount: group.memberCount
   }))
@@ -268,6 +269,14 @@ export async function kickGroupMember(groupCode: string, uid: string, refuseFore
   const result = await ntCall('ntGroupApi', 'kickMember', [groupCode, [uid], refuseForever, ''])
   if (result?.errCode !== 0) {
     throw new Error(result?.errMsg || '踢出失败')
+  }
+}
+
+// 退出群聊（群主调用则解散群）
+export async function quitGroup(groupCode: string): Promise<void> {
+  const result = await ntCall<{ result: number; errMsg: string }>('ntGroupApi', 'quitGroup', [groupCode])
+  if (result?.result !== 0) {
+    throw new Error(result?.errMsg || '退群失败')
   }
 }
 
@@ -444,6 +453,63 @@ export function isValidImageFormat(filename: string): boolean {
 // 验证消息是否为空
 export function isEmptyMessage(text: string): boolean {
   return !text || text.trim().length === 0
+}
+
+// 群资料
+export interface GroupProfile {
+  groupCode: string
+  groupName: string
+  remarkName?: string
+  avatar: string
+  memberCount: number
+  maxMemberCount?: number
+  ownerUin?: string
+  ownerName?: string
+  createTime?: number
+  description?: string
+  announcement?: string
+}
+
+// 获取群详细资料
+export async function getGroupProfile(groupCode: string): Promise<GroupProfile> {
+  const groupAll = await ntCall<any>('ntGroupApi', 'getGroupAllInfo', [groupCode])
+  
+  // 打印群介绍调试
+  console.log('[WebQQ] 群资料:', {
+    groupCode: groupAll.groupCode,
+    groupName: groupAll.groupName,
+    fingerMemo: groupAll.fingerMemo,
+    fingerMemoLength: groupAll.fingerMemo?.length,
+    groupMemo: groupAll.groupMemo,
+    groupMemoLength: groupAll.groupMemo?.length,
+    richFingerMemo: groupAll.richFingerMemo,
+  })
+  
+  // 获取群主信息
+  let ownerName = ''
+  if (groupAll.ownerUid) {
+    try {
+      const ownerUin = await ntCall<string>('ntUserApi', 'getUinByUid', [groupAll.ownerUid])
+      const ownerInfo = await ntCall<{ coreInfo?: { nick?: string } }>('ntUserApi', 'getUserSimpleInfo', [groupAll.ownerUid, false])
+      ownerName = ownerInfo?.coreInfo?.nick || ownerUin || ''
+    } catch {
+      // 忽略错误
+    }
+  }
+  
+  return {
+    groupCode: groupAll.groupCode,
+    groupName: groupAll.groupName,
+    remarkName: groupAll.remarkName || '',
+    avatar: getGroupAvatar(groupAll.groupCode),
+    memberCount: groupAll.memberNum,
+    maxMemberCount: groupAll.maxMemberNum,
+    ownerUin: groupAll.ownerUid ? await ntCall<string>('ntUserApi', 'getUinByUid', [groupAll.ownerUid]).catch(() => '') : '',
+    ownerName,
+    createTime: groupAll.cmdUinJoinTime || undefined,
+    description: groupAll.richFingerMemo || groupAll.fingerMemo || '',
+    announcement: groupAll.groupMemo || ''
+  }
 }
 
 // 格式化时间戳

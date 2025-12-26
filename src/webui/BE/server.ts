@@ -487,7 +487,7 @@ export class WebUIServer extends Service {
         const { chatType, peerId, content } = req.body as {
           chatType: number | string
           peerId: string
-          content: { type: string; text?: string; imagePath?: string; msgId?: string; msgSeq?: string }[]
+          content: { type: string; text?: string; imagePath?: string; msgId?: string; msgSeq?: string; uid?: string; uin?: string; name?: string }[]
         }
 
         if (chatType === undefined || chatType === null || !peerId || !content || content.length === 0) {
@@ -543,6 +543,22 @@ export class WebUIServer extends Service {
                 atUid: '',
                 atTinyId: '',
                 atNtUid: ''
+              }
+            })
+          } else if (item.type === 'at' && item.uid) {
+            // @某人消息
+            const atUid = item.uid
+            const atUin = item.uin || ''
+            const display = item.name ? `@${item.name}` : '@'
+            elements.push({
+              elementType: ElementType.Text,
+              elementId: '',
+              textElement: {
+                content: display,
+                atType: 2, // AtType.One
+                atUid: atUin,
+                atTinyId: '',
+                atNtUid: atUid
               }
             })
           } else if (item.type === 'image' && item.imagePath) {

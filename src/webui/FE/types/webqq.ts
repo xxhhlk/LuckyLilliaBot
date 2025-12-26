@@ -61,6 +61,7 @@ export interface FriendCategory {
 export interface GroupItem {
   groupCode: string
   groupName: string
+  remarkName?: string
   avatar: string
   memberCount: number
 }
@@ -114,7 +115,7 @@ export interface MessagesResponse {
 export interface SendMessageRequest {
   chatType: WebChatType
   peerId: string
-  content: { type: 'text' | 'image' | 'reply'; text?: string; imagePath?: string; msgId?: string; msgSeq?: string }[]
+  content: { type: 'text' | 'image' | 'reply' | 'at'; text?: string; imagePath?: string; msgId?: string; msgSeq?: string; uid?: string; uin?: string; name?: string }[]
 }
 
 // 上传响应
