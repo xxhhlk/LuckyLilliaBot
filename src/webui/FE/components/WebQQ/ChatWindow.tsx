@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { createPortal } from 'react-dom'
 import { useVirtualizer } from '@tanstack/react-virtual'
-import { Users, Send, Image as ImageIcon, X, Loader2, Reply, Trash2, AtSign, Hand, User, UserMinus } from 'lucide-react'
+import { Users, Send, Image as ImageIcon, X, Loader2, Reply, Trash2, AtSign, Hand, User, UserMinus, VolumeX } from 'lucide-react'
 import type { ChatSession, RawMessage } from '../../types/webqq'
-import { getMessages, sendMessage, uploadImage, isEmptyMessage, isValidImageFormat, getSelfUid, recallMessage, sendPoke, getUserProfile, UserProfile, getGroupMembers, kickGroupMember, getGroupProfile, GroupProfile, quitGroup } from '../../utils/webqqApi'
+import { getMessages, sendMessage, uploadImage, isEmptyMessage, isValidImageFormat, getSelfUid, recallMessage, sendPoke, getUserProfile, UserProfile, getGroupMembers, kickGroupMember, getGroupProfile, GroupProfile, quitGroup, muteGroupMember } from '../../utils/webqqApi'
 import { useWebQQStore, hasVisitedChat, markChatVisited, unmarkChatVisited } from '../../stores/webqqStore'
 import { getCachedMessages, setCachedMessages, appendCachedMessage, removeCachedMessage } from '../../utils/messageDb'
 import { showToast } from '../Toast'
@@ -14,6 +14,111 @@ import { ImagePreviewModal, VideoPreviewModal } from './PreviewModals'
 import { ImagePreviewContext, VideoPreviewContext } from './MessageElements'
 import { RawMessageBubble, TempMessageBubble, MessageContextMenuContext, AvatarContextMenuContext, ScrollToMessageContext, GroupMembersContext } from './MessageBubble'
 import type { TempMessage, AvatarContextMenuInfo } from './MessageBubble'
+
+// 禁言时长选择对话框组件
+const MuteDialog: React.FC<{
+  name: string
+  onMute: (seconds: number) => void
+  onClose: () => void
+}> = ({ name, onMute, onClose }) => {
+  const [seconds, setSeconds] = useState(0)
+  const [minutes, setMinutes] = useState(0)
+  const [hours, setHours] = useState(0)
+  const [days, setDays] = useState(0)
+  
+  const handleConfirm = () => {
+    const totalSeconds = seconds + minutes * 60 + hours * 3600 + days * 86400
+    if (totalSeconds > 0) {
+      onMute(totalSeconds)
+    }
+  }
+  
+  const totalSeconds = seconds + minutes * 60 + hours * 3600 + days * 86400
+  
+  return (
+    <>
+      <div className="fixed inset-0 z-50 bg-black/30" onClick={onClose} />
+      <div className="fixed z-50 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-theme-card backdrop-blur-xl border border-theme-divider rounded-xl shadow-xl p-6 min-w-[340px]">
+        <h3 className="text-lg font-medium text-theme mb-4">禁言 {name}</h3>
+        <div className="mb-4">
+          <p className="text-sm text-theme-secondary mb-3">设置禁言时长：</p>
+          <div className="grid grid-cols-4 gap-2">
+            <div className="flex flex-col items-center">
+              <input
+                type="number"
+                min={0}
+                max={59}
+                value={seconds}
+                onChange={(e) => setSeconds(Math.min(59, Math.max(0, parseInt(e.target.value) || 0)))}
+                className="w-full px-2 py-2 text-center bg-theme-input border border-theme-input rounded-lg text-theme focus:outline-none focus:ring-2 focus:ring-pink-500/20"
+              />
+              <span className="text-xs text-theme-secondary mt-1">秒</span>
+            </div>
+            <div className="flex flex-col items-center">
+              <input
+                type="number"
+                min={0}
+                max={59}
+                value={minutes}
+                onChange={(e) => setMinutes(Math.min(59, Math.max(0, parseInt(e.target.value) || 0)))}
+                className="w-full px-2 py-2 text-center bg-theme-input border border-theme-input rounded-lg text-theme focus:outline-none focus:ring-2 focus:ring-pink-500/20"
+              />
+              <span className="text-xs text-theme-secondary mt-1">分钟</span>
+            </div>
+            <div className="flex flex-col items-center">
+              <input
+                type="number"
+                min={0}
+                max={23}
+                value={hours}
+                onChange={(e) => setHours(Math.min(23, Math.max(0, parseInt(e.target.value) || 0)))}
+                className="w-full px-2 py-2 text-center bg-theme-input border border-theme-input rounded-lg text-theme focus:outline-none focus:ring-2 focus:ring-pink-500/20"
+              />
+              <span className="text-xs text-theme-secondary mt-1">小时</span>
+            </div>
+            <div className="flex flex-col items-center">
+              <input
+                type="number"
+                min={0}
+                max={29}
+                value={days}
+                onChange={(e) => setDays(Math.min(29, Math.max(0, parseInt(e.target.value) || 0)))}
+                className="w-full px-2 py-2 text-center bg-theme-input border border-theme-input rounded-lg text-theme focus:outline-none focus:ring-2 focus:ring-pink-500/20"
+              />
+              <span className="text-xs text-theme-secondary mt-1">天</span>
+            </div>
+          </div>
+          <p className="text-xs text-theme-secondary mt-2 text-center">
+            最长29天23小时59分59秒
+          </p>
+        </div>
+        <div className="flex justify-between">
+          <button 
+            onClick={() => onMute(0)} 
+            className="px-4 py-2 text-sm text-green-500 hover:bg-green-50 dark:hover:bg-green-900/30 rounded-lg transition-colors"
+          >
+            解除禁言
+          </button>
+          <div className="flex gap-2">
+            <button 
+              onClick={onClose} 
+              className="px-4 py-2 text-sm text-theme-secondary hover:bg-theme-item rounded-lg transition-colors"
+            >
+              取消
+            </button>
+            <button 
+              onClick={handleConfirm}
+              disabled={totalSeconds === 0}
+              className="px-4 py-2 text-sm bg-orange-500 text-white hover:bg-orange-600 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              确认禁言
+            </button>
+          </div>
+        </div>
+      </div>
+    </>
+  )
+}
 
 interface ChatWindowProps {
   session: ChatSession | null
@@ -44,6 +149,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ session, onShowMembers, onNewMe
   const [isScrollReady, setIsScrollReady] = useState(false)
   const [highlightMsgId, setHighlightMsgId] = useState<string | null>(null)
   const [kickConfirm, setKickConfirm] = useState<{ uid: string; name: string; groupCode: string; groupName: string } | null>(null)
+  const [muteDialog, setMuteDialog] = useState<{ uid: string; name: string; groupCode: string } | null>(null)
   const [pendingAts, setPendingAts] = useState<{ uid: string; uin: string; name: string }[]>([])
 
   const imagePreviewContextValue = useMemo(() => ({
@@ -425,6 +531,10 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ session, onShowMembers, onNewMe
       if (currentImagePreview) {
         URL.revokeObjectURL(currentImagePreview.url)
       }
+      // 发送完成后保持输入框 focus（需要等 React 重新渲染 disabled=false 后再 focus）
+      setTimeout(() => {
+        textareaRef.current?.focus()
+      }, 50)
     }
   }, [session, inputText, replyTo, imagePreview, pendingAts])
 
@@ -445,7 +555,10 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ session, onShowMembers, onNewMe
   }, [])
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend() }
+    if (e.key === 'Enter' && !e.shiftKey) { 
+      e.preventDefault()
+      handleSend()
+    }
   }, [handleSend])
 
   const handlePaste = useCallback((e: React.ClipboardEvent) => {
@@ -746,6 +859,35 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ session, onShowMembers, onNewMe
               <User size={14} />
               查看资料
             </button>
+            {/* 禁言 - 权限逻辑：群主可禁言任何人（除自己），管理员可禁言普通成员（除群主、管理员、自己） */}
+            {(() => {
+              if (avatarContextMenu.chatType !== 2 || !avatarContextMenu.groupCode) return null
+              const selfUid = getSelfUid()
+              if (avatarContextMenu.senderUid === selfUid) return null // 不能禁言自己
+              const cachedMembers = getCachedMembers(avatarContextMenu.groupCode)
+              const selfMember = cachedMembers && selfUid ? cachedMembers.find(m => m.uid === selfUid) : null
+              const selfRole = selfMember?.role
+              const isOwner = selfRole === 'owner'
+              const isAdmin = selfRole === 'admin'
+              const targetMember = cachedMembers ? cachedMembers.find(m => m.uid === avatarContextMenu.senderUid) : null
+              const targetRole = targetMember?.role
+              // 群主可以禁言任何人（除自己），管理员只能禁言普通成员
+              const canMute = isOwner || (isAdmin && targetRole === 'member')
+              if (!canMute) return null
+              return (
+                <button onClick={() => {
+                  setMuteDialog({
+                    uid: avatarContextMenu.senderUid,
+                    name: avatarContextMenu.senderName,
+                    groupCode: avatarContextMenu.groupCode!
+                  })
+                  setAvatarContextMenu(null)
+                }} className="w-full flex items-center gap-2 px-3 py-2 text-sm text-orange-500 hover:bg-theme-item-hover transition-colors">
+                  <VolumeX size={14} />
+                  禁言
+                </button>
+              )
+            })()}
             {/* 踢出群 - 权限逻辑：群主可踢任何人（除自己），管理员可踢普通成员（除群主、管理员、自己） */}
             {(() => {
               if (avatarContextMenu.chatType !== 2 || !avatarContextMenu.groupCode) return null
@@ -836,6 +978,32 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ session, onShowMembers, onNewMe
             </div>
           </div>
         </>,
+        document.body
+      )}
+      
+      {/* 禁言时长选择对话框 */}
+      {muteDialog && createPortal(
+        <MuteDialog 
+          name={muteDialog.name}
+          onMute={async (seconds) => {
+            const { uid, name, groupCode } = muteDialog
+            setMuteDialog(null)
+            try {
+              await muteGroupMember(groupCode, uid, seconds)
+              if (seconds === 0) {
+                showToast(`已解除 ${name} 的禁言`, 'success')
+              } else {
+                const display = seconds >= 86400 ? `${Math.floor(seconds / 86400)}天` :
+                  seconds >= 3600 ? `${Math.floor(seconds / 3600)}小时` :
+                  seconds >= 60 ? `${Math.floor(seconds / 60)}分钟` : `${seconds}秒`
+                showToast(`已禁言 ${name} ${display}`, 'success')
+              }
+            } catch (e: any) {
+              showToast(e.message || '禁言失败', 'error')
+            }
+          }}
+          onClose={() => setMuteDialog(null)}
+        />,
         document.body
       )}
       

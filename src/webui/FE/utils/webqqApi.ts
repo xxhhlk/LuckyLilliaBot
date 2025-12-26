@@ -279,6 +279,12 @@ export async function kickGroupMember(groupCode: string, uid: string, refuseFore
   }
 }
 
+// 禁言群成员 - 使用 ntGroupApi
+// duration 为秒数，0 为解除禁言
+export async function muteGroupMember(groupCode: string, uid: string, duration: number): Promise<void> {
+  await ntCall('ntGroupApi', 'banMember', [groupCode, [{ uid, timeStamp: duration }]])
+}
+
 // 退出群聊（群主调用则解散群）
 export async function quitGroup(groupCode: string): Promise<void> {
   const result = await ntCall<{ result: number; errMsg: string }>('ntGroupApi', 'quitGroup', [groupCode])

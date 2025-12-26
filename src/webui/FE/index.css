@@ -247,9 +247,9 @@
     background: linear-gradient(to right, #ec4899 0%, #f87171 100%);
   }
 
-  /* 暗黑模式渐变 - 更柔和 */
+  /* 暗黑模式渐变 - 和日间模式一样 */
   .dark .gradient-primary {
-    background: linear-gradient(to right, #be185d 0%, #dc2626 100%);
+    background: linear-gradient(to right, #ec4899 0%, #f87171 100%);
   }
   
   .gradient-primary-br {
@@ -257,7 +257,7 @@
   }
 
   .dark .gradient-primary-br {
-    background: linear-gradient(to bottom right, #be185d 0%, #dc2626 100%);
+    background: linear-gradient(to bottom right, #ec4899 0%, #f87171 100%);
   }
   
   .btn-primary {
@@ -283,7 +283,7 @@
   }
 
   .dark .switch-toggle:checked {
-    background: linear-gradient(to right, #be185d 0%, #dc2626 100%);
+    background: linear-gradient(to right, #ec4899 0%, #f87171 100%);
   }
   
   .switch-toggle-lg {
@@ -304,7 +304,7 @@
   }
 
   .dark .switch-toggle-lg:checked {
-    background: linear-gradient(to right, #be185d 0%, #dc2626 100%);
+    background: linear-gradient(to right, #ec4899 0%, #f87171 100%);
   }
   
   .input-field {
