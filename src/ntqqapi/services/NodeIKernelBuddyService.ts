@@ -60,4 +60,6 @@ export interface NodeIKernelBuddyService {
     onlineCount: number,
     buddyUids: string[]
   }>
+
+  getBuddyNick(uids: string[]): Promise<Map<string, string>>
 }

@@ -130,12 +130,7 @@ async function onLoad() {
       }
       selfInfo.online = true
       if (!selfInfo.nick) {
-        ctx.ntUserApi.fetchUserDetailInfo(selfInfo.uid).then(res => {
-          if (res.result !== 0) {
-            throw new Error(res.errMsg)
-          }
-          selfInfo.nick = res.detail.get(selfInfo.uid)!.simpleInfo.coreInfo.nick
-        }).catch(e => {
+        await ctx.ntUserApi.getSelfNick(true).catch(e => {
           ctx.logger.warn('获取登录号昵称失败', e)
         })
       }

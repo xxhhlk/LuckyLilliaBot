@@ -39,10 +39,10 @@ export class GetStrangerInfo extends BaseAction<Payload, Response> {
       qid: data.detail.simpleInfo.baseInfo.qid,
       level: data.detail.commonExt?.qqLevel && calcQQLevel(data.detail.commonExt.qqLevel) || 0,
       login_days: loginDays,
-      reg_time: data.detail.commonExt!.regTime,
+      reg_time: data.detail.commonExt?.regTime ?? 0,
       long_nick: data.detail.simpleInfo.baseInfo.longNick,
-      city: data.detail.commonExt!.city,
-      country: data.detail.commonExt!.country,
+      city: data.detail.commonExt?.city ?? '',
+      country: data.detail.commonExt?.country ?? '',
       birthday_year: data.detail.simpleInfo.baseInfo.birthday_year,
       birthday_month: data.detail.simpleInfo.baseInfo.birthday_month,
       birthday_day: data.detail.simpleInfo.baseInfo.birthday_day
