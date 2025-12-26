@@ -93,6 +93,8 @@ export interface GroupMemberItem {
   card: string
   avatar: string
   role: 'owner' | 'admin' | 'member'
+  level?: number
+  specialTitle?: string
 }
 
 // API 响应类型

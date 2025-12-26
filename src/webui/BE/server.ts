@@ -613,7 +613,9 @@ export class WebUIServer extends Service {
               nickname: member.nick,
               card: member.cardName || '',
               avatar: `https://q1.qlogo.cn/g?b=qq&nk=${member.uin}&s=640`,
-              role
+              role,
+              level: member.memberRealLevel || member.memberLevel || 0,
+              specialTitle: member.memberSpecialTitle || ''
             })
           }
         }

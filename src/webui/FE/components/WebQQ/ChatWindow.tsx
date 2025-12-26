@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom'
 import { useVirtualizer } from '@tanstack/react-virtual'
 import { Users, Send, Image as ImageIcon, X, Loader2, Reply, Trash2, AtSign, Hand, User } from 'lucide-react'
 import type { ChatSession, RawMessage } from '../../types/webqq'
-import { getMessages, sendMessage, uploadImage, formatMessageTime, isEmptyMessage, isValidImageFormat, getSelfUid, recallMessage, sendPoke, getUserProfile, UserProfile } from '../../utils/webqqApi'
+import { getMessages, sendMessage, uploadImage, isEmptyMessage, isValidImageFormat, getSelfUid, recallMessage, sendPoke, getUserProfile, UserProfile, getGroupMembers } from '../../utils/webqqApi'
 import { useWebQQStore, hasVisitedChat, markChatVisited, unmarkChatVisited } from '../../stores/webqqStore'
 import { getCachedMessages, setCachedMessages, appendCachedMessage, removeCachedMessage } from '../../utils/messageDb'
 import { showToast } from '../Toast'
@@ -11,7 +11,7 @@ import { showToast } from '../Toast'
 import { UserProfileCard } from './UserProfileCard'
 import { ImagePreviewModal, VideoPreviewModal } from './PreviewModals'
 import { ImagePreviewContext, VideoPreviewContext } from './MessageElements'
-import { RawMessageBubble, TempMessageBubble, MessageContextMenuContext, AvatarContextMenuContext, ScrollToMessageContext } from './MessageBubble'
+import { RawMessageBubble, TempMessageBubble, MessageContextMenuContext, AvatarContextMenuContext, ScrollToMessageContext, GroupMembersContext } from './MessageBubble'
 import type { TempMessage, AvatarContextMenuInfo } from './MessageBubble'
 
 interface ChatWindowProps {
@@ -63,7 +63,22 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ session, onShowMembers, onNewMe
     }
   }), [])
   
-  const { getCachedMembers } = useWebQQStore()
+  const { getCachedMembers, setCachedMembers } = useWebQQStore()
+  
+  // 进入群聊时自动加载群成员（用于显示等级和头衔）
+  useEffect(() => {
+    if (session?.chatType === 2) {
+      const groupCode = session.peerId
+      // 如果缓存中没有群成员，自动加载
+      if (!getCachedMembers(groupCode)) {
+        getGroupMembers(groupCode).then(members => {
+          setCachedMembers(groupCode, members)
+        }).catch(() => {
+          // 忽略错误，不影响聊天功能
+        })
+      }
+    }
+  }, [session?.chatType, session?.peerId, getCachedMembers, setCachedMembers])
   
   const parentRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -128,6 +143,10 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ session, onShowMembers, onNewMe
   }, [allItems, virtualizer])
 
   const scrollToMessageContextValue = useMemo(() => ({ scrollToMessage }), [scrollToMessage])
+
+  const groupMembersContextValue = useMemo(() => ({
+    getMembers: (groupCode: string) => getCachedMembers(groupCode)
+  }), [getCachedMembers])
 
   const scrollToBottom = useCallback(() => {
     if (allItemsRef.current.length > 0) {
@@ -428,6 +447,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ session, onShowMembers, onNewMe
     <MessageContextMenuContext.Provider value={messageContextMenuValue}>
     <AvatarContextMenuContext.Provider value={avatarContextMenuValue}>
     <ScrollToMessageContext.Provider value={scrollToMessageContextValue}>
+    <GroupMembersContext.Provider value={groupMembersContextValue}>
       <div className="flex flex-col h-full">
         <div className="flex items-center justify-between px-4 py-3 border-b border-theme-divider bg-theme-card">
           <div className="flex items-center gap-3">
@@ -603,6 +623,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ session, onShowMembers, onNewMe
       
       <ImagePreviewModal url={previewImageUrl} onClose={() => setPreviewImageUrl(null)} />
       <VideoPreviewModal videoInfo={previewVideoUrl} onClose={() => setPreviewVideoUrl(null)} />
+    </GroupMembersContext.Provider>
     </ScrollToMessageContext.Provider>
     </AvatarContextMenuContext.Provider>
     </MessageContextMenuContext.Provider>

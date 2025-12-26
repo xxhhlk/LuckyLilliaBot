@@ -1,6 +1,6 @@
 import React, { useState, useEffect, memo } from 'react'
 import { Loader2, AlertCircle, RefreshCw } from 'lucide-react'
-import type { RawMessage } from '../../types/webqq'
+import type { RawMessage, GroupMemberItem } from '../../types/webqq'
 import { formatMessageTime, getSelfUid, getSelfUin, getUserDisplayName } from '../../utils/webqqApi'
 import { MessageElementRenderer, hasValidContent, isSystemTipMessage } from './MessageElements'
 
@@ -28,6 +28,11 @@ export const AvatarContextMenuContext = React.createContext<{
 // 跳转到消息上下文
 export const ScrollToMessageContext = React.createContext<{
   scrollToMessage: (msgId: string, msgSeq?: string) => void
+} | null>(null)
+
+// 群成员缓存上下文
+export const GroupMembersContext = React.createContext<{
+  getMembers: (groupCode: string) => GroupMemberItem[] | null
 } | null>(null)
 
 export interface TempMessage {
@@ -142,6 +147,52 @@ export const RawMessageBubble = memo<{ message: RawMessage; allMessages: RawMess
   const contextMenuContext = React.useContext(MessageContextMenuContext)
   const avatarContextMenuContext = React.useContext(AvatarContextMenuContext)
   const scrollToMessageContext = React.useContext(ScrollToMessageContext)
+  const groupMembersContext = React.useContext(GroupMembersContext)
+  
+  // 从 msgAttrs 中获取群等级和头衔
+  let memberLevel: number | undefined
+  let memberTitle: string | undefined
+  let memberRole: 'owner' | 'admin' | 'member' | undefined
+  
+  if (message.chatType === 2) {
+    // 从 msgAttrs 获取群荣誉信息（包含等级和头衔）
+    const msgAttrs = message.msgAttrs
+    if (msgAttrs) {
+      // msgAttrs 可能是 Map 或普通对象（JSON 序列化后）
+      const getAttr = (key: number) => {
+        if (msgAttrs instanceof Map) {
+          return msgAttrs.get(key)
+        } else if (typeof msgAttrs === 'object') {
+          return (msgAttrs as Record<string, any>)[key.toString()]
+        }
+        return undefined
+      }
+      
+      // attrType 2 包含 groupHonor（群等级和头衔）
+      const honorAttr = getAttr(2)
+      if (honorAttr?.groupHonor) {
+        memberLevel = honorAttr.groupHonor.level
+        memberTitle = honorAttr.groupHonor.uniqueTitle || undefined
+      }
+    }
+    
+    // 从缓存的群成员信息获取角色
+    if (groupMembersContext) {
+      const members = groupMembersContext.getMembers(message.peerUin)
+      const member = members?.find(m => m.uid === message.senderUid || m.uin === message.senderUin)
+      if (member) {
+        memberRole = member.role
+        // 如果 msgAttrs 没有等级信息，从成员缓存获取
+        if (memberLevel === undefined && member.level) {
+          memberLevel = member.level
+        }
+        // 如果 msgAttrs 没有头衔信息，从成员缓存获取
+        if (!memberTitle && member.specialTitle) {
+          memberTitle = member.specialTitle
+        }
+      }
+    }
+  }
   
   if (!message.elements || !Array.isArray(message.elements)) return null
 
@@ -187,7 +238,34 @@ export const RawMessageBubble = memo<{ message: RawMessage; allMessages: RawMess
         onContextMenu={handleAvatarContextMenu}
       />
       <div className={`flex flex-col ${isSelf ? 'items-end' : 'items-start'} max-w-[70%]`}>
-        <span className="text-xs text-theme-hint mb-1">{senderName}</span>
+        <div className={`flex items-center gap-1.5 mb-1 ${isSelf ? 'flex-row-reverse' : ''}`}>
+          <span className="text-xs text-theme-hint">{senderName}</span>
+          {memberLevel !== undefined && memberLevel > 0 && (
+            <span className="text-xs px-1 py-0.5 bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300 rounded">
+              Lv.{memberLevel}
+            </span>
+          )}
+          {/* 头衔或角色显示逻辑：
+              - 群主：黄色背景，显示头衔或"群主"
+              - 管理员：蓝色背景，显示头衔或"管理员"
+              - 普通成员：粉色背景，只有有头衔时才显示
+          */}
+          {memberRole === 'owner' && (
+            <span className="text-xs px-1.5 py-0.5 bg-amber-100 dark:bg-amber-900/50 text-amber-600 dark:text-amber-300 rounded">
+              {memberTitle || '群主'}
+            </span>
+          )}
+          {memberRole === 'admin' && (
+            <span className="text-xs px-1.5 py-0.5 bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-300 rounded">
+              {memberTitle || '管理员'}
+            </span>
+          )}
+          {memberRole === 'member' && memberTitle && (
+            <span className="text-xs px-1.5 py-0.5 bg-pink-100 dark:bg-pink-900/50 text-pink-600 dark:text-pink-300 rounded">
+              {memberTitle}
+            </span>
+          )}
+        </div>
         <div 
           className={`rounded-2xl px-4 py-2 min-w-[80px] break-all ${isSelf ? 'bg-pink-500 text-white rounded-br-sm' : 'bg-theme-item text-theme rounded-tl-sm shadow-sm'}`}
           onContextMenu={handleBubbleContextMenu}
