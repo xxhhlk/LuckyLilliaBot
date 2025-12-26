@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { createPortal } from 'react-dom'
 import { useVirtualizer } from '@tanstack/react-virtual'
-import { Users, Send, Image as ImageIcon, X, Loader2, Reply, Trash2, AtSign, Hand, User } from 'lucide-react'
+import { Users, Send, Image as ImageIcon, X, Loader2, Reply, Trash2, AtSign, Hand, User, UserMinus } from 'lucide-react'
 import type { ChatSession, RawMessage } from '../../types/webqq'
-import { getMessages, sendMessage, uploadImage, isEmptyMessage, isValidImageFormat, getSelfUid, recallMessage, sendPoke, getUserProfile, UserProfile, getGroupMembers } from '../../utils/webqqApi'
+import { getMessages, sendMessage, uploadImage, isEmptyMessage, isValidImageFormat, getSelfUid, recallMessage, sendPoke, getUserProfile, UserProfile, getGroupMembers, kickGroupMember } from '../../utils/webqqApi'
 import { useWebQQStore, hasVisitedChat, markChatVisited, unmarkChatVisited } from '../../stores/webqqStore'
 import { getCachedMessages, setCachedMessages, appendCachedMessage, removeCachedMessage } from '../../utils/messageDb'
 import { showToast } from '../Toast'
@@ -41,6 +41,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ session, onShowMembers, onNewMe
   const [userProfile, setUserProfile] = useState<{ profile: UserProfile | null; loading: boolean; position: { x: number; y: number } } | null>(null)
   const [isScrollReady, setIsScrollReady] = useState(false)
   const [highlightMsgId, setHighlightMsgId] = useState<string | null>(null)
+  const [kickConfirm, setKickConfirm] = useState<{ uid: string; name: string; groupCode: string; groupName: string } | null>(null)
 
   const imagePreviewContextValue = useMemo(() => ({
     showPreview: (url: string) => setPreviewImageUrl(url)
@@ -611,6 +612,36 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ session, onShowMembers, onNewMe
               <User size={14} />
               查看资料
             </button>
+            {/* 踢出群 - 权限逻辑：群主可踢任何人（除自己），管理员可踢普通成员（除群主、管理员、自己） */}
+            {(() => {
+              if (avatarContextMenu.chatType !== 2 || !avatarContextMenu.groupCode) return null
+              const selfUid = getSelfUid()
+              if (avatarContextMenu.senderUid === selfUid) return null // 不能踢自己
+              const cachedMembers = getCachedMembers(avatarContextMenu.groupCode)
+              const selfMember = cachedMembers && selfUid ? cachedMembers.find(m => m.uid === selfUid) : null
+              const selfRole = selfMember?.role
+              const isOwner = selfRole === 'owner'
+              const isAdmin = selfRole === 'admin'
+              const targetMember = cachedMembers ? cachedMembers.find(m => m.uid === avatarContextMenu.senderUid) : null
+              const targetRole = targetMember?.role
+              // 群主可以踢任何人（除自己），管理员只能踢普通成员
+              const canKick = isOwner || (isAdmin && targetRole === 'member')
+              if (!canKick) return null
+              return (
+                <button onClick={() => {
+                  setKickConfirm({
+                    uid: avatarContextMenu.senderUid,
+                    name: avatarContextMenu.senderName,
+                    groupCode: avatarContextMenu.groupCode!,
+                    groupName: session?.peerName || avatarContextMenu.groupCode!
+                  })
+                  setAvatarContextMenu(null)
+                }} className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-500 hover:bg-theme-item-hover transition-colors">
+                  <UserMinus size={14} />
+                  踢出群
+                </button>
+              )
+            })()}
           </div>
         </>,
         document.body
@@ -619,6 +650,37 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ session, onShowMembers, onNewMe
       {/* 用户资料卡 */}
       {userProfile && (
         <UserProfileCard profile={userProfile.profile} loading={userProfile.loading} position={userProfile.position} onClose={() => setUserProfile(null)} />
+      )}
+      
+      {/* 踢出群确认对话框 */}
+      {kickConfirm && createPortal(
+        <>
+          <div className="fixed inset-0 z-50 bg-black/50" onClick={() => setKickConfirm(null)} />
+          <div className="fixed z-50 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-theme-card border border-theme-divider rounded-xl shadow-xl p-6 min-w-[320px]">
+            <h3 className="text-lg font-medium text-theme mb-4">确认踢出</h3>
+            <p className="text-theme-secondary mb-6">
+              确定要将 <span className="font-medium text-theme">{kickConfirm.name}</span> 移出群 <span className="font-medium text-theme">{kickConfirm.groupName}</span> 吗？
+            </p>
+            <div className="flex justify-end gap-3">
+              <button onClick={() => setKickConfirm(null)} className="px-4 py-2 text-sm text-theme-secondary hover:bg-theme-item rounded-lg transition-colors">
+                取消
+              </button>
+              <button onClick={async () => {
+                const { uid, name, groupCode } = kickConfirm
+                setKickConfirm(null)
+                try {
+                  await kickGroupMember(groupCode, uid)
+                  showToast(`已将 ${name} 移出群聊`, 'success')
+                } catch (e: any) {
+                  showToast(e.message || '踢出失败', 'error')
+                }
+              }} className="px-4 py-2 text-sm bg-red-500 text-white hover:bg-red-600 rounded-lg transition-colors">
+                确认踢出
+              </button>
+            </div>
+          </div>
+        </>,
+        document.body
       )}
       
       <ImagePreviewModal url={previewImageUrl} onClose={() => setPreviewImageUrl(null)} />

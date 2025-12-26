@@ -263,6 +263,14 @@ export async function sendPoke(chatType: number, targetUin: number, groupCode?: 
   }
 }
 
+// 踢出群成员 - 使用 ntGroupApi
+export async function kickGroupMember(groupCode: string, uid: string, refuseForever = false): Promise<void> {
+  const result = await ntCall('ntGroupApi', 'kickMember', [groupCode, [uid], refuseForever, ''])
+  if (result?.errCode !== 0) {
+    throw new Error(result?.errMsg || '踢出失败')
+  }
+}
+
 // 用户资料
 export interface UserProfile {
   uid: string
