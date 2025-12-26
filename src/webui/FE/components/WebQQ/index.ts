@@ -1,8 +1,34 @@
+// Main page
 export { default as WebQQPage } from './WebQQPage'
-export { default as ContactList } from './ContactList'
-export { default as ChatWindow } from './ChatWindow'
-export { default as GroupMemberPanel } from './GroupMemberPanel'
-export { UserProfileCard } from './UserProfileCard'
-export { ImagePreviewModal, VideoPreviewModal } from './PreviewModals'
-export { MessageElementRenderer, ImagePreviewContext, VideoPreviewContext } from './MessageElements'
-export { RawMessageBubble, TempMessageBubble, MessageContextMenuContext, AvatarContextMenuContext, ScrollToMessageContext } from './MessageBubble'
+
+// Chat components
+export { ChatInput, RichInput, MuteDialog, KickConfirmDialog, TitleDialog } from './chat'
+export type { ChatInputRef, RichInputRef, RichInputItem } from './chat'
+
+// Contact components
+export { ContactList, GroupMemberPanel, FriendListItem, GroupListItem, RecentListItem } from './contact'
+
+// Message components
+export {
+  RawMessageBubble,
+  TempMessageBubble,
+  MessageContextMenuContext,
+  AvatarContextMenuContext,
+  ScrollToMessageContext,
+  GroupMembersContext,
+  MessageElementRenderer,
+  ImagePreviewContext,
+  VideoPreviewContext,
+  hasValidContent,
+  isSystemTipMessage,
+  getProxyImageUrl,
+  EmojiPicker
+} from './message'
+export type { TempMessage, AvatarContextMenuInfo } from './message'
+
+// Profile components
+export { UserProfileCard, GroupProfileCard } from './profile'
+export type { GroupProfile } from './profile'
+
+// Common components
+export { ImagePreviewModal, VideoPreviewModal } from './common'

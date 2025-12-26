@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { Terminal, Trash2, Pause, Play, ArrowDown } from 'lucide-react'
-import { getCookie } from '../utils/cookie'
+import { getCookie } from '../../utils/cookie'
 
 interface LogRecord {
   timestamp: number
@@ -9,9 +9,9 @@ interface LogRecord {
   dateTimeStr: string
 }
 
-const LOG_ITEM_HEIGHT = 72 // 预估每条日志高度
+const LOG_ITEM_HEIGHT = 72
 const MAX_LOGS = 1000
-const BUFFER_SIZE = 10 // 上下缓冲区条数
+const BUFFER_SIZE = 10
 
 const LogViewer: React.FC = () => {
   const [logs, setLogs] = useState<LogRecord[]>([])
@@ -39,7 +39,6 @@ const LogViewer: React.FC = () => {
       const url = `/api/logs/stream?token=${encodeURIComponent(token)}`
       es = new EventSource(url)
 
-      // 监听连接确认事件
       es.addEventListener('connected', () => {
         if (mounted) setConnected(true)
       })
@@ -53,10 +52,7 @@ const LogViewer: React.FC = () => {
           } else {
             setLogs(prev => {
               const newLogs = [...prev, record]
-              if (newLogs.length > MAX_LOGS) {
-                return newLogs.slice(-MAX_LOGS)
-              }
-              return newLogs
+              return newLogs.length > MAX_LOGS ? newLogs.slice(-MAX_LOGS) : newLogs
             })
           }
         } catch (e) {
@@ -70,16 +66,10 @@ const LogViewer: React.FC = () => {
     }
 
     connect()
-
-    return () => {
-      mounted = false
-      if (es) es.close()
-    }
+    return () => { mounted = false; if (es) es.close() }
   }, [isPaused])
 
-  useEffect(() => {
-    scrollToBottom()
-  }, [logs, scrollToBottom])
+  useEffect(() => { scrollToBottom() }, [logs, scrollToBottom])
 
   const handleScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
     setScrollTop(e.currentTarget.scrollTop)
@@ -94,59 +84,28 @@ const LogViewer: React.FC = () => {
     })
   }
 
-  const handleClear = () => {
-    setLogs([])
-    pausedLogsRef.current = []
-  }
+  const handleClear = () => { setLogs([]); pausedLogsRef.current = [] }
 
   const getLogStyle = (type: string) => {
     switch (type.toLowerCase()) {
-      case 'error':
-        return {
-          bg: 'bg-red-50/50 dark:bg-red-900/20',
-          badge: 'text-red-600 dark:text-red-400 bg-red-100/70 dark:bg-red-900/50',
-        }
-      case 'warn':
-        return {
-          bg: 'bg-amber-50/50 dark:bg-amber-900/20',
-          badge: 'text-amber-600 dark:text-amber-400 bg-amber-100/70 dark:bg-amber-900/50',
-        }
-      case 'info':
-        return {
-          bg: 'bg-blue-50/50 dark:bg-blue-900/20',
-          badge: 'text-pink-500 dark:text-pink-400 bg-pink-100/70 dark:bg-pink-900/50',
-        }
-      case 'debug':
-        return {
-          bg: 'bg-gray-50/50 dark:bg-neutral-700/50',
-          badge: 'text-gray-500 dark:text-neutral-400 bg-gray-100/70 dark:bg-neutral-600/50',
-        }
-      default:
-        return {
-          bg: 'bg-green-50/50 dark:bg-green-900/20',
-          badge: 'text-green-600 dark:text-green-400 bg-green-100/70 dark:bg-green-900/50',
-        }
+      case 'error': return { bg: 'bg-red-50/50 dark:bg-red-900/20', badge: 'text-red-600 dark:text-red-400 bg-red-100/70 dark:bg-red-900/50' }
+      case 'warn': return { bg: 'bg-amber-50/50 dark:bg-amber-900/20', badge: 'text-amber-600 dark:text-amber-400 bg-amber-100/70 dark:bg-amber-900/50' }
+      case 'info': return { bg: 'bg-blue-50/50 dark:bg-blue-900/20', badge: 'text-pink-500 dark:text-pink-400 bg-pink-100/70 dark:bg-pink-900/50' }
+      case 'debug': return { bg: 'bg-gray-50/50 dark:bg-neutral-700/50', badge: 'text-gray-500 dark:text-neutral-400 bg-gray-100/70 dark:bg-neutral-600/50' }
+      default: return { bg: 'bg-green-50/50 dark:bg-green-900/20', badge: 'text-green-600 dark:text-green-400 bg-green-100/70 dark:bg-green-900/50' }
     }
   }
 
   const filteredLogs = useMemo(() => {
     let result = logs
-    // 等级筛选
-    if (levelFilter !== 'all') {
-      result = result.filter(log => log.type.toLowerCase() === levelFilter)
-    }
-    // 文本搜索
+    if (levelFilter !== 'all') result = result.filter(log => log.type.toLowerCase() === levelFilter)
     if (filter) {
       const lowerFilter = filter.toLowerCase()
-      result = result.filter(log =>
-        log.content.toLowerCase().includes(lowerFilter) ||
-        log.type.toLowerCase().includes(lowerFilter)
-      )
+      result = result.filter(log => log.content.toLowerCase().includes(lowerFilter) || log.type.toLowerCase().includes(lowerFilter))
     }
     return result
   }, [logs, filter, levelFilter])
 
-  // 虚拟滚动计算
   const containerHeight = containerRef.current?.clientHeight || 500
   const totalHeight = filteredLogs.length * LOG_ITEM_HEIGHT
   const startIndex = Math.max(0, Math.floor(scrollTop / LOG_ITEM_HEIGHT) - BUFFER_SIZE)
@@ -156,7 +115,6 @@ const LogViewer: React.FC = () => {
 
   return (
     <div className="space-y-4">
-      {/* 头部卡片 */}
       <div className="card p-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -170,76 +128,31 @@ const LogViewer: React.FC = () => {
                   <span className={`w-1.5 h-1.5 rounded-full ${connected ? 'bg-green-500' : 'bg-red-500'}`} />
                   {connected ? '已连接' : '未连接'}
                 </span>
-                <span className="text-theme-muted">
-                  {isPaused ? `已暂停 (${pausedLogsRef.current.length} 条待显示)` : `${logs.length} 条日志`}
-                </span>
+                <span className="text-theme-muted">{isPaused ? `已暂停 (${pausedLogsRef.current.length} 条待显示)` : `${logs.length} 条日志`}</span>
               </div>
             </div>
           </div>
           <div className="flex items-center gap-2">
             <div className="flex rounded-lg overflow-hidden border border-gray-200 dark:border-neutral-600">
-              {[
-                { value: 'all', label: '全部' },
-                { value: 'info', label: 'Info' },
-                { value: 'warn', label: 'Warn' },
-                { value: 'error', label: 'Error' },
-              ].map((item) => (
-                <button
-                  key={item.value}
-                  onClick={() => setLevelFilter(item.value)}
-                  className={`px-3 py-1.5 text-xs font-medium transition-all ${
-                    levelFilter === item.value
-                      ? 'gradient-primary-br text-white'
-                      : 'bg-theme-input text-theme-secondary hover:bg-theme-item-hover'
-                  }`}
-                >
+              {[{ value: 'all', label: '全部' }, { value: 'info', label: 'Info' }, { value: 'warn', label: 'Warn' }, { value: 'error', label: 'Error' }].map((item) => (
+                <button key={item.value} onClick={() => setLevelFilter(item.value)} className={`px-3 py-1.5 text-xs font-medium transition-all ${levelFilter === item.value ? 'gradient-primary-br text-white' : 'bg-theme-input text-theme-secondary hover:bg-theme-item-hover'}`}>
                   {item.label}
                 </button>
               ))}
             </div>
-            <input
-              type="text"
-              placeholder="搜索日志..."
-              value={filter}
-              onChange={(e) => setFilter(e.target.value)}
-              className="px-3 py-1.5 text-sm bg-theme-input border border-theme-input rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent w-40 text-theme placeholder:text-theme-hint"
-            />
-            <button
-              onClick={() => setAutoScroll(!autoScroll)}
-              className={`p-2 rounded-lg transition-all ${autoScroll ? 'gradient-primary text-white shadow-md' : 'bg-theme-input text-theme-secondary hover:bg-theme-item-hover'}`}
-              title={autoScroll ? '自动滚动已开启' : '自动滚动已关闭'}
-            >
-              <ArrowDown size={18} />
-            </button>
-            <button
-              onClick={isPaused ? handleResume : () => setIsPaused(true)}
-              className={`p-2 rounded-lg transition-all ${isPaused ? 'bg-gradient-to-br from-green-500 to-emerald-500 text-white shadow-md' : 'bg-gradient-to-br from-amber-500 to-orange-500 text-white shadow-md'}`}
-              title={isPaused ? '继续' : '暂停'}
-            >
-              {isPaused ? <Play size={18} /> : <Pause size={18} />}
-            </button>
-            <button
-              onClick={handleClear}
-              className="p-2 bg-gradient-to-br from-red-500 to-pink-500 text-white rounded-lg shadow-md hover:shadow-lg transition-all"
-              title="清空日志"
-            >
-              <Trash2 size={18} />
-            </button>
+            <input type="text" placeholder="搜索日志..." value={filter} onChange={(e) => setFilter(e.target.value)} className="px-3 py-1.5 text-sm bg-theme-input border border-theme-input rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent w-40 text-theme placeholder:text-theme-hint" />
+            <button onClick={() => setAutoScroll(!autoScroll)} className={`p-2 rounded-lg transition-all ${autoScroll ? 'gradient-primary text-white shadow-md' : 'bg-theme-input text-theme-secondary hover:bg-theme-item-hover'}`} title={autoScroll ? '自动滚动已开启' : '自动滚动已关闭'}><ArrowDown size={18} /></button>
+            <button onClick={isPaused ? handleResume : () => setIsPaused(true)} className={`p-2 rounded-lg transition-all ${isPaused ? 'bg-gradient-to-br from-green-500 to-emerald-500 text-white shadow-md' : 'bg-gradient-to-br from-amber-500 to-orange-500 text-white shadow-md'}`} title={isPaused ? '继续' : '暂停'}>{isPaused ? <Play size={18} /> : <Pause size={18} />}</button>
+            <button onClick={handleClear} className="p-2 bg-gradient-to-br from-red-500 to-pink-500 text-white rounded-lg shadow-md hover:shadow-lg transition-all" title="清空日志"><Trash2 size={18} /></button>
           </div>
         </div>
       </div>
 
-      {/* 日志列表 - 虚拟滚动 */}
       <div className="card p-4">
-        <div
-          ref={containerRef}
-          onScroll={handleScroll}
-          className="h-[calc(100vh-240px)] overflow-auto pr-2"
-        >
+        <div ref={containerRef} onScroll={handleScroll} className="h-[calc(100vh-240px)] overflow-auto pr-2">
           {filteredLogs.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full text-theme-hint">
-              <Terminal size={48} className="mb-3 opacity-50" />
-              <p className="text-sm">等待日志...</p>
+              <Terminal size={48} className="mb-3 opacity-50" /><p className="text-sm">等待日志...</p>
             </div>
           ) : (
             <div style={{ height: totalHeight, position: 'relative' }}>
@@ -247,21 +160,14 @@ const LogViewer: React.FC = () => {
                 {visibleLogs.map((log, index) => {
                   const style = getLogStyle(log.type)
                   return (
-                    <div
-                      key={`${log.timestamp}-${startIndex + index}`}
-                      className={`p-2.5 rounded-lg ${style.bg} hover:shadow-sm transition-shadow`}
-                    >
+                    <div key={`${log.timestamp}-${startIndex + index}`} className={`p-2.5 rounded-lg ${style.bg} hover:shadow-sm transition-shadow`}>
                       <div className="flex items-start gap-2">
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 mb-0.5">
                             <span className="text-xs text-theme-hint font-mono">{log.dateTimeStr}</span>
-                            <span className={`text-xs font-medium px-1.5 py-0.5 rounded ${style.badge}`}>
-                              {log.type.toUpperCase()}
-                            </span>
+                            <span className={`text-xs font-medium px-1.5 py-0.5 rounded ${style.badge}`}>{log.type.toUpperCase()}</span>
                           </div>
-                          <p className="text-sm text-theme-secondary whitespace-pre-wrap break-all font-mono">
-                            {log.content}
-                          </p>
+                          <p className="text-sm text-theme-secondary whitespace-pre-wrap break-all font-mono">{log.content}</p>
                         </div>
                       </div>
                     </div>

@@ -15,7 +15,7 @@ const Toast: React.FC<ToastProps> = ({ message, type = 'success', duration = 300
   useEffect(() => {
     const timer = setTimeout(() => {
       setIsVisible(false);
-      setTimeout(onClose, 300); // 等待动画完成
+      setTimeout(onClose, 300);
     }, duration);
 
     return () => clearTimeout(timer);
@@ -55,7 +55,6 @@ const Toast: React.FC<ToastProps> = ({ message, type = 'success', duration = 300
   );
 };
 
-// Toast 管理器
 interface ToastItem {
   id: number;
   message: string;

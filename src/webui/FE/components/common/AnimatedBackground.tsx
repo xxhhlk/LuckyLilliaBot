@@ -10,7 +10,6 @@ interface Ball {
   scale: number;
   scaleSpeed: number;
   color: string;
-  // 预渲染的离屏 canvas
   offscreenCanvas?: HTMLCanvasElement;
 }
 
@@ -27,35 +26,30 @@ const AnimatedBackground: React.FC = () => {
     const ctx = canvas.getContext('2d', { alpha: true });
     if (!ctx) return;
 
-    // 目标帧率 30fps，足够流畅且省资源
     const targetFPS = 30;
     const frameInterval = 1000 / targetFPS;
 
-    // 设置画布大小
     const resizeCanvas = () => {
       canvas.width = window.innerWidth;
       canvas.height = window.innerHeight;
-      // 重新生成离屏 canvas
       ballsRef.current.forEach(ball => {
         ball.offscreenCanvas = createBallCanvas(ball);
       });
     };
 
-    // 随机颜色 - 鲜艳明亮的颜色
     const colors = [
-      'rgba(139, 92, 246, 0.6)',   // 紫罗兰
-      'rgba(59, 130, 246, 0.6)',   // 天空蓝
-      'rgba(236, 72, 153, 0.6)',   // 粉红
-      'rgba(16, 185, 129, 0.6)',   // 翡翠绿
-      'rgba(245, 158, 11, 0.6)',   // 琪珀色
-      'rgba(168, 85, 247, 0.6)',   // 亮紫
-      'rgba(14, 165, 233, 0.6)',   // 天蓝
-      'rgba(251, 113, 133, 0.6)',  // 玫瑰粉
+      'rgba(139, 92, 246, 0.6)',
+      'rgba(59, 130, 246, 0.6)',
+      'rgba(236, 72, 153, 0.6)',
+      'rgba(16, 185, 129, 0.6)',
+      'rgba(245, 158, 11, 0.6)',
+      'rgba(168, 85, 247, 0.6)',
+      'rgba(14, 165, 233, 0.6)',
+      'rgba(251, 113, 133, 0.6)',
     ];
 
-    // 预渲染球到离屏 canvas
     const createBallCanvas = (ball: Ball): HTMLCanvasElement => {
-      const size = Math.ceil(ball.baseRadius * 2.5); // 留出模糊空间
+      const size = Math.ceil(ball.baseRadius * 2.5);
       const offscreen = document.createElement('canvas');
       offscreen.width = size;
       offscreen.height = size;
@@ -66,7 +60,6 @@ const AnimatedBackground: React.FC = () => {
       const centerY = size / 2;
       const radius = ball.baseRadius;
 
-      // 绘制渐变球
       const gradient = offCtx.createRadialGradient(centerX, centerY, 0, centerX, centerY, radius);
       gradient.addColorStop(0, ball.color.replace('0.6', '0.8'));
       gradient.addColorStop(0.5, ball.color);
@@ -80,13 +73,12 @@ const AnimatedBackground: React.FC = () => {
       return offscreen;
     };
 
-    // 初始化球
     const initBalls = () => {
       const balls: Ball[] = [];
       const numBalls = 8;
 
       for (let i = 0; i < numBalls; i++) {
-        const baseRadius = Math.random() * 80 + 60; // 60-140px
+        const baseRadius = Math.random() * 80 + 60;
         const ball: Ball = {
           x: Math.random() * canvas.width,
           y: Math.random() * canvas.height,
@@ -104,7 +96,6 @@ const AnimatedBackground: React.FC = () => {
       ballsRef.current = balls;
     };
 
-    // 碰撞检测和处理
     const checkCollision = (ball1: Ball, ball2: Ball) => {
       const dx = ball2.x - ball1.x;
       const dy = ball2.y - ball1.y;
@@ -133,11 +124,9 @@ const AnimatedBackground: React.FC = () => {
       }
     };
 
-    // 动画循环
     const animate = (currentTime: number) => {
       animationRef.current = requestAnimationFrame(animate);
 
-      // 帧率限制
       const elapsed = currentTime - lastTimeRef.current;
       if (elapsed < frameInterval) return;
       lastTimeRef.current = currentTime - (elapsed % frameInterval);
@@ -145,18 +134,15 @@ const AnimatedBackground: React.FC = () => {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
       ballsRef.current.forEach((ball, i) => {
-        // 更新位置
         ball.x += ball.vx;
         ball.y += ball.vy;
         
-        // 更新大小缩放
         ball.scale += ball.scaleSpeed;
         if (ball.scale > 1.2 || ball.scale < 0.8) {
           ball.scaleSpeed = -ball.scaleSpeed;
         }
         ball.radius = ball.baseRadius * ball.scale;
 
-        // 边界碰撞
         if (ball.x - ball.radius < 0 || ball.x + ball.radius > canvas.width) {
           ball.vx = -ball.vx;
           ball.x = Math.max(ball.radius, Math.min(canvas.width - ball.radius, ball.x));
@@ -166,12 +152,10 @@ const AnimatedBackground: React.FC = () => {
           ball.y = Math.max(ball.radius, Math.min(canvas.height - ball.radius, ball.y));
         }
 
-        // 检测与其他球的碰撞
         for (let j = i + 1; j < ballsRef.current.length; j++) {
           checkCollision(ball, ballsRef.current[j]);
         }
 
-        // 使用预渲染的离屏 canvas 绘制
         if (ball.offscreenCanvas) {
           const size = ball.offscreenCanvas.width * ball.scale;
           ctx.drawImage(

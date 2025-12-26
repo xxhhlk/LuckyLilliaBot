@@ -115,7 +115,19 @@ export interface MessagesResponse {
 export interface SendMessageRequest {
   chatType: WebChatType
   peerId: string
-  content: { type: 'text' | 'image' | 'reply' | 'at'; text?: string; imagePath?: string; msgId?: string; msgSeq?: string; uid?: string; uin?: string; name?: string }[]
+  content: { 
+    type: 'text' | 'image' | 'reply' | 'at' | 'face' | 'file'
+    text?: string
+    imagePath?: string
+    msgId?: string
+    msgSeq?: string
+    uid?: string
+    uin?: string
+    name?: string
+    faceId?: number
+    filePath?: string
+    fileName?: string
+  }[]
 }
 
 // 上传响应

@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { X, Eye, EyeOff, Lock } from 'lucide-react';
-import { apiFetch } from '../utils/api';
-import { showToast } from './Toast';
-import { validatePassword } from '../utils/passwordValidation';
+import { apiFetch } from '../../utils/api';
+import { showToast } from '../common';
+import { validatePassword } from '../../utils/passwordValidation';
 
 interface ChangePasswordDialogProps {
   visible: boolean;

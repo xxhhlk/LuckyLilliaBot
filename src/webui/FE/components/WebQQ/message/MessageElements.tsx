@@ -1,8 +1,8 @@
 import React, { useState, memo, useRef } from 'react'
 import { Loader2, Mic, Play, Pause } from 'lucide-react'
-import type { MessageElement, RawMessage } from '../../types/webqq'
-import { getToken } from '../../utils/api'
-import { translatePttToText, getAudioProxyUrl } from '../../utils/webqqApi'
+import type { MessageElement, RawMessage } from '../../../types/webqq'
+import { getToken } from '../../../utils/api'
+import { translatePttToText, getAudioProxyUrl } from '../../../utils/webqqApi'
 
 // 图片预览上下文
 export const ImagePreviewContext = React.createContext<{

@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react'
 import { createPortal } from 'react-dom'
 import { X, Search, Crown, Shield, Loader2, AtSign, Hand, User } from 'lucide-react'
-import type { GroupMemberItem } from '../../types/webqq'
-import { getGroupMembers, filterMembers, sendPoke, getUserProfile, UserProfile } from '../../utils/webqqApi'
-import { useWebQQStore } from '../../stores/webqqStore'
-import { showToast } from '../Toast'
-import { UserProfileCard } from './UserProfileCard'
+import type { GroupMemberItem } from '../../../types/webqq'
+import { getGroupMembers, filterMembers, sendPoke, getUserProfile, UserProfile } from '../../../utils/webqqApi'
+import { useWebQQStore } from '../../../stores/webqqStore'
+import { showToast } from '../../common'
+import { UserProfileCard } from '../profile/UserProfileCard'
 
 interface GroupMemberPanelProps {
   groupCode: string

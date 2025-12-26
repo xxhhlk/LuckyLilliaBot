@@ -487,7 +487,7 @@ export class WebUIServer extends Service {
         const { chatType, peerId, content } = req.body as {
           chatType: number | string
           peerId: string
-          content: { type: string; text?: string; imagePath?: string; msgId?: string; msgSeq?: string; uid?: string; uin?: string; name?: string }[]
+          content: { type: string; text?: string; imagePath?: string; msgId?: string; msgSeq?: string; uid?: string; uin?: string; name?: string; faceId?: number; filePath?: string; fileName?: string }[]
         }
 
         if (chatType === undefined || chatType === null || !peerId || !content || content.length === 0) {
@@ -567,6 +567,13 @@ export class WebUIServer extends Service {
             if (picElement) {
               elements.push(picElement)
             }
+          } else if (item.type === 'face' && item.faceId !== undefined) {
+            // 表情消息
+            elements.push(SendElement.face(item.faceId))
+          } else if (item.type === 'file' && item.filePath && item.fileName) {
+            // 文件消息
+            const fileElement = await SendElement.file(this.ctx, item.filePath, item.fileName)
+            elements.push(fileElement)
           }
         }
 
@@ -604,6 +611,28 @@ export class WebUIServer extends Service {
       } catch (e: any) {
         this.ctx.logger.error('上传图片失败:', e)
         res.status(500).json({ success: false, message: '上传图片失败', error: e.message })
+      }
+    })
+
+    // 上传文件（用于发送文件消息）
+    this.app.post('/api/webqq/upload-file', this.upload.single('file'), async (req, res) => {
+      try {
+        if (!req.file) {
+          res.status(400).json({ success: false, message: '没有上传文件' })
+          return
+        }
+
+        res.json({
+          success: true,
+          data: {
+            filePath: req.file.path,
+            fileName: req.file.originalname,
+            fileSize: req.file.size
+          }
+        })
+      } catch (e: any) {
+        this.ctx.logger.error('上传文件失败:', e)
+        res.status(500).json({ success: false, message: '上传文件失败', error: e.message })
       }
     })
 

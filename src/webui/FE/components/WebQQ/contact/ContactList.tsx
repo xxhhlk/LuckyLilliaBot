@@ -1,9 +1,9 @@
 import React, { useState, useMemo } from 'react'
 import { createPortal } from 'react-dom'
 import { Users, MessageCircle, Search, Clock, ChevronDown, ChevronRight, Pin, Trash2 } from 'lucide-react'
-import type { FriendItem, FriendCategory, GroupItem, RecentChatItem } from '../../types/webqq'
-import { filterGroups, formatMessageTime } from '../../utils/webqqApi'
-import { useWebQQStore } from '../../stores/webqqStore'
+import type { FriendItem, FriendCategory, GroupItem, RecentChatItem } from '../../../types/webqq'
+import { filterGroups, formatMessageTime } from '../../../utils/webqqApi'
+import { useWebQQStore } from '../../../stores/webqqStore'
 
 type TabType = 'friends' | 'groups' | 'recent'
 

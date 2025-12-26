@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { X, Loader2 } from 'lucide-react'
-import { getVideoUrl } from '../../utils/webqqApi'
+import { getVideoUrl } from '../../../utils/webqqApi'
 
 // 图片预览弹窗组件
 export const ImagePreviewModal: React.FC<{ url: string | null; onClose: () => void }> = ({ url, onClose }) => {

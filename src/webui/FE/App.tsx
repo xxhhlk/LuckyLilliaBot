@@ -1,15 +1,18 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import Sidebar from './components/Sidebar';
-import OneBotConfigNew from './components/OneBotConfigNew';
-import OtherConfig from './components/OtherConfig';
-import TokenDialog from './components/TokenDialog';
-import ChangePasswordDialog from './components/ChangePasswordDialog';
-import QQLogin from './components/QQLogin';
-import Dashboard from './components/Dashboard';
-import LogViewer from './components/LogViewer';
+import {
+  Sidebar,
+  Dashboard,
+  LogViewer,
+  OneBotConfigNew,
+  OtherConfig,
+  TokenDialog,
+  ChangePasswordDialog,
+  QQLogin,
+  ToastContainer,
+  showToast,
+  AnimatedBackground,
+} from './components';
 import { WebQQPage } from './components/WebQQ';
-import { ToastContainer, showToast } from './components/Toast';
-import AnimatedBackground from './components/AnimatedBackground';
 import { Config, ResConfig } from './types';
 import { apiFetch, setPasswordPromptHandler } from './utils/api';
 import { Save, Loader2, Settings, Eye, EyeOff, Plus, Trash2 } from 'lucide-react';

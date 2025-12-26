@@ -1,6 +1,6 @@
 import React from 'react'
 import { Moon, Sun } from 'lucide-react'
-import { useThemeStore } from '../stores/themeStore'
+import { useThemeStore } from '../../stores/themeStore'
 
 const ThemeToggle: React.FC = () => {
   const { isDark, toggleTheme } = useThemeStore()

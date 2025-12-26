@@ -1,124 +1,21 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { createPortal } from 'react-dom'
 import { useVirtualizer } from '@tanstack/react-virtual'
-import { Users, Send, Image as ImageIcon, X, Loader2, Reply, Trash2, AtSign, Hand, User, UserMinus, VolumeX, Award } from 'lucide-react'
+import { Users, Reply, Trash2, AtSign, Hand, User, UserMinus, VolumeX, Award, Loader2 } from 'lucide-react'
 import type { ChatSession, RawMessage } from '../../types/webqq'
-import { getMessages, sendMessage, uploadImage, isEmptyMessage, isValidImageFormat, getSelfUid, recallMessage, sendPoke, getUserProfile, UserProfile, getGroupMembers, kickGroupMember, getGroupProfile, GroupProfile, quitGroup, muteGroupMember, setMemberTitle } from '../../utils/webqqApi'
+import { getMessages, getSelfUid, recallMessage, sendPoke, getUserProfile, UserProfile, getGroupMembers, kickGroupMember, getGroupProfile, GroupProfile, quitGroup, muteGroupMember, setMemberTitle } from '../../utils/webqqApi'
 import { useWebQQStore, hasVisitedChat, markChatVisited, unmarkChatVisited } from '../../stores/webqqStore'
 import { getCachedMessages, setCachedMessages, appendCachedMessage, removeCachedMessage } from '../../utils/messageDb'
-import { showToast } from '../Toast'
+import { showToast } from '../common'
 
-import { UserProfileCard } from './UserProfileCard'
-import { GroupProfileCard } from './GroupProfileCard'
-import { ImagePreviewModal, VideoPreviewModal } from './PreviewModals'
-import { ImagePreviewContext, VideoPreviewContext } from './MessageElements'
-import { RawMessageBubble, TempMessageBubble, MessageContextMenuContext, AvatarContextMenuContext, ScrollToMessageContext, GroupMembersContext } from './MessageBubble'
-import type { TempMessage, AvatarContextMenuInfo } from './MessageBubble'
-
-// 禁言时长选择对话框组件
-const MuteDialog: React.FC<{
-  name: string
-  onMute: (seconds: number) => void
-  onClose: () => void
-}> = ({ name, onMute, onClose }) => {
-  const [seconds, setSeconds] = useState(0)
-  const [minutes, setMinutes] = useState(0)
-  const [hours, setHours] = useState(0)
-  const [days, setDays] = useState(0)
-  
-  const handleConfirm = () => {
-    const totalSeconds = seconds + minutes * 60 + hours * 3600 + days * 86400
-    if (totalSeconds > 0) {
-      onMute(totalSeconds)
-    }
-  }
-  
-  const totalSeconds = seconds + minutes * 60 + hours * 3600 + days * 86400
-  
-  return (
-    <>
-      <div className="fixed inset-0 z-50 bg-black/30" onClick={onClose} />
-      <div className="fixed z-50 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-theme-card backdrop-blur-xl border border-theme-divider rounded-xl shadow-xl p-6 min-w-[340px]">
-        <h3 className="text-lg font-medium text-theme mb-4">禁言 {name}</h3>
-        <div className="mb-4">
-          <p className="text-sm text-theme-secondary mb-3">设置禁言时长：</p>
-          <div className="grid grid-cols-4 gap-2">
-            <div className="flex flex-col items-center">
-              <input
-                type="number"
-                min={0}
-                max={59}
-                value={seconds}
-                onChange={(e) => setSeconds(Math.min(59, Math.max(0, parseInt(e.target.value) || 0)))}
-                className="w-full px-2 py-2 text-center bg-theme-input border border-theme-input rounded-lg text-theme focus:outline-none focus:ring-2 focus:ring-pink-500/20"
-              />
-              <span className="text-xs text-theme-secondary mt-1">秒</span>
-            </div>
-            <div className="flex flex-col items-center">
-              <input
-                type="number"
-                min={0}
-                max={59}
-                value={minutes}
-                onChange={(e) => setMinutes(Math.min(59, Math.max(0, parseInt(e.target.value) || 0)))}
-                className="w-full px-2 py-2 text-center bg-theme-input border border-theme-input rounded-lg text-theme focus:outline-none focus:ring-2 focus:ring-pink-500/20"
-              />
-              <span className="text-xs text-theme-secondary mt-1">分钟</span>
-            </div>
-            <div className="flex flex-col items-center">
-              <input
-                type="number"
-                min={0}
-                max={23}
-                value={hours}
-                onChange={(e) => setHours(Math.min(23, Math.max(0, parseInt(e.target.value) || 0)))}
-                className="w-full px-2 py-2 text-center bg-theme-input border border-theme-input rounded-lg text-theme focus:outline-none focus:ring-2 focus:ring-pink-500/20"
-              />
-              <span className="text-xs text-theme-secondary mt-1">小时</span>
-            </div>
-            <div className="flex flex-col items-center">
-              <input
-                type="number"
-                min={0}
-                max={29}
-                value={days}
-                onChange={(e) => setDays(Math.min(29, Math.max(0, parseInt(e.target.value) || 0)))}
-                className="w-full px-2 py-2 text-center bg-theme-input border border-theme-input rounded-lg text-theme focus:outline-none focus:ring-2 focus:ring-pink-500/20"
-              />
-              <span className="text-xs text-theme-secondary mt-1">天</span>
-            </div>
-          </div>
-          <p className="text-xs text-theme-secondary mt-2 text-center">
-            最长29天23小时59分59秒
-          </p>
-        </div>
-        <div className="flex justify-between">
-          <button 
-            onClick={() => onMute(0)} 
-            className="px-4 py-2 text-sm text-green-500 hover:bg-green-50 dark:hover:bg-green-900/30 rounded-lg transition-colors"
-          >
-            解除禁言
-          </button>
-          <div className="flex gap-2">
-            <button 
-              onClick={onClose} 
-              className="px-4 py-2 text-sm text-theme-secondary hover:bg-theme-item rounded-lg transition-colors"
-            >
-              取消
-            </button>
-            <button 
-              onClick={handleConfirm}
-              disabled={totalSeconds === 0}
-              className="px-4 py-2 text-sm bg-orange-500 text-white hover:bg-orange-600 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              确认禁言
-            </button>
-          </div>
-        </div>
-      </div>
-    </>
-  )
-}
+import { UserProfileCard } from './profile/UserProfileCard'
+import { GroupProfileCard } from './profile/GroupProfileCard'
+import { ImagePreviewModal, VideoPreviewModal } from './common/PreviewModals'
+import { ImagePreviewContext, VideoPreviewContext } from './message/MessageElements'
+import { RawMessageBubble, TempMessageBubble, MessageContextMenuContext, AvatarContextMenuContext, ScrollToMessageContext, GroupMembersContext } from './message/MessageBubble'
+import type { TempMessage, AvatarContextMenuInfo } from './message/MessageBubble'
+import { MuteDialog, KickConfirmDialog, TitleDialog } from './chat/ChatDialogs'
+import { ChatInput } from './chat/ChatInput'
 
 interface ChatWindowProps {
   session: ChatSession | null
@@ -136,9 +33,6 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ session, onShowMembers, onNewMe
   const [loading, setLoading] = useState(false)
   const [loadingMore, setLoadingMore] = useState(false)
   const [hasMore, setHasMore] = useState(true)
-  const [inputText, setInputText] = useState('')
-  const [sending, setSending] = useState(false)
-  const [imagePreview, setImagePreview] = useState<{ file: File; url: string } | null>(null)
   const [previewImageUrl, setPreviewImageUrl] = useState<string | null>(null)
   const [previewVideoUrl, setPreviewVideoUrl] = useState<{ chatType: number; peerUid: string; msgId: string; elementId: string } | null>(null)
   const [replyTo, setReplyTo] = useState<RawMessage | null>(null)
@@ -151,7 +45,6 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ session, onShowMembers, onNewMe
   const [kickConfirm, setKickConfirm] = useState<{ uid: string; name: string; groupCode: string; groupName: string } | null>(null)
   const [muteDialog, setMuteDialog] = useState<{ uid: string; name: string; groupCode: string } | null>(null)
   const [titleDialog, setTitleDialog] = useState<{ uid: string; name: string; groupCode: string } | null>(null)
-  const [pendingAts, setPendingAts] = useState<{ uid: string; uin: string; name: string }[]>([])
 
   const imagePreviewContextValue = useMemo(() => ({
     showPreview: (url: string) => setPreviewImageUrl(url)
@@ -176,24 +69,19 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ session, onShowMembers, onNewMe
   
   const { getCachedMembers, setCachedMembers } = useWebQQStore()
   
-  // 进入群聊时自动加载群成员（用于显示等级和头衔）
   useEffect(() => {
     if (session?.chatType === 2) {
       const groupCode = session.peerId
-      // 如果缓存中没有群成员，自动加载
       if (!getCachedMembers(groupCode)) {
         getGroupMembers(groupCode).then(members => {
           setCachedMembers(groupCode, members)
-        }).catch(() => {
-          // 忽略错误，不影响聊天功能
-        })
+        }).catch(() => {})
       }
     }
   }, [session?.chatType, session?.peerId, getCachedMembers, setCachedMembers])
   
   const parentRef = useRef<HTMLDivElement>(null)
-  const fileInputRef = useRef<HTMLInputElement>(null)
-  const textareaRef = useRef<HTMLTextAreaElement>(null)
+  const chatInputRef = useRef<any>(null)
   const sessionRef = useRef(session)
   const shouldScrollRef = useRef(true)
   const prevSessionKeyRef = useRef<string | null>(null)
@@ -205,14 +93,6 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ session, onShowMembers, onNewMe
   const isFirstMountRef = useRef(true)
   
   useEffect(() => { sessionRef.current = session }, [session])
-
-  useEffect(() => {
-    if (appendInputText) {
-      setInputText(prev => prev + appendInputText)
-      textareaRef.current?.focus()
-      onAppendInputTextConsumed?.()
-    }
-  }, [appendInputText, onAppendInputTextConsumed])
 
   const allItems = useMemo<MessageItem[]>(() => {
     const seen = new Set<string>()
@@ -254,7 +134,6 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ session, onShowMembers, onNewMe
   }, [allItems, virtualizer])
 
   const scrollToMessageContextValue = useMemo(() => ({ scrollToMessage }), [scrollToMessage])
-
   const groupMembersContextValue = useMemo(() => ({
     getMembers: (groupCode: string) => getCachedMembers(groupCode)
   }), [getCachedMembers])
@@ -265,48 +144,31 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ session, onShowMembers, onNewMe
     }
   }, [virtualizer])
 
-  // 切换会话时重置状态并滚动到底部
   const [needScrollToBottom, setNeedScrollToBottom] = useState(false)
   const scrollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   
   useEffect(() => {
     const currentKey = session ? `${session.chatType}_${session.peerId}` : null
-    
-    // 检测会话切换
     if (currentKey !== prevSessionKeyRef.current) {
       prevSessionKeyRef.current = currentKey
       setIsScrollReady(false)
       setNeedScrollToBottom(true)
     }
   }, [session?.chatType, session?.peerId])
-  
-  // 当消息变化时，如果需要滚动到底部，延迟执行（等待所有消息加载完成）
+
   useEffect(() => {
     if (allItems.length === 0 || !needScrollToBottom) return
-    
-    // 清除之前的定时器
-    if (scrollTimerRef.current) {
-      clearTimeout(scrollTimerRef.current)
-    }
-    
-    // 延迟 200ms 执行滚动，等待所有消息加载完成
+    if (scrollTimerRef.current) clearTimeout(scrollTimerRef.current)
     scrollTimerRef.current = setTimeout(() => {
       setNeedScrollToBottom(false)
-      const scrollToEnd = () => {
-        virtualizer.scrollToIndex(allItems.length - 1, { align: 'end' })
-      }
+      const scrollToEnd = () => virtualizer.scrollToIndex(allItems.length - 1, { align: 'end' })
       requestAnimationFrame(() => {
         scrollToEnd()
         setTimeout(scrollToEnd, 50)
         setTimeout(() => { scrollToEnd(); setIsScrollReady(true) }, 100)
       })
     }, 200)
-    
-    return () => {
-      if (scrollTimerRef.current) {
-        clearTimeout(scrollTimerRef.current)
-      }
-    }
+    return () => { if (scrollTimerRef.current) clearTimeout(scrollTimerRef.current) }
   }, [allItems.length, needScrollToBottom, virtualizer])
 
   useEffect(() => {
@@ -387,7 +249,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ session, onShowMembers, onNewMe
       setLoadingMore(false)
     }
   }, [session, messages])
-  
+
   useEffect(() => {
     const targetMsgId = scrollToMsgIdRef.current
     if (targetMsgId && allItems.length > 0) {
@@ -470,116 +332,8 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ session, onShowMembers, onNewMe
     shouldScrollRef.current = isNearBottom
   }, [messages])
 
-  const handleSend = useCallback(async () => {
-    if (!session) return
-    const hasText = !isEmptyMessage(inputText)
-    const hasImage = !!imagePreview
-    const hasAts = pendingAts.length > 0
-    if (!hasText && !hasImage && !hasAts) return
-    
-    setSending(true)
-    const text = inputText.trim()
-    const currentReplyTo = replyTo
-    const currentImagePreview = imagePreview
-    const currentAts = [...pendingAts]
-    setInputText('')
-    setReplyTo(null)
-    setImagePreview(null)
-    setPendingAts([])
-    shouldScrollRef.current = true
-
-    const tempId = `temp_${Date.now()}`
-    const atText = currentAts.map(a => `@${a.name}`).join(' ')
-    setTempMessages(prev => [...prev, { 
-      msgId: tempId, 
-      text: hasText || hasAts ? `${atText}${atText && hasText ? ' ' : ''}${text}` : undefined, 
-      imageUrl: currentImagePreview?.url,
-      timestamp: Date.now(), 
-      status: 'sending' 
-    }])
-
-    try {
-      const content: { type: 'text' | 'image' | 'reply' | 'at'; text?: string; imagePath?: string; msgId?: string; msgSeq?: string; uid?: string; uin?: string; name?: string }[] = []
-      
-      // 添加回复
-      if (currentReplyTo) {
-        content.push({ type: 'reply', msgId: currentReplyTo.msgId, msgSeq: currentReplyTo.msgSeq })
-      }
-      
-      // 添加 @ 消息
-      for (const at of currentAts) {
-        content.push({ type: 'at', uid: at.uid, uin: at.uin, name: at.name })
-      }
-      
-      // 添加图片（先上传）
-      if (currentImagePreview) {
-        const uploadResult = await uploadImage(currentImagePreview.file)
-        content.push({ type: 'image', imagePath: uploadResult.imagePath })
-      }
-      
-      // 添加文字
-      if (hasText) {
-        content.push({ type: 'text', text })
-      }
-      
-      await sendMessage({ chatType: session.chatType, peerId: session.peerId, content })
-      setTempMessages(prev => prev.filter(t => t.msgId !== tempId))
-    } catch (e: any) {
-      showToast('发送失败', 'error')
-      setTempMessages(prev => prev.map(t => t.msgId === tempId ? { ...t, status: 'failed' as const } : t))
-    } finally {
-      setSending(false)
-      if (currentImagePreview) {
-        URL.revokeObjectURL(currentImagePreview.url)
-      }
-      // 发送完成后保持输入框 focus（需要等 React 重新渲染 disabled=false 后再 focus）
-      setTimeout(() => {
-        textareaRef.current?.focus()
-      }, 50)
-    }
-  }, [session, inputText, replyTo, imagePreview, pendingAts])
-
-  const handleImageSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-    if (!isValidImageFormat(file.name)) {
-      showToast('不支持的图片格式，仅支持 JPG、PNG、GIF', 'error')
-      return
-    }
-    setImagePreview({ file, url: URL.createObjectURL(file) })
-    if (fileInputRef.current) fileInputRef.current.value = ''
-  }, [])
-
   const handleRetryTemp = useCallback((tempMsg: TempMessage) => {
     setTempMessages(prev => prev.filter(t => t.msgId !== tempMsg.msgId))
-    if (tempMsg.text) setInputText(tempMsg.text)
-  }, [])
-
-  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) { 
-      e.preventDefault()
-      handleSend()
-    }
-  }, [handleSend])
-
-  const handlePaste = useCallback((e: React.ClipboardEvent) => {
-    const items = e.clipboardData?.items
-    if (!items) return
-    for (let i = 0; i < items.length; i++) {
-      const item = items[i]
-      if (item.type.startsWith('image/')) {
-        e.preventDefault()
-        const file = item.getAsFile()
-        if (!file) continue
-        const ext = file.type.split('/')[1]?.toLowerCase()
-        if (!['jpeg', 'jpg', 'png', 'gif'].includes(ext)) {
-          showToast('不支持的图片格式，仅支持 JPG、PNG、GIF', 'error')
-          return
-        }
-        setImagePreview({ file, url: URL.createObjectURL(file) })
-        return
-      }
-    }
   }, [])
 
   const handleShowProfile = useCallback(async (uid: string, uin: string, x: number, y: number, groupCode?: string) => {
@@ -591,6 +345,19 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ session, onShowMembers, onNewMe
       setUserProfile(null)
       showToast('获取用户资料失败', 'error')
     }
+  }, [])
+
+  const handleTempMessage = useCallback((msg: TempMessage) => {
+    setTempMessages(prev => [...prev, msg])
+    shouldScrollRef.current = true
+  }, [])
+
+  const handleTempMessageRemove = useCallback((msgId: string) => {
+    setTempMessages(prev => prev.filter(t => t.msgId !== msgId))
+  }, [])
+
+  const handleTempMessageFail = useCallback((msgId: string) => {
+    setTempMessages(prev => prev.map(t => t.msgId === msgId ? { ...t, status: 'failed' as const } : t))
   }, [])
 
   if (!session) {
@@ -612,6 +379,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ session, onShowMembers, onNewMe
     <ScrollToMessageContext.Provider value={scrollToMessageContextValue}>
     <GroupMembersContext.Provider value={groupMembersContextValue}>
       <div className="flex flex-col h-full">
+        {/* 头部 */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-theme-divider bg-theme-card">
           <div 
             className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition-opacity"
@@ -621,7 +389,6 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ session, onShowMembers, onNewMe
               const y = rect.bottom + 8
               
               if (session.chatType === 2) {
-                // 群聊 - 显示群资料卡
                 setGroupProfile({ profile: null, loading: true, position: { x, y } })
                 try {
                   const profile = await getGroupProfile(session.peerId)
@@ -631,17 +398,13 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ session, onShowMembers, onNewMe
                   showToast('获取群资料失败', 'error')
                 }
               } else {
-                // 私聊 - 显示用户资料卡
                 setUserProfile({ profile: null, loading: true, position: { x, y } })
                 try {
                   const { friendCategories } = useWebQQStore.getState()
                   let uid = ''
                   for (const category of friendCategories) {
                     const friend = category.friends.find(f => f.uin === session.peerId)
-                    if (friend) {
-                      uid = friend.uid
-                      break
-                    }
+                    if (friend) { uid = friend.uid; break }
                   }
                   const profile = await getUserProfile(uid || undefined, session.peerId)
                   setUserProfile({ profile, loading: false, position: { x, y } })
@@ -689,6 +452,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ session, onShowMembers, onNewMe
           )}
         </div>
 
+        {/* 消息列表 */}
         <div ref={parentRef} onScroll={handleScroll} className="flex-1 overflow-y-auto p-4">
           <div ref={topSentinelRef} className="h-1" />
           {loadingMore && <div className="flex justify-center py-2"><Loader2 size={20} className="animate-spin text-pink-500" /></div>}
@@ -714,62 +478,18 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ session, onShowMembers, onNewMe
           )}
         </div>
 
-        {imagePreview && (
-          <div className="px-4 py-2 border-t border-theme-divider bg-theme-item">
-            <div className="relative inline-block">
-              <img src={imagePreview.url} alt="预览" className="max-h-32 rounded-lg" />
-              <button onClick={() => { URL.revokeObjectURL(imagePreview.url); setImagePreview(null) }} className="absolute -top-2 -right-2 p-1 bg-red-500 text-white rounded-full hover:bg-red-600"><X size={14} /></button>
-            </div>
-          </div>
-        )}
-
-        {replyTo && (
-          <div className="px-4 py-2 border-t border-theme-divider bg-theme-item">
-            <div className="flex items-center gap-2">
-              <Reply size={16} className="text-pink-500 flex-shrink-0" />
-              <div className="flex-1 min-w-0 text-sm text-theme-secondary truncate">
-                回复 {replyTo.sendMemberName || replyTo.sendNickName || replyTo.senderUin}：
-                {replyTo.elements?.filter(el => !el.replyElement).map((el, i) => {
-                  if (el.textElement) return <span key={i}>{el.textElement.content}</span>
-                  if (el.picElement) return <span key={i}>[图片]</span>
-                  return null
-                })}
-              </div>
-              <button onClick={() => setReplyTo(null)} className="p-1 text-theme-hint hover:text-theme rounded"><X size={16} /></button>
-            </div>
-          </div>
-        )}
-
-        {pendingAts.length > 0 && (
-          <div className="px-4 py-2 border-t border-theme-divider bg-theme-item">
-            <div className="flex items-center gap-2 flex-wrap">
-              <AtSign size={16} className="text-blue-500 flex-shrink-0" />
-              {pendingAts.map((at, i) => (
-                <span key={at.uid} className="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-300 text-sm rounded">
-                  @{at.name}
-                  <button onClick={() => setPendingAts(prev => prev.filter((_, idx) => idx !== i))} className="hover:text-blue-800 dark:hover:text-blue-100">
-                    <X size={12} />
-                  </button>
-                </span>
-              ))}
-            </div>
-          </div>
-        )}
-
-        <div className="px-4 py-3 border-t border-theme-divider bg-theme-card">
-          <div className="flex items-center gap-2">
-            <input type="file" ref={fileInputRef} onChange={handleImageSelect} accept="image/jpeg,image/png,image/gif" className="hidden" />
-            <div className="flex-1">
-              <textarea ref={textareaRef} value={inputText} onChange={(e) => setInputText(e.target.value)} onKeyDown={handleKeyDown} onPaste={handlePaste} placeholder="输入消息..." disabled={sending} rows={1} className="w-full px-4 py-2.5 bg-theme-input border border-theme-input rounded-xl resize-none focus:outline-none focus:ring-2 focus:ring-pink-500/20 disabled:opacity-50 text-theme placeholder:text-theme-hint" style={{ minHeight: '42px', maxHeight: '120px' }} />
-            </div>
-            <button onClick={() => fileInputRef.current?.click()} disabled={sending} className="p-2.5 text-theme-muted hover:text-pink-500 hover:bg-pink-50 dark:hover:bg-pink-900/30 rounded-xl disabled:opacity-50" title="发送图片">
-              <ImageIcon size={20} />
-            </button>
-            <button onClick={handleSend} disabled={sending || (!imagePreview && !pendingAts.length && isEmptyMessage(inputText))} className="p-2.5 bg-pink-500 text-white rounded-xl hover:bg-pink-600 disabled:opacity-50 disabled:cursor-not-allowed">
-              {sending ? <Loader2 size={20} className="animate-spin" /> : <Send size={20} />}
-            </button>
-          </div>
-        </div>
+        {/* 输入区域 */}
+        <ChatInput
+          ref={chatInputRef}
+          session={session}
+          replyTo={replyTo}
+          onReplyCancel={() => setReplyTo(null)}
+          onSendStart={() => {}}
+          onSendEnd={() => {}}
+          onTempMessage={handleTempMessage}
+          onTempMessageRemove={handleTempMessageRemove}
+          onTempMessageFail={handleTempMessageFail}
+        />
       </div>
 
       {/* 消息右键菜单 */}
@@ -777,9 +497,8 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ session, onShowMembers, onNewMe
         <>
           <div className="fixed inset-0 z-40" onClick={() => setContextMenu(null)} onContextMenu={(e) => { e.preventDefault(); setContextMenu(null) }} />
           <div className="fixed z-50 bg-popup backdrop-blur-sm border border-theme-divider rounded-lg shadow-lg py-1 min-w-[100px]" style={{ left: contextMenu.x, top: Math.min(contextMenu.y, window.innerHeight - 120) }} onContextMenu={(e) => e.preventDefault()}>
-            <button onClick={() => { setReplyTo(contextMenu.message); setContextMenu(null); textareaRef.current?.focus() }} className="w-full flex items-center gap-2 px-3 py-2 text-sm text-theme hover:bg-theme-item-hover transition-colors">
-              <Reply size={14} />
-              回复
+            <button onClick={() => { setReplyTo(contextMenu.message); setContextMenu(null) }} className="w-full flex items-center gap-2 px-3 py-2 text-sm text-theme hover:bg-theme-item-hover transition-colors">
+              <Reply size={14} /> 回复
             </button>
             {(() => {
               const msg = contextMenu.message
@@ -813,8 +532,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ session, onShowMembers, onNewMe
                     showToast(e.message || '撤回失败', 'error')
                   }
                 }} className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-500 hover:bg-theme-item-hover transition-colors">
-                  <Trash2 size={14} />
-                  撤回
+                  <Trash2 size={14} /> 撤回
                 </button>
               )
             })()}
@@ -830,16 +548,10 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ session, onShowMembers, onNewMe
           <div className="fixed z-50 bg-popup backdrop-blur-sm border border-theme-divider rounded-lg shadow-lg py-1 min-w-[120px]" style={{ left: avatarContextMenu.x, top: Math.min(avatarContextMenu.y, window.innerHeight - 150) }} onContextMenu={(e) => e.preventDefault()}>
             {avatarContextMenu.chatType === 2 && (
               <button onClick={() => { 
-                setPendingAts(prev => {
-                  // 避免重复添加
-                  if (prev.some(a => a.uid === avatarContextMenu.senderUid)) return prev
-                  return [...prev, { uid: avatarContextMenu.senderUid, uin: avatarContextMenu.senderUin, name: avatarContextMenu.senderName }]
-                })
+                chatInputRef.current?.insertAt?.(avatarContextMenu.senderUid, avatarContextMenu.senderUin, avatarContextMenu.senderName)
                 setAvatarContextMenu(null)
-                textareaRef.current?.focus() 
               }} className="w-full flex items-center gap-2 px-3 py-2 text-sm text-theme hover:bg-theme-item-hover transition-colors">
-                <AtSign size={14} />
-                召唤ta
+                <AtSign size={14} /> 召唤ta
               </button>
             )}
             <button onClick={async () => {
@@ -853,40 +565,29 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ session, onShowMembers, onNewMe
                 showToast(e.message || '戳一戳失败', 'error')
               }
             }} className="w-full flex items-center gap-2 px-3 py-2 text-sm text-theme hover:bg-theme-item-hover transition-colors">
-              <Hand size={14} />
-              戳一戳
+              <Hand size={14} /> 戳一戳
             </button>
             <button onClick={() => { handleShowProfile(avatarContextMenu.senderUid, avatarContextMenu.senderUin, avatarContextMenu.x, avatarContextMenu.y, avatarContextMenu.groupCode); setAvatarContextMenu(null) }} className="w-full flex items-center gap-2 px-3 py-2 text-sm text-theme hover:bg-theme-item-hover transition-colors">
-              <User size={14} />
-              查看资料
+              <User size={14} /> 查看资料
             </button>
-            {/* 设置头衔 - 仅群主可用 */}
+            {/* 设置头衔 */}
             {(() => {
               if (avatarContextMenu.chatType !== 2 || !avatarContextMenu.groupCode) return null
               const selfUid = getSelfUid()
               const cachedMembers = getCachedMembers(avatarContextMenu.groupCode)
               const selfMember = cachedMembers && selfUid ? cachedMembers.find(m => m.uid === selfUid) : null
-              const isOwner = selfMember?.role === 'owner'
-              if (!isOwner) return null
+              if (selfMember?.role !== 'owner') return null
               return (
-                <button onClick={() => {
-                  setTitleDialog({
-                    uid: avatarContextMenu.senderUid,
-                    name: avatarContextMenu.senderName,
-                    groupCode: avatarContextMenu.groupCode!
-                  })
-                  setAvatarContextMenu(null)
-                }} className="w-full flex items-center gap-2 px-3 py-2 text-sm text-theme hover:bg-theme-item-hover transition-colors">
-                  <Award size={14} />
-                  设置头衔
+                <button onClick={() => { setTitleDialog({ uid: avatarContextMenu.senderUid, name: avatarContextMenu.senderName, groupCode: avatarContextMenu.groupCode! }); setAvatarContextMenu(null) }} className="w-full flex items-center gap-2 px-3 py-2 text-sm text-theme hover:bg-theme-item-hover transition-colors">
+                  <Award size={14} /> 设置头衔
                 </button>
               )
             })()}
-            {/* 禁言 - 权限逻辑：群主可禁言任何人（除自己），管理员可禁言普通成员（除群主、管理员、自己） */}
+            {/* 禁言 */}
             {(() => {
               if (avatarContextMenu.chatType !== 2 || !avatarContextMenu.groupCode) return null
               const selfUid = getSelfUid()
-              if (avatarContextMenu.senderUid === selfUid) return null // 不能禁言自己
+              if (avatarContextMenu.senderUid === selfUid) return null
               const cachedMembers = getCachedMembers(avatarContextMenu.groupCode)
               const selfMember = cachedMembers && selfUid ? cachedMembers.find(m => m.uid === selfUid) : null
               const selfRole = selfMember?.role
@@ -894,28 +595,19 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ session, onShowMembers, onNewMe
               const isAdmin = selfRole === 'admin'
               const targetMember = cachedMembers ? cachedMembers.find(m => m.uid === avatarContextMenu.senderUid) : null
               const targetRole = targetMember?.role
-              // 群主可以禁言任何人（除自己），管理员只能禁言普通成员
               const canMute = isOwner || (isAdmin && targetRole === 'member')
               if (!canMute) return null
               return (
-                <button onClick={() => {
-                  setMuteDialog({
-                    uid: avatarContextMenu.senderUid,
-                    name: avatarContextMenu.senderName,
-                    groupCode: avatarContextMenu.groupCode!
-                  })
-                  setAvatarContextMenu(null)
-                }} className="w-full flex items-center gap-2 px-3 py-2 text-sm text-orange-500 hover:bg-theme-item-hover transition-colors">
-                  <VolumeX size={14} />
-                  禁言
+                <button onClick={() => { setMuteDialog({ uid: avatarContextMenu.senderUid, name: avatarContextMenu.senderName, groupCode: avatarContextMenu.groupCode! }); setAvatarContextMenu(null) }} className="w-full flex items-center gap-2 px-3 py-2 text-sm text-orange-500 hover:bg-theme-item-hover transition-colors">
+                  <VolumeX size={14} /> 禁言
                 </button>
               )
             })()}
-            {/* 踢出群 - 权限逻辑：群主可踢任何人（除自己），管理员可踢普通成员（除群主、管理员、自己） */}
+            {/* 踢出群 */}
             {(() => {
               if (avatarContextMenu.chatType !== 2 || !avatarContextMenu.groupCode) return null
               const selfUid = getSelfUid()
-              if (avatarContextMenu.senderUid === selfUid) return null // 不能踢自己
+              if (avatarContextMenu.senderUid === selfUid) return null
               const cachedMembers = getCachedMembers(avatarContextMenu.groupCode)
               const selfMember = cachedMembers && selfUid ? cachedMembers.find(m => m.uid === selfUid) : null
               const selfRole = selfMember?.role
@@ -923,21 +615,11 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ session, onShowMembers, onNewMe
               const isAdmin = selfRole === 'admin'
               const targetMember = cachedMembers ? cachedMembers.find(m => m.uid === avatarContextMenu.senderUid) : null
               const targetRole = targetMember?.role
-              // 群主可以踢任何人（除自己），管理员只能踢普通成员
               const canKick = isOwner || (isAdmin && targetRole === 'member')
               if (!canKick) return null
               return (
-                <button onClick={() => {
-                  setKickConfirm({
-                    uid: avatarContextMenu.senderUid,
-                    name: avatarContextMenu.senderName,
-                    groupCode: avatarContextMenu.groupCode!,
-                    groupName: session?.peerName || avatarContextMenu.groupCode!
-                  })
-                  setAvatarContextMenu(null)
-                }} className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-500 hover:bg-theme-item-hover transition-colors">
-                  <UserMinus size={14} />
-                  踢出群
+                <button onClick={() => { setKickConfirm({ uid: avatarContextMenu.senderUid, name: avatarContextMenu.senderName, groupCode: avatarContextMenu.groupCode!, groupName: session?.peerName || avatarContextMenu.groupCode! }); setAvatarContextMenu(null) }} className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-500 hover:bg-theme-item-hover transition-colors">
+                  <UserMinus size={14} /> 踢出群
                 </button>
               )
             })()}
@@ -945,7 +627,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ session, onShowMembers, onNewMe
         </>,
         document.body
       )}
-      
+
       {/* 用户资料卡 */}
       {userProfile && (
         <UserProfileCard profile={userProfile.profile} loading={userProfile.loading} position={userProfile.position} onClose={() => setUserProfile(null)} />
@@ -962,7 +644,6 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ session, onShowMembers, onNewMe
             try {
               await quitGroup(groupCode)
               showToast(isOwner ? '群已解散' : '已退出群聊', 'success')
-              // 清除当前会话
               const { setCurrentChat, removeRecentChat } = useWebQQStore.getState()
               setCurrentChat(null)
               removeRecentChat(2, groupCode)
@@ -974,38 +655,26 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ session, onShowMembers, onNewMe
       )}
       
       {/* 踢出群确认对话框 */}
-      {kickConfirm && createPortal(
-        <>
-          <div className="fixed inset-0 z-50 bg-black/50" onClick={() => setKickConfirm(null)} />
-          <div className="fixed z-50 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-theme-card border border-theme-divider rounded-xl shadow-xl p-6 min-w-[320px]">
-            <h3 className="text-lg font-medium text-theme mb-4">确认踢出</h3>
-            <p className="text-theme-secondary mb-6">
-              确定要将 <span className="font-medium text-theme">{kickConfirm.name}</span> 移出群 <span className="font-medium text-theme">{kickConfirm.groupName}</span> 吗？
-            </p>
-            <div className="flex justify-end gap-3">
-              <button onClick={() => setKickConfirm(null)} className="px-4 py-2 text-sm text-theme-secondary hover:bg-theme-item rounded-lg transition-colors">
-                取消
-              </button>
-              <button onClick={async () => {
-                const { uid, name, groupCode } = kickConfirm
-                setKickConfirm(null)
-                try {
-                  await kickGroupMember(groupCode, uid)
-                  showToast(`已将 ${name} 移出群聊`, 'success')
-                } catch (e: any) {
-                  showToast(e.message || '踢出失败', 'error')
-                }
-              }} className="px-4 py-2 text-sm bg-red-500 text-white hover:bg-red-600 rounded-lg transition-colors">
-                确认踢出
-              </button>
-            </div>
-          </div>
-        </>,
-        document.body
+      {kickConfirm && (
+        <KickConfirmDialog
+          name={kickConfirm.name}
+          groupName={kickConfirm.groupName}
+          onConfirm={async () => {
+            const { uid, name, groupCode } = kickConfirm
+            setKickConfirm(null)
+            try {
+              await kickGroupMember(groupCode, uid)
+              showToast(`已将 ${name} 移出群聊`, 'success')
+            } catch (e: any) {
+              showToast(e.message || '踢出失败', 'error')
+            }
+          }}
+          onClose={() => setKickConfirm(null)}
+        />
       )}
       
       {/* 禁言时长选择对话框 */}
-      {muteDialog && createPortal(
+      {muteDialog && (
         <MuteDialog 
           name={muteDialog.name}
           onMute={async (seconds) => {
@@ -1026,64 +695,25 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ session, onShowMembers, onNewMe
             }
           }}
           onClose={() => setMuteDialog(null)}
-        />,
-        document.body
+        />
       )}
       
       {/* 设置头衔对话框 */}
-      {titleDialog && createPortal(
-        <>
-          <div className="fixed inset-0 z-50 bg-black/30" onClick={() => setTitleDialog(null)} />
-          <div className="fixed z-50 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-theme-card backdrop-blur-xl border border-theme-divider rounded-xl shadow-xl p-6 min-w-[320px]">
-            <h3 className="text-lg font-medium text-theme mb-4">设置头衔</h3>
-            <p className="text-sm text-theme-secondary mb-3">为 {titleDialog.name} 设置专属头衔：</p>
-            <input
-              type="text"
-              maxLength={12}
-              placeholder="留空清除头衔"
-              className="w-full px-3 py-2 bg-theme-input border border-theme-input rounded-lg text-theme focus:outline-none focus:ring-2 focus:ring-pink-500/20 placeholder:text-theme-hint"
-              autoFocus
-              onKeyDown={async (e) => {
-                if (e.key === 'Enter') {
-                  const input = e.currentTarget
-                  const title = input.value.trim()
-                  const { uid, name, groupCode } = titleDialog
-                  setTitleDialog(null)
-                  try {
-                    await setMemberTitle(groupCode, uid, title)
-                    showToast(title ? `已设置 ${name} 的头衔为「${title}」` : `已清除 ${name} 的头衔`, 'success')
-                  } catch (err: any) {
-                    showToast(err.message || '设置头衔失败', 'error')
-                  }
-                }
-              }}
-            />
-            <p className="text-xs text-theme-secondary mt-2">中文最多6字，英文最多12字，按回车确认</p>
-            <div className="flex justify-end gap-2 mt-4">
-              <button onClick={() => setTitleDialog(null)} className="px-4 py-2 text-sm text-theme-secondary hover:bg-theme-item rounded-lg transition-colors">
-                取消
-              </button>
-              <button 
-                onClick={async () => {
-                  const input = document.querySelector<HTMLInputElement>('input[maxLength="12"]')
-                  const title = input?.value.trim() || ''
-                  const { uid, name, groupCode } = titleDialog
-                  setTitleDialog(null)
-                  try {
-                    await setMemberTitle(groupCode, uid, title)
-                    showToast(title ? `已设置 ${name} 的头衔为「${title}」` : `已清除 ${name} 的头衔`, 'success')
-                  } catch (err: any) {
-                    showToast(err.message || '设置头衔失败', 'error')
-                  }
-                }}
-                className="px-4 py-2 text-sm bg-pink-500 text-white hover:bg-pink-600 rounded-lg transition-colors"
-              >
-                确认
-              </button>
-            </div>
-          </div>
-        </>,
-        document.body
+      {titleDialog && (
+        <TitleDialog
+          name={titleDialog.name}
+          onConfirm={async (title) => {
+            const { uid, name, groupCode } = titleDialog
+            setTitleDialog(null)
+            try {
+              await setMemberTitle(groupCode, uid, title)
+              showToast(title ? `已设置 ${name} 的头衔为「${title}」` : `已清除 ${name} 的头衔`, 'success')
+            } catch (err: any) {
+              showToast(err.message || '设置头衔失败', 'error')
+            }
+          }}
+          onClose={() => setTitleDialog(null)}
+        />
       )}
       
       <ImagePreviewModal url={previewImageUrl} onClose={() => setPreviewImageUrl(null)} />

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { X, Eye, EyeOff } from 'lucide-react';
-import { validatePassword } from '../utils/passwordValidation';
+import { validatePassword } from '../../utils/passwordValidation';
 
 interface TokenDialogProps {
   visible: boolean;

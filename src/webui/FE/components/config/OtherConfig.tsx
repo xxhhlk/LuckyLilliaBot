@@ -1,5 +1,5 @@
 import React from 'react'
-import { Config } from '../types'
+import { Config } from '../../types'
 import { Globe, FileText, Trash2, Music, Lock, Clock, Shield, Edit, Paperclip } from 'lucide-react'
 
 interface OtherConfigProps {
@@ -37,12 +37,7 @@ const OtherConfig: React.FC<OtherConfigProps> = ({ config, onChange, onOpenChang
                 <div className='text-xs text-theme-muted mt-0.5'>启用后记录详细的运行日志</div>
               </div>
             </div>
-            <input
-              type='checkbox'
-              checked={config.log}
-              onChange={(e) => handleChange('log', e.target.checked)}
-              className="switch-toggle"
-            />
+            <input type='checkbox' checked={config.log} onChange={(e) => handleChange('log', e.target.checked)} className="switch-toggle" />
           </div>
           <div className='flex items-center justify-between p-4 bg-theme-item rounded-xl bg-item-hover transition-colors'>
             <div className='flex items-center gap-3'>
@@ -52,12 +47,7 @@ const OtherConfig: React.FC<OtherConfigProps> = ({ config, onChange, onOpenChang
                 <div className='text-xs text-theme-muted mt-0.5'>取消后可能会暴露在公网</div>
               </div>
             </div>
-            <input
-              type='checkbox'
-              checked={config.onlyLocalhost}
-              onChange={(e) => handleChange('onlyLocalhost', e.target.checked)}
-              className="switch-toggle"
-            />
+            <input type='checkbox' checked={config.onlyLocalhost} onChange={(e) => handleChange('onlyLocalhost', e.target.checked)} className="switch-toggle" />
           </div>
           <div className='flex items-center justify-between p-4 bg-theme-item rounded-xl bg-item-hover transition-colors'>
             <div className='flex items-center gap-3'>
@@ -67,12 +57,7 @@ const OtherConfig: React.FC<OtherConfigProps> = ({ config, onChange, onOpenChang
                 <div className='text-xs text-theme-muted mt-0.5'>启用后可将本地文件转换为URL链接</div>
               </div>
             </div>
-            <input
-              type='checkbox'
-              checked={config.enableLocalFile2Url}
-              onChange={(e) => handleChange('enableLocalFile2Url', e.target.checked)}
-              className="switch-toggle"
-            />
+            <input type='checkbox' checked={config.enableLocalFile2Url} onChange={(e) => handleChange('enableLocalFile2Url', e.target.checked)} className="switch-toggle" />
           </div>
         </div>
       </div>
@@ -98,12 +83,7 @@ const OtherConfig: React.FC<OtherConfigProps> = ({ config, onChange, onOpenChang
                 <div className='text-xs text-theme-muted mt-0.5'>启用后将自动清理接收的临时文件</div>
               </div>
             </div>
-            <input
-              type='checkbox'
-              checked={config.autoDeleteFile}
-              onChange={(e) => handleChange('autoDeleteFile', e.target.checked)}
-              className="switch-toggle"
-            />
+            <input type='checkbox' checked={config.autoDeleteFile} onChange={(e) => handleChange('autoDeleteFile', e.target.checked)} className="switch-toggle" />
           </div>
 
           {config.autoDeleteFile && (
@@ -113,15 +93,7 @@ const OtherConfig: React.FC<OtherConfigProps> = ({ config, onChange, onOpenChang
                   <Clock size={16} className='text-theme-secondary' />
                   <span className='text-sm font-medium text-theme-secondary'>自动删除时间（秒）</span>
                 </div>
-                <input
-                  type='number'
-                  value={config.autoDeleteFileSecond}
-                  onChange={(e) => handleChange('autoDeleteFileSecond', parseInt(e.target.value))}
-                  min='1'
-                  max='3600'
-                  className='input-field'
-                  placeholder='60'
-                />
+                <input type='number' value={config.autoDeleteFileSecond} onChange={(e) => handleChange('autoDeleteFileSecond', parseInt(e.target.value))} min='1' max='3600' className='input-field' placeholder='60' />
                 <p className='text-xs text-theme-muted mt-1'>文件接收后多少秒自动删除（1-3600秒）</p>
               </label>
             </div>
@@ -146,15 +118,7 @@ const OtherConfig: React.FC<OtherConfigProps> = ({ config, onChange, onOpenChang
             <Clock size={16} className='text-pink-500' />
             <span className='text-sm font-medium text-theme-secondary'>消息缓存过期时间（秒）</span>
           </div>
-          <input
-            type='number'
-            value={config.msgCacheExpire}
-            onChange={(e) => handleChange('msgCacheExpire', parseInt(e.target.value))}
-            min='1'
-            max='86400'
-            className='input-field'
-            placeholder='3600'
-          />
+          <input type='number' value={config.msgCacheExpire} onChange={(e) => handleChange('msgCacheExpire', parseInt(e.target.value))} min='1' max='86400' className='input-field' placeholder='3600' />
           <p className='text-xs text-theme-muted mt-1'>消息在缓存中保留的时间（1-86400秒）</p>
         </label>
       </div>
@@ -176,13 +140,7 @@ const OtherConfig: React.FC<OtherConfigProps> = ({ config, onChange, onOpenChang
             <Music size={16} className='text-green-600' />
             <span className='text-sm font-medium text-theme-secondary'>音乐签名地址</span>
           </div>
-          <input
-            type='text'
-            value={config.musicSignUrl}
-            onChange={(e) => handleChange('musicSignUrl', e.target.value)}
-            placeholder='https://example.com/sign'
-            className='input-field'
-          />
+          <input type='text' value={config.musicSignUrl} onChange={(e) => handleChange('musicSignUrl', e.target.value)} placeholder='https://example.com/sign' className='input-field' />
           <p className='text-xs text-theme-muted mt-1'>用于音乐卡片签名的服务地址</p>
         </label>
       </div>
@@ -207,12 +165,8 @@ const OtherConfig: React.FC<OtherConfigProps> = ({ config, onChange, onOpenChang
               <div className='text-xs text-theme-muted mt-0.5'>用于保护 WebUI 访问的密码</div>
             </div>
           </div>
-          <button
-            onClick={onOpenChangePassword}
-            className='px-4 py-2 gradient-primary text-white rounded-lg text-sm font-medium hover:shadow-lg transition-all flex items-center gap-2'
-          >
-            <Edit size={16} />
-            修改密码
+          <button onClick={onOpenChangePassword} className='px-4 py-2 gradient-primary text-white rounded-lg text-sm font-medium hover:shadow-lg transition-all flex items-center gap-2'>
+            <Edit size={16} />修改密码
           </button>
         </div>
       </div>

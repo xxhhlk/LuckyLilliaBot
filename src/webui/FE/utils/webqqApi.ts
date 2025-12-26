@@ -192,6 +192,21 @@ export async function uploadImage(file: File): Promise<UploadResponse> {
   return response.data!
 }
 
+// 上传文件
+export async function uploadFile(file: File): Promise<{ filePath: string; fileName: string; fileSize: number }> {
+  const formData = new FormData()
+  formData.append('file', file)
+  
+  const response = await apiFetch<{ filePath: string; fileName: string; fileSize: number }>('/api/webqq/upload-file', {
+    method: 'POST',
+    body: formData
+  })
+  if (!response.success) {
+    throw new Error(response.message || '上传文件失败')
+  }
+  return response.data!
+}
+
 // 获取群成员列表
 export async function getGroupMembers(groupCode: string): Promise<GroupMemberItem[]> {
   const response = await apiFetch<GroupMemberItem[]>(`/api/webqq/members?groupCode=${groupCode}`)

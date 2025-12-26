@@ -1,0 +1,4 @@
+export { default as OneBotConfigNew } from './OneBotConfigNew'
+export { default as OtherConfig } from './OtherConfig'
+export { default as ChangePasswordDialog } from './ChangePasswordDialog'
+export { default as TokenDialog } from './TokenDialog'

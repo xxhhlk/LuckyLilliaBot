@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { Loader2, Users, Crown, Shield, Calendar, LogOut } from 'lucide-react'
-import { getSelfUin } from '../../utils/webqqApi'
+import { getSelfUin } from '../../../utils/webqqApi'
 
 export interface GroupProfile {
   groupCode: string

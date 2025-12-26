@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { Loader2, Star, Moon, Sun, Crown } from 'lucide-react'
-import type { UserProfile } from '../../utils/webqqApi'
+import type { UserProfile } from '../../../utils/webqqApi'
 
 interface UserProfileCardProps {
   profile: UserProfile | null

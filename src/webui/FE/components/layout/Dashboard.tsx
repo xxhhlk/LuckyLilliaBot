@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react'
-import { apiFetch } from '../utils/api'
+import { apiFetch } from '../../utils/api'
 import { Users, UsersRound, MessageSquare, Send, Clock, Cpu, HardDrive, Zap, Bot, MessageCircle } from 'lucide-react'
 
 interface DashboardStats {
@@ -23,7 +23,6 @@ interface DashboardStats {
   }
 }
 
-// Mock 数据开关
 const USE_MOCK_DATA = false
 
 const generateMockStats = (): DashboardStats => ({
@@ -73,7 +72,6 @@ const formatTime = (timestamp: number): string => {
   return new Date(timestamp * 1000).toLocaleString('zh-CN')
 }
 
-// 统计项组件
 const StatItem: React.FC<{
   icon: React.ReactNode
   label: string
@@ -91,7 +89,6 @@ const StatItem: React.FC<{
   </div>
 )
 
-// 饼状图组件
 const PieChart: React.FC<{
   value: number
   size?: number
@@ -147,7 +144,6 @@ const PieChart: React.FC<{
   )
 }
 
-// 资源卡片组件
 const ResourceCard: React.FC<{
   title: string
   icon: React.ReactNode
@@ -244,9 +240,7 @@ const Dashboard: React.FC = () => {
 
   return (
     <div className="space-y-5">
-      {/* 核心统计 - 三列布局 */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {/* 运行时间 */}
         <div className="card p-4 flex flex-col">
           <div className="flex items-center gap-3 mb-3">
             <div className="w-10 h-10 rounded-xl gradient-primary-br flex items-center justify-center shadow-md">
@@ -272,7 +266,6 @@ const Dashboard: React.FC = () => {
           </div>
         </div>
 
-        {/* 好友 & 群组 */}
         <div className="card p-4 space-y-3">
           <StatItem
             icon={<Users size={20} className="text-white" />}
@@ -288,7 +281,6 @@ const Dashboard: React.FC = () => {
           />
         </div>
 
-        {/* 收发消息 */}
         <div className="card p-4 space-y-3">
           <StatItem
             icon={<MessageSquare size={20} className="text-white" />}
@@ -305,7 +297,6 @@ const Dashboard: React.FC = () => {
         </div>
       </div>
 
-      {/* 资源使用 - QQ 和 Bot 并排 */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <ResourceCard
           title="QQ 资源"

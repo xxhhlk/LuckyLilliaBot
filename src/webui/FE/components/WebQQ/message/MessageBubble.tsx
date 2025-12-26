@@ -1,7 +1,7 @@
 import React, { useState, useEffect, memo } from 'react'
 import { Loader2, AlertCircle, RefreshCw } from 'lucide-react'
-import type { RawMessage, GroupMemberItem } from '../../types/webqq'
-import { formatMessageTime, getSelfUid, getSelfUin, getUserDisplayName } from '../../utils/webqqApi'
+import type { RawMessage, GroupMemberItem } from '../../../types/webqq'
+import { formatMessageTime, getSelfUid, getSelfUin, getUserDisplayName } from '../../../utils/webqqApi'
 import { MessageElementRenderer, hasValidContent, isSystemTipMessage } from './MessageElements'
 
 // 消息右键菜单上下文
@@ -248,11 +248,6 @@ export const RawMessageBubble = memo<{ message: RawMessage; allMessages: RawMess
               Lv.{memberLevel}
             </span>
           )}
-          {/* 头衔或角色显示逻辑：
-              - 群主：黄色背景，显示头衔或"群主"
-              - 管理员：蓝色背景，显示头衔或"管理员"
-              - 普通成员：粉色背景，只有有头衔时才显示
-          */}
           {memberRole === 'owner' && (
             <span className="text-xs px-1.5 py-0.5 bg-amber-100 dark:bg-amber-900/50 text-amber-600 dark:text-amber-300 rounded">
               {memberTitle || '群主'}
@@ -270,7 +265,6 @@ export const RawMessageBubble = memo<{ message: RawMessage; allMessages: RawMess
           )}
         </div>
         {isPttOnly ? (
-          // 语音消息不显示气泡
           <div onContextMenu={handleBubbleContextMenu}>
             {otherElements.map((element, index) => <MessageElementRenderer key={index} element={element} message={message} />)}
           </div>

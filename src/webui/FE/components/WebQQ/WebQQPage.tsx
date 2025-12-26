@@ -1,12 +1,12 @@
 import React, { useEffect, useCallback } from 'react'
-import ContactList from './ContactList'
+import ContactList from './contact/ContactList'
 import ChatWindow from './ChatWindow'
-import GroupMemberPanel from './GroupMemberPanel'
+import GroupMemberPanel from './contact/GroupMemberPanel'
 import type { ChatSession, FriendItem, GroupItem, RecentChatItem, RawMessage } from '../../types/webqq'
 import { createEventSource, getLoginInfo } from '../../utils/webqqApi'
 import { useWebQQStore, resetVisitedChats } from '../../stores/webqqStore'
 import { appendCachedMessage } from '../../utils/messageDb'
-import { showToast } from '../Toast'
+import { showToast } from '../common'
 import { Loader2 } from 'lucide-react'
 
 // 从原始消息中提取摘要

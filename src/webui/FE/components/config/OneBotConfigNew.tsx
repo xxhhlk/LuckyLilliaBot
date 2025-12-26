@@ -1,14 +1,14 @@
 import React, { useState } from 'react';
-import { OB11Config, ConnectConfig, WsConnectConfig, WsReverseConnectConfig, HttpConnectConfig, HttpPostConnectConfig, Config } from '../types';
+import { OB11Config, ConnectConfig, WsConnectConfig, WsReverseConnectConfig, HttpConnectConfig, HttpPostConnectConfig, Config } from '../../types';
 import { Radio, Wifi, Globe, Send, X, Settings, Plus, Trash2, Edit2, Eye, EyeOff } from 'lucide-react';
-import Portal from './Portal';
-import { showToast } from './Toast';
+import { Portal } from '../common';
+import { showToast } from '../common';
 
 interface OneBotConfigProps {
   config: OB11Config;
   onChange: (config: OB11Config) => void;
-  onSave: (config?: OB11Config) => void; // 可以接受新配置
-  globalConfig: Config; // 全局配置，用于检查 onlyLocalhost
+  onSave: (config?: OB11Config) => void;
+  globalConfig: Config;
 }
 
 const OneBotConfigNew: React.FC<OneBotConfigProps> = ({ config, onChange, onSave, globalConfig }) => {
@@ -16,10 +16,10 @@ const OneBotConfigNew: React.FC<OneBotConfigProps> = ({ config, onChange, onSave
   const [selectedAdapterIndex, setSelectedAdapterIndex] = useState<number>(-1);
   const [showDialog, setShowDialog] = useState(false);
   const [showAddDialog, setShowAddDialog] = useState(false);
-  const [isNewAdapter, setIsNewAdapter] = useState(false); // 标记是否为新建适配器
-  const [editingName, setEditingName] = useState(false); // 标记是否正在编辑名称
-  const [tempName, setTempName] = useState(''); // 临时名称
-  const [showToken, setShowToken] = useState(false); // 显示/隐藏Token
+  const [isNewAdapter, setIsNewAdapter] = useState(false);
+  const [editingName, setEditingName] = useState(false);
+  const [tempName, setTempName] = useState('');
+  const [showToken, setShowToken] = useState(false);
 
   const adapterInfo = {
     'ws': { icon: Radio, name: 'WebSocket正向', desc: '提供WebSocket服务器' },
@@ -31,23 +31,20 @@ const OneBotConfigNew: React.FC<OneBotConfigProps> = ({ config, onChange, onSave
   const handleAdapterClick = (adapter: ConnectConfig, index: number) => {
     setSelectedAdapter(adapter);
     setSelectedAdapterIndex(index);
-    setIsNewAdapter(false); // 编辑现有适配器
+    setIsNewAdapter(false);
     setEditingName(false);
     setTempName(adapter.name || '');
-    setShowToken(false); // 重置Token显示状态
+    setShowToken(false);
     setShowDialog(true);
   };
 
   const handleStartEditName = (e: React.MouseEvent) => {
-    e.stopPropagation(); // 防止触发卡片点击
+    e.stopPropagation();
     setEditingName(true);
   };
 
   const handleSaveName = () => {
     if (!selectedAdapter) return;
-    
-    // 只更新 selectedAdapter 状态，不立即保存
-    // 等点击对话框的"保存"按钮时才保存到后端
     const updatedAdapter = { ...selectedAdapter, name: tempName.trim() };
     setSelectedAdapter(updatedAdapter);
     setEditingName(false);
@@ -61,7 +58,6 @@ const OneBotConfigNew: React.FC<OneBotConfigProps> = ({ config, onChange, onSave
   const handleSaveAdapter = () => {
     if (!selectedAdapter) return;
 
-    // 检查：如果 onlyLocalhost 为 false，token 必须设置（仅对 ws 和 http 类型）
     const needsTokenValidation = selectedAdapter.type === 'ws' || selectedAdapter.type === 'http';
     if (needsTokenValidation && !globalConfig.onlyLocalhost && !selectedAdapter.token?.trim()) {
       showToast('当"只监听本地地址"关闭时，必须设置 Token！', 'error');
@@ -71,10 +67,8 @@ const OneBotConfigNew: React.FC<OneBotConfigProps> = ({ config, onChange, onSave
     let newConnect: ConnectConfig[];
 
     if (isNewAdapter) {
-      // 新建适配器：添加到数组
       newConnect = [...config.connect, selectedAdapter];
     } else {
-      // 编辑现有适配器：更新数组中的项
       if (selectedAdapterIndex < 0) return;
       newConnect = [...config.connect];
       newConnect[selectedAdapterIndex] = selectedAdapter;
@@ -84,34 +78,28 @@ const OneBotConfigNew: React.FC<OneBotConfigProps> = ({ config, onChange, onSave
     onChange(newConfig);
     setShowDialog(false);
     setIsNewAdapter(false);
-
-    // 保存时触发后端保存，传入新配置
     onSave(newConfig);
   };
 
   const handleDeleteAdapter = () => {
-    // 如果是新建的适配器，直接关闭对话框即可
     if (isNewAdapter) {
       setShowDialog(false);
       setIsNewAdapter(false);
       return;
     }
 
-    // 删除现有适配器
     if (selectedAdapterIndex < 0) return;
 
     const newConnect = config.connect.filter((_, index) => index !== selectedAdapterIndex);
     const newConfig = { ...config, connect: newConnect };
     onChange(newConfig);
     setShowDialog(false);
-
-    // 删除时触发后端保存，传入新配置
     onSave(newConfig);
   };
 
   const handleAddAdapter = (type: 'ws' | 'ws-reverse' | 'http' | 'http-post') => {
     const baseConfig = {
-      enable: true, // 默认启用
+      enable: true,
       token: '',
       messageFormat: 'array' as const,
       reportSelfMessage: false,
@@ -135,17 +123,12 @@ const OneBotConfigNew: React.FC<OneBotConfigProps> = ({ config, onChange, onSave
         break;
     }
 
-    // 关闭添加对话框
     setShowAddDialog(false);
-
-    // 设置为新建模式并打开编辑对话框
     setSelectedAdapter(newAdapter);
-    setSelectedAdapterIndex(-1); // 新建时索引设为-1
-    setIsNewAdapter(true); // 标记为新建适配器
-    setShowToken(false); // 重置Token显示状态
+    setSelectedAdapterIndex(-1);
+    setIsNewAdapter(true);
+    setShowToken(false);
     setShowDialog(true);
-
-    // 注意：这里不添加到数组，只有点击保存按钮才真正添加
   };
 
   const updateSelectedAdapter = (field: string, value: any) => {
@@ -168,8 +151,6 @@ const OneBotConfigNew: React.FC<OneBotConfigProps> = ({ config, onChange, onSave
             onChange={(e) => {
               const newConfig = { ...config, enable: e.target.checked };
               onChange(newConfig);
-              console.log('Config updated:', newConfig);
-              // 总开关变更时保存，直接传入新配置
               onSave(newConfig);
             }}
             className="switch-toggle-lg"
@@ -275,56 +256,31 @@ const OneBotConfigNew: React.FC<OneBotConfigProps> = ({ config, onChange, onSave
                       className="flex-1 px-3 py-2 border border-theme-input rounded-xl focus:outline-none focus:ring-2 focus:ring-pink-500 bg-theme-input text-theme"
                       autoFocus
                     />
-                    <button
-                      onClick={handleSaveName}
-                      className="px-4 py-2 bg-pink-500 text-white rounded-xl hover:bg-pink-600 transition-colors"
-                    >
-                      确定
-                    </button>
-                    <button
-                      onClick={handleCancelEditName}
-                      className="px-4 py-2 bg-theme-item text-theme-secondary rounded-xl hover:bg-theme-item-hover transition-colors"
-                    >
-                      取消
-                    </button>
+                    <button onClick={handleSaveName} className="px-4 py-2 bg-pink-500 text-white rounded-xl hover:bg-pink-600 transition-colors">确定</button>
+                    <button onClick={handleCancelEditName} className="px-4 py-2 bg-theme-item text-theme-secondary rounded-xl hover:bg-theme-item-hover transition-colors">取消</button>
                   </div>
                 ) : (
                   <>
                     <h3 className="text-xl font-semibold text-theme">
-                      {isNewAdapter ? '新建 - ' : ''}
-                      {selectedAdapter.name || adapterInfo[selectedAdapter.type as keyof typeof adapterInfo].name}
+                      {isNewAdapter ? '新建 - ' : ''}{selectedAdapter.name || adapterInfo[selectedAdapter.type as keyof typeof adapterInfo].name}
                     </h3>
-                    <button
-                      onClick={handleStartEditName}
-                      className="p-2 text-theme-hint hover:text-pink-500 hover:bg-pink-50 dark:hover:bg-pink-900/30 rounded-lg transition-colors"
-                      title="编辑名称"
-                    >
+                    <button onClick={handleStartEditName} className="p-2 text-theme-hint hover:text-pink-500 hover:bg-pink-50 dark:hover:bg-pink-900/30 rounded-lg transition-colors" title="编辑名称">
                       <Edit2 size={18} />
                     </button>
                   </>
                 )}
               </div>
-              <button onClick={() => {
-                setShowDialog(false);
-                setIsNewAdapter(false);
-                setEditingName(false);
-              }} className="text-theme-hint hover:text-theme">
+              <button onClick={() => { setShowDialog(false); setIsNewAdapter(false); setEditingName(false); }} className="text-theme-hint hover:text-theme">
                 <X size={24} />
               </button>
             </div>
 
             {/* Body */}
             <div className="p-6 space-y-6 overflow-y-auto flex-1">
-              {/* 启用开关 */}
               <div>
                 <label className="flex items-center justify-between">
                   <span className="text-sm font-medium text-theme-secondary">启用此适配器</span>
-                  <input
-                    type="checkbox"
-                    checked={selectedAdapter.enable}
-                    onChange={(e) => updateSelectedAdapter('enable', e.target.checked)}
-                    className="switch-toggle"
-                  />
+                  <input type="checkbox" checked={selectedAdapter.enable} onChange={(e) => updateSelectedAdapter('enable', e.target.checked)} className="switch-toggle" />
                 </label>
               </div>
 
@@ -333,21 +289,11 @@ const OneBotConfigNew: React.FC<OneBotConfigProps> = ({ config, onChange, onSave
                 <>
                   <div>
                     <label className="block text-sm font-medium text-theme-secondary mb-2">端口</label>
-                    <input
-                      type="number"
-                      value={(selectedAdapter as WsConnectConfig).port}
-                      onChange={(e) => updateSelectedAdapter('port', parseInt(e.target.value))}
-                      className="input-field"
-                    />
+                    <input type="number" value={(selectedAdapter as WsConnectConfig).port} onChange={(e) => updateSelectedAdapter('port', parseInt(e.target.value))} className="input-field" />
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-theme-secondary mb-2">心跳间隔 (ms)</label>
-                    <input
-                      type="number"
-                      value={(selectedAdapter as WsConnectConfig).heartInterval}
-                      onChange={(e) => updateSelectedAdapter('heartInterval', parseInt(e.target.value))}
-                      className="input-field"
-                    />
+                    <input type="number" value={(selectedAdapter as WsConnectConfig).heartInterval} onChange={(e) => updateSelectedAdapter('heartInterval', parseInt(e.target.value))} className="input-field" />
                   </div>
                 </>
               )}
@@ -357,22 +303,11 @@ const OneBotConfigNew: React.FC<OneBotConfigProps> = ({ config, onChange, onSave
                 <>
                   <div>
                     <label className="block text-sm font-medium text-theme-secondary mb-2">连接地址</label>
-                    <input
-                      type="text"
-                      value={(selectedAdapter as WsReverseConnectConfig).url}
-                      onChange={(e) => updateSelectedAdapter('url', e.target.value)}
-                      placeholder="ws://example.com:8080"
-                      className="input-field"
-                    />
+                    <input type="text" value={(selectedAdapter as WsReverseConnectConfig).url} onChange={(e) => updateSelectedAdapter('url', e.target.value)} placeholder="ws://example.com:8080" className="input-field" />
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-theme-secondary mb-2">心跳间隔 (ms)</label>
-                    <input
-                      type="number"
-                      value={(selectedAdapter as WsReverseConnectConfig).heartInterval}
-                      onChange={(e) => updateSelectedAdapter('heartInterval', parseInt(e.target.value))}
-                      className="input-field"
-                    />
+                    <input type="number" value={(selectedAdapter as WsReverseConnectConfig).heartInterval} onChange={(e) => updateSelectedAdapter('heartInterval', parseInt(e.target.value))} className="input-field" />
                   </div>
                 </>
               )}
@@ -381,12 +316,7 @@ const OneBotConfigNew: React.FC<OneBotConfigProps> = ({ config, onChange, onSave
               {selectedAdapter.type === 'http' && (
                 <div>
                   <label className="block text-sm font-medium text-theme-secondary mb-2">端口</label>
-                  <input
-                    type="number"
-                    value={(selectedAdapter as HttpConnectConfig).port}
-                    onChange={(e) => updateSelectedAdapter('port', parseInt(e.target.value))}
-                    className="input-field"
-                  />
+                  <input type="number" value={(selectedAdapter as HttpConnectConfig).port} onChange={(e) => updateSelectedAdapter('port', parseInt(e.target.value))} className="input-field" />
                 </div>
               )}
 
@@ -395,33 +325,17 @@ const OneBotConfigNew: React.FC<OneBotConfigProps> = ({ config, onChange, onSave
                 <>
                   <div>
                     <label className="block text-sm font-medium text-theme-secondary mb-2">上报地址</label>
-                    <input
-                      type="text"
-                      value={(selectedAdapter as HttpPostConnectConfig).url}
-                      onChange={(e) => updateSelectedAdapter('url', e.target.value)}
-                      placeholder="http://example.com:8080/webhook"
-                      className="input-field"
-                    />
+                    <input type="text" value={(selectedAdapter as HttpPostConnectConfig).url} onChange={(e) => updateSelectedAdapter('url', e.target.value)} placeholder="http://example.com:8080/webhook" className="input-field" />
                   </div>
                   <div>
                     <label className="flex items-center justify-between mb-2">
                       <span className="text-sm font-medium text-theme-secondary">启用心跳</span>
-                      <input
-                        type="checkbox"
-                        checked={(selectedAdapter as HttpPostConnectConfig).enableHeart}
-                        onChange={(e) => updateSelectedAdapter('enableHeart', e.target.checked)}
-                        className="switch-toggle"
-                      />
+                      <input type="checkbox" checked={(selectedAdapter as HttpPostConnectConfig).enableHeart} onChange={(e) => updateSelectedAdapter('enableHeart', e.target.checked)} className="switch-toggle" />
                     </label>
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-theme-secondary mb-2">心跳间隔 (ms)</label>
-                    <input
-                      type="number"
-                      value={(selectedAdapter as HttpPostConnectConfig).heartInterval}
-                      onChange={(e) => updateSelectedAdapter('heartInterval', parseInt(e.target.value))}
-                      className="input-field"
-                    />
+                    <input type="number" value={(selectedAdapter as HttpPostConnectConfig).heartInterval} onChange={(e) => updateSelectedAdapter('heartInterval', parseInt(e.target.value))} className="input-field" />
                   </div>
                 </>
               )}
@@ -429,87 +343,45 @@ const OneBotConfigNew: React.FC<OneBotConfigProps> = ({ config, onChange, onSave
               {/* 通用配置 */}
               <div className="border-t border-theme-divider pt-6">
                 <h4 className="text-md font-semibold text-theme mb-4">通用配置</h4>
-
                 <div className="space-y-4">
                   <div>
                     <label className="block text-sm font-medium text-theme-secondary mb-2">Token</label>
                     <div className="relative">
-                      <input
-                        type={showToken ? 'text' : 'password'}
-                        value={selectedAdapter.token}
-                        onChange={(e) => updateSelectedAdapter('token', e.target.value)}
-                        placeholder="访问令牌"
-                        className="input-field pr-12"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowToken(!showToken)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-theme-hint hover:text-theme transition-colors p-1"
-                      >
+                      <input type={showToken ? 'text' : 'password'} value={selectedAdapter.token} onChange={(e) => updateSelectedAdapter('token', e.target.value)} placeholder="访问令牌" className="input-field pr-12" />
+                      <button type="button" onClick={() => setShowToken(!showToken)} className="absolute right-3 top-1/2 -translate-y-1/2 text-theme-hint hover:text-theme transition-colors p-1">
                         {showToken ? <EyeOff size={20} /> : <Eye size={20} />}
                       </button>
                     </div>
                   </div>
-
                   <div>
                     <label className="block text-sm font-medium text-theme-secondary mb-2">消息格式</label>
                     <div className="flex gap-4 text-theme-secondary">
                       <label className="flex items-center">
-                        <input
-                          type="radio"
-                          value="array"
-                          checked={selectedAdapter.messageFormat === 'array'}
-                          onChange={(e) => updateSelectedAdapter('messageFormat', e.target.value)}
-                          className="mr-2"
-                        />
+                        <input type="radio" value="array" checked={selectedAdapter.messageFormat === 'array'} onChange={(e) => updateSelectedAdapter('messageFormat', e.target.value)} className="mr-2" />
                         消息段 (array)
                       </label>
                       <label className="flex items-center">
-                        <input
-                          type="radio"
-                          value="string"
-                          checked={selectedAdapter.messageFormat === 'string'}
-                          onChange={(e) => updateSelectedAdapter('messageFormat', e.target.value)}
-                          className="mr-2"
-                        />
+                        <input type="radio" value="string" checked={selectedAdapter.messageFormat === 'string'} onChange={(e) => updateSelectedAdapter('messageFormat', e.target.value)} className="mr-2" />
                         CQ码 (string)
                       </label>
                     </div>
                   </div>
-
                   <div>
                     <label className="flex items-center justify-between">
                       <span className="text-sm font-medium text-theme-secondary">上报自己发送的消息</span>
-                      <input
-                        type="checkbox"
-                        checked={selectedAdapter.reportSelfMessage}
-                        onChange={(e) => updateSelectedAdapter('reportSelfMessage', e.target.checked)}
-                        className="switch-toggle"
-                      />
+                      <input type="checkbox" checked={selectedAdapter.reportSelfMessage} onChange={(e) => updateSelectedAdapter('reportSelfMessage', e.target.checked)} className="switch-toggle" />
                     </label>
                   </div>
-
                   <div>
                     <label className="flex items-center justify-between">
                       <span className="text-sm font-medium text-theme-secondary">上报离线消息</span>
-                      <input
-                        type="checkbox"
-                        checked={selectedAdapter.reportOfflineMessage}
-                        onChange={(e) => updateSelectedAdapter('reportOfflineMessage', e.target.checked)}
-                        className="switch-toggle"
-                      />
+                      <input type="checkbox" checked={selectedAdapter.reportOfflineMessage} onChange={(e) => updateSelectedAdapter('reportOfflineMessage', e.target.checked)} className="switch-toggle" />
                     </label>
                   </div>
-
                   <div>
                     <label className="flex items-center justify-between">
                       <span className="text-sm font-medium text-theme-secondary">调试模式</span>
-                      <input
-                        type="checkbox"
-                        checked={selectedAdapter.debug}
-                        onChange={(e) => updateSelectedAdapter('debug', e.target.checked)}
-                        className="switch-toggle"
-                      />
+                      <input type="checkbox" checked={selectedAdapter.debug} onChange={(e) => updateSelectedAdapter('debug', e.target.checked)} className="switch-toggle" />
                     </label>
                   </div>
                 </div>
@@ -519,28 +391,14 @@ const OneBotConfigNew: React.FC<OneBotConfigProps> = ({ config, onChange, onSave
             {/* Footer */}
             <div className="flex items-center justify-between p-6 border-t border-white/20 dark:border-neutral-700/50">
               {!isNewAdapter && (
-                <button
-                  onClick={handleDeleteAdapter}
-                  className="px-6 py-2.5 bg-red-500 hover:bg-red-600 text-white rounded-xl font-medium transition-colors flex items-center gap-2"
-                >
-                  <Trash2 size={18} />
-                  删除
+                <button onClick={handleDeleteAdapter} className="px-6 py-2.5 bg-red-500 hover:bg-red-600 text-white rounded-xl font-medium transition-colors flex items-center gap-2">
+                  <Trash2 size={18} />删除
                 </button>
               )}
-              {isNewAdapter && <div />} {/* 占位 */}
+              {isNewAdapter && <div />}
               <div className="flex items-center gap-3">
-                <button
-                  onClick={() => setShowDialog(false)}
-                  className="px-6 py-2.5 text-theme-secondary hover:bg-theme-item rounded-xl font-medium transition-colors"
-                >
-                  取消
-                </button>
-                <button
-                  onClick={handleSaveAdapter}
-                  className="btn-primary"
-                >
-                  保存
-                </button>
+                <button onClick={() => setShowDialog(false)} className="px-6 py-2.5 text-theme-secondary hover:bg-theme-item rounded-xl font-medium transition-colors">取消</button>
+                <button onClick={handleSaveAdapter} className="btn-primary">保存</button>
               </div>
             </div>
           </div>
@@ -555,58 +413,36 @@ const OneBotConfigNew: React.FC<OneBotConfigProps> = ({ config, onChange, onSave
           <div className="bg-white/60 dark:bg-neutral-800/90 backdrop-blur-xl rounded-3xl shadow-2xl w-full max-w-md border border-white/50 dark:border-neutral-700/50">
             <div className="flex items-center justify-between p-6 border-b border-white/20 dark:border-neutral-700/50">
               <h3 className="text-xl font-semibold text-theme">选择适配器类型</h3>
-              <button onClick={() => setShowAddDialog(false)} className="text-theme-hint hover:text-theme">
-                <X size={24} />
-              </button>
+              <button onClick={() => setShowAddDialog(false)} className="text-theme-hint hover:text-theme"><X size={24} /></button>
             </div>
 
             <div className="p-6 space-y-3">
-              <button
-                onClick={() => handleAddAdapter('ws')}
-                className="w-full p-4 rounded-2xl bg-gradient-to-br from-pink-50 to-rose-50 dark:from-pink-900/30 dark:to-rose-900/30 hover:from-pink-100 hover:to-rose-100 dark:hover:from-pink-900/50 dark:hover:to-rose-900/50 transition-all flex items-center gap-4 group"
-              >
-                <div className="w-12 h-12 rounded-xl gradient-primary-br text-white flex items-center justify-center group-hover:scale-110 transition-transform">
-                  <Radio size={24} />
-                </div>
+              <button onClick={() => handleAddAdapter('ws')} className="w-full p-4 rounded-2xl bg-gradient-to-br from-pink-50 to-rose-50 dark:from-pink-900/30 dark:to-rose-900/30 hover:from-pink-100 hover:to-rose-100 dark:hover:from-pink-900/50 dark:hover:to-rose-900/50 transition-all flex items-center gap-4 group">
+                <div className="w-12 h-12 rounded-xl gradient-primary-br text-white flex items-center justify-center group-hover:scale-110 transition-transform"><Radio size={24} /></div>
                 <div className="text-left">
                   <h4 className="text-lg font-semibold text-theme">WebSocket正向</h4>
                   <p className="text-sm text-theme-secondary">作为WebSocket服务器</p>
                 </div>
               </button>
 
-              <button
-                onClick={() => handleAddAdapter('ws-reverse')}
-                className="w-full p-4 rounded-2xl bg-gradient-to-br from-green-50 to-teal-50 dark:from-green-900/30 dark:to-teal-900/30 hover:from-green-100 hover:to-teal-100 dark:hover:from-green-900/50 dark:hover:to-teal-900/50 transition-all flex items-center gap-4 group"
-              >
-                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-green-500 to-teal-600 text-white flex items-center justify-center group-hover:scale-110 transition-transform">
-                  <Wifi size={24} />
-                </div>
+              <button onClick={() => handleAddAdapter('ws-reverse')} className="w-full p-4 rounded-2xl bg-gradient-to-br from-green-50 to-teal-50 dark:from-green-900/30 dark:to-teal-900/30 hover:from-green-100 hover:to-teal-100 dark:hover:from-green-900/50 dark:hover:to-teal-900/50 transition-all flex items-center gap-4 group">
+                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-green-500 to-teal-600 text-white flex items-center justify-center group-hover:scale-110 transition-transform"><Wifi size={24} /></div>
                 <div className="text-left">
                   <h4 className="text-lg font-semibold text-theme">WebSocket反向</h4>
                   <p className="text-sm text-theme-secondary">作为客户端连接到WebSocket服务端</p>
                 </div>
               </button>
 
-              <button
-                onClick={() => handleAddAdapter('http')}
-                className="w-full p-4 rounded-2xl bg-gradient-to-br from-orange-50 to-red-50 dark:from-orange-900/30 dark:to-red-900/30 hover:from-orange-100 hover:to-red-100 dark:hover:from-orange-900/50 dark:hover:to-red-900/50 transition-all flex items-center gap-4 group"
-              >
-                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-orange-500 to-red-600 text-white flex items-center justify-center group-hover:scale-110 transition-transform">
-                  <Globe size={24} />
-                </div>
+              <button onClick={() => handleAddAdapter('http')} className="w-full p-4 rounded-2xl bg-gradient-to-br from-orange-50 to-red-50 dark:from-orange-900/30 dark:to-red-900/30 hover:from-orange-100 hover:to-red-100 dark:hover:from-orange-900/50 dark:hover:to-red-900/50 transition-all flex items-center gap-4 group">
+                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-orange-500 to-red-600 text-white flex items-center justify-center group-hover:scale-110 transition-transform"><Globe size={24} /></div>
                 <div className="text-left">
                   <h4 className="text-lg font-semibold text-theme">HTTP服务</h4>
                   <p className="text-sm text-theme-secondary">提供HTTP API服务</p>
                 </div>
               </button>
 
-              <button
-                onClick={() => handleAddAdapter('http-post')}
-                className="w-full p-4 rounded-2xl bg-gradient-to-br from-pink-50 to-rose-50 dark:from-pink-900/30 dark:to-rose-900/30 hover:from-pink-100 hover:to-rose-100 dark:hover:from-pink-900/50 dark:hover:to-rose-900/50 transition-all flex items-center gap-4 group"
-              >
-                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-pink-500 to-rose-600 text-white flex items-center justify-center group-hover:scale-110 transition-transform">
-                  <Send size={24} />
-                </div>
+              <button onClick={() => handleAddAdapter('http-post')} className="w-full p-4 rounded-2xl bg-gradient-to-br from-pink-50 to-rose-50 dark:from-pink-900/30 dark:to-rose-900/30 hover:from-pink-100 hover:to-rose-100 dark:hover:from-pink-900/50 dark:hover:to-rose-900/50 transition-all flex items-center gap-4 group">
+                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-pink-500 to-rose-600 text-white flex items-center justify-center group-hover:scale-110 transition-transform"><Send size={24} /></div>
                 <div className="text-left">
                   <h4 className="text-lg font-semibold text-theme">HTTP上报</h4>
                   <p className="text-sm text-theme-secondary">上报事件到HTTP服务器</p>
@@ -615,12 +451,7 @@ const OneBotConfigNew: React.FC<OneBotConfigProps> = ({ config, onChange, onSave
             </div>
 
             <div className="flex justify-end p-6 border-t border-white/20 dark:border-neutral-700/50">
-              <button
-                onClick={() => setShowAddDialog(false)}
-                className="px-6 py-2.5 text-theme-secondary hover:bg-theme-item rounded-xl font-medium transition-colors"
-              >
-                取消
-              </button>
+              <button onClick={() => setShowAddDialog(false)} className="px-6 py-2.5 text-theme-secondary hover:bg-theme-item rounded-xl font-medium transition-colors">取消</button>
             </div>
           </div>
           </div>
