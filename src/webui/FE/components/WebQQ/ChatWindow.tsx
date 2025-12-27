@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { createPortal } from 'react-dom'
 import { useVirtualizer } from '@tanstack/react-virtual'
-import { Users, Loader2, ArrowLeft } from 'lucide-react'
+import { Users, Loader2, ArrowLeft, ArrowDown } from 'lucide-react'
 import type { ChatSession, RawMessage } from '../../types/webqq'
 import { getMessages, getSelfUid, getSelfUin, getUserProfile, UserProfile, kickGroupMember, getGroupProfile, GroupProfile, quitGroup, muteGroupMember, setMemberTitle } from '../../utils/webqqApi'
 import { useWebQQStore, hasVisitedChat, markChatVisited } from '../../stores/webqqStore'
@@ -100,6 +100,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ session, onShowMembers, onNewMe
   const [muteDialog, setMuteDialog] = useState<{ uid: string; name: string; groupCode: string } | null>(null)
   const [titleDialog, setTitleDialog] = useState<{ uid: string; name: string; groupCode: string } | null>(null)
   const [emojiPickerTarget, setEmojiPickerTarget] = useState<{ message: RawMessage; x: number; y: number } | null>(null)
+  const [showScrollToBottom, setShowScrollToBottom] = useState(false)
 
   const imagePreviewContextValue = useMemo(() => ({
     showPreview: (url: string) => setPreviewImageUrl(url)
@@ -620,6 +621,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ session, onShowMembers, onNewMe
     if (!container || messages.length === 0) return
     const isNearBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 100
     shouldScrollRef.current = isNearBottom
+    setShowScrollToBottom(!isNearBottom)
   }, [messages])
 
   const handleRetryTemp = useCallback((tempMsg: TempMessage) => {
@@ -669,7 +671,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ session, onShowMembers, onNewMe
     <ScrollToMessageContext.Provider value={scrollToMessageContextValue}>
     <GroupMembersContext.Provider value={groupMembersContextValue}>
     <FriendsContext.Provider value={friendsContextValue}>
-      <div ref={chatWindowRef} className="flex flex-col h-full">
+      <div ref={chatWindowRef} className="flex flex-col h-full relative">
         {/* 头部 */}
         <div className="flex items-center justify-between px-2 md:px-4 py-3 border-b border-theme-divider bg-theme-card">
           {/* 返回按钮（移动端） */}
@@ -780,6 +782,17 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ session, onShowMembers, onNewMe
           )}
 
         </div>
+
+        {/* 滚动到底部按钮 */}
+        {showScrollToBottom && (
+          <button
+            onClick={scrollToBottom}
+            className="absolute bottom-[6.5rem] right-4 w-6 h-6 bg-theme-card/90 border border-theme-divider rounded-full shadow-md flex items-center justify-center text-theme-muted hover:text-theme hover:bg-theme-item transition-all z-10"
+            title="滚动到底部"
+          >
+            <ArrowDown size={12} />
+          </button>
+        )}
 
         {/* 输入区域 */}
         <ChatInput
