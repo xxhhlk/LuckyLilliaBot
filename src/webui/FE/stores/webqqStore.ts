@@ -126,6 +126,9 @@ interface WebQQState {
   // 删除最近会话
   removeRecentChat: (chatType: number, peerId: string) => void
   
+  // 删除好友（从本地缓存中移除）
+  removeFriend: (uid: string) => void
+  
   // 检查缓存是否有效
   isContactsCacheValid: () => boolean
 }
@@ -490,8 +493,8 @@ export const useWebQQStore = create<WebQQState>()(
           let name = peerName || peerId
           let avatar = peerAvatar || ''
           
-          if (chatType === 1) {
-            // 从好友列表查找
+          if (chatType === 1 || chatType === 100) {
+            // 从好友列表查找（私聊和临时会话）
             for (const category of state.friendCategories) {
               const friend = category.friends.find(f => f.uin === peerId)
               if (friend) {
@@ -516,7 +519,7 @@ export const useWebQQStore = create<WebQQState>()(
           }
           
           const newChat: RecentChatItem = {
-            chatType: chatType as 1 | 2,
+            chatType: chatType as 1 | 2 | 100,
             peerId,
             peerName: name,
             peerAvatar: avatar,
@@ -555,6 +558,16 @@ export const useWebQQStore = create<WebQQState>()(
             item => !(item.chatType === chatType && item.peerId === peerId)
           )
         }
+      }),
+
+      // 删除好友（从本地缓存中移除）
+      removeFriend: (uid) => set((state) => {
+        const newCategories = state.friendCategories.map(category => ({
+          ...category,
+          friends: category.friends.filter(f => f.uid !== uid),
+          memberCount: category.friends.filter(f => f.uid !== uid).length
+        }))
+        return { friendCategories: newCategories }
       })
     }),
     {

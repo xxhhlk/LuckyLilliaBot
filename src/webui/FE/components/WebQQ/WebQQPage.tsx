@@ -128,7 +128,7 @@ const WebQQPage: React.FC = () => {
             return
           }
           
-          const chatType = rawMessage.chatType as 1 | 2
+          const chatType = rawMessage.chatType as 1 | 2 | 100
           // peerUin 可能为空，优先用 peerUin，否则用 peerUid
           const peerId = rawMessage.peerUin || rawMessage.peerUid
           const chatKey = `${chatType}_${peerId}`
@@ -159,7 +159,7 @@ const WebQQPage: React.FC = () => {
             peerName = rawMessage.peerName || undefined
             peerAvatar = `https://p.qlogo.cn/gh/${peerId}/${peerId}/640/`
           } else {
-            // 私聊使用发送者信息
+            // 私聊和临时会话使用发送者信息
             peerName = rawMessage.sendNickName || rawMessage.sendMemberName || undefined
             peerAvatar = `https://q1.qlogo.cn/g?b=qq&nk=${peerId}&s=640`
           }

@@ -34,8 +34,8 @@ export type {
 
 // ==================== WebQQ 业务类型 ====================
 
-// ChatType: 1=私聊, 2=群聊
-export type WebChatType = 1 | 2
+// ChatType: 1=私聊, 2=群聊, 100=临时会话
+export type WebChatType = 1 | 2 | 100
 
 // 好友项
 export interface FriendItem {

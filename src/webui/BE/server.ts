@@ -432,8 +432,8 @@ export class WebUIServer extends Service {
         }
 
         const chatTypeNum = Number(chatType)
-        if (chatTypeNum !== ChatType.C2C && chatTypeNum !== ChatType.Group) {
-          res.status(400).json({ success: false, message: `无效的 chatType: ${chatType}，应为 1(私聊) 或 2(群聊)` })
+        if (chatTypeNum !== ChatType.C2C && chatTypeNum !== ChatType.Group && chatTypeNum !== ChatType.TempC2CFromGroup) {
+          res.status(400).json({ success: false, message: `无效的 chatType: ${chatType}，应为 1(私聊)、2(群聊) 或 100(临时会话)` })
           return
         }
         
@@ -441,7 +441,7 @@ export class WebUIServer extends Service {
         // 对于私聊，peerUid 需要是 uid（内部ID），不是 uin（QQ号）
         // 对于群聊，peerUid 直接用群号
         let peerUid = peerId
-        if (chatTypeNum === ChatType.C2C) {
+        if (chatTypeNum === ChatType.C2C || chatTypeNum === ChatType.TempC2CFromGroup) {
           // 将 uin（QQ号）转换为 uid
           const uid = await this.ctx.ntUserApi.getUidByUin(peerId)
           if (!uid) {
@@ -504,15 +504,15 @@ export class WebUIServer extends Service {
         }
 
         const chatTypeNum = Number(chatType)
-        if (chatTypeNum !== ChatType.C2C && chatTypeNum !== ChatType.Group) {
-          res.status(400).json({ success: false, message: `无效的 chatType: ${chatType}，应为 1(私聊) 或 2(群聊)` })
+        if (chatTypeNum !== ChatType.C2C && chatTypeNum !== ChatType.Group && chatTypeNum !== ChatType.TempC2CFromGroup) {
+          res.status(400).json({ success: false, message: `无效的 chatType: ${chatType}，应为 1(私聊)、2(群聊) 或 100(临时会话)` })
           return
         }
         // 构建 peer 对象
         // 对于私聊，peerUid 需要是 uid（内部ID），不是 uin（QQ号）
         // 对于群聊，peerUid 直接用群号
         let peerUid = peerId
-        if (chatTypeNum === ChatType.C2C) {
+        if (chatTypeNum === ChatType.C2C || chatTypeNum === ChatType.TempC2CFromGroup) {
           const uid = await this.ctx.ntUserApi.getUidByUin(peerId)
           if (!uid) {
             res.status(400).json({ success: false, message: '无法获取用户信息' })

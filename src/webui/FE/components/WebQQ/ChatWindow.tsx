@@ -710,7 +710,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ session, onShowMembers, onNewMe
                   const { groups } = useWebQQStore.getState()
                   const group = groups.find(g => g.groupCode === session.peerId)
                   return `群聊 ${session.peerId}${group?.memberCount ? ` · ${group.memberCount}人` : ''}`
-                })() : `私聊 ${session.peerId}`}
+                })() : session.chatType === 100 ? `临时会话 ${session.peerId}` : `私聊 ${session.peerId}`}
               </div>
             </div>
           </div>
@@ -812,7 +812,22 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ session, onShowMembers, onNewMe
 
       {/* 用户资料卡 */}
       {userProfile && (
-        <UserProfileCard profile={userProfile.profile} loading={userProfile.loading} position={userProfile.position} onClose={() => setUserProfile(null)} />
+        <UserProfileCard 
+          profile={userProfile.profile} 
+          loading={userProfile.loading} 
+          position={userProfile.position} 
+          onClose={() => setUserProfile(null)}
+          isFriend={session?.chatType === 1}
+          onFriendDeleted={(uid) => {
+            const { removeFriend, setCurrentChat, removeRecentChat } = useWebQQStore.getState()
+            removeFriend(uid)
+            // 如果当前聊天是被删除的好友，关闭聊天窗口
+            if (session?.chatType === 1) {
+              setCurrentChat(null)
+              removeRecentChat(1, session.peerId)
+            }
+          }}
+        />
       )}
       
       {/* 群资料卡 */}

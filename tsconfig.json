@@ -10,6 +10,7 @@
     "allowSyntheticDefaultImports": true,
     "resolveJsonModule": true,
     "moduleResolution": "bundler",
+    "jsx": "react-jsx",
     "paths": {
       "@/common/*": [
         "./src/common/*"
@@ -29,5 +30,8 @@
   "include": [
     "src",
     "scripts"
+  ],
+  "exclude": [
+    "src/webui/FE"
   ]
 }

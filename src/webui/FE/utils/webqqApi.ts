@@ -112,13 +112,14 @@ export async function getRecentChats(): Promise<RecentChatItem[]> {
       return peerId && peerId !== '0' && peerId !== ''
     })
     .map(item => {
-      const chatType = item.chatType as 1 | 2
-      const groupCode = item.peerUin || item.peerUid
+      const chatType = item.chatType as 1 | 2 | 100
+      const isGroup = chatType === 2
+      const peerId = isGroup ? (item.peerUin || item.peerUid) : item.peerUin
       return {
         chatType,
-        peerId: chatType === 1 ? item.peerUin : groupCode,
+        peerId,
         peerName: item.peerName || item.remark || item.peerUin,
-        peerAvatar: chatType === 1 ? getUserAvatar(item.peerUin) : getGroupAvatar(groupCode),
+        peerAvatar: isGroup ? getGroupAvatar(peerId) : getUserAvatar(item.peerUin),
         lastMessage: extractAbstractContent(item.abstractContent),
         lastTime: parseInt(item.msgTime) * 1000,
         unreadCount: parseInt(item.unreadCnt) || 0
@@ -667,4 +668,12 @@ export function formatMessageTime(timestamp: number): string {
     hour: '2-digit',
     minute: '2-digit'
   })
+}
+
+// 删除好友
+export async function deleteFriend(uid: string): Promise<void> {
+  const result = await ntCall<{ result: number; errMsg: string }>('ntFriendApi', 'delBuddy', [uid])
+  if (result?.result !== 0) {
+    throw new Error(result?.errMsg || '删除好友失败')
+  }
 }

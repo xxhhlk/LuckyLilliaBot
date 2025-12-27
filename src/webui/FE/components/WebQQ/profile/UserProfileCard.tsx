@@ -1,13 +1,17 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
-import { Loader2, Star, Moon, Sun, Crown } from 'lucide-react'
+import { Loader2, Star, Moon, Sun, Crown, Trash2, X } from 'lucide-react'
 import type { UserProfile } from '../../../utils/webqqApi'
+import { deleteFriend } from '../../../utils/webqqApi'
+import { showToast } from '../../common'
 
 interface UserProfileCardProps {
   profile: UserProfile | null
   loading: boolean
   position: { x: number; y: number }
   onClose: () => void
+  isFriend?: boolean  // 是否是好友（显示删除按钮）
+  onFriendDeleted?: (uid: string) => void  // 删除好友后的回调
 }
 
 // QQ等级图标组件：4进制 - 4级=1星，16级=1月亮，64级=1太阳，256级=1皇冠，1024级=1金企鹅
@@ -39,9 +43,11 @@ const QQLevelIcons: React.FC<{ level: number }> = ({ level }) => {
   return <div className="flex items-center gap-0.5 flex-wrap">{icons}</div>
 }
 
-export const UserProfileCard: React.FC<UserProfileCardProps> = ({ profile, loading, position, onClose }) => {
+export const UserProfileCard: React.FC<UserProfileCardProps> = ({ profile, loading, position, onClose, isFriend, onFriendDeleted }) => {
   const cardRef = useRef<HTMLDivElement>(null)
   const [adjustedPosition, setAdjustedPosition] = useState({ left: position.x, top: position.y })
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [deleting, setDeleting] = useState(false)
   
   useEffect(() => {
     if (!cardRef.current) return
@@ -97,6 +103,22 @@ export const UserProfileCard: React.FC<UserProfileCardProps> = ({ profile, loadi
     return ''
   }
   
+  const handleDeleteFriend = async () => {
+    if (!profile) return
+    setDeleting(true)
+    try {
+      await deleteFriend(profile.uid)
+      showToast('已删除好友', 'success')
+      onFriendDeleted?.(profile.uid)
+      onClose()
+    } catch (e: any) {
+      showToast(e.message || '删除好友失败', 'error')
+    } finally {
+      setDeleting(false)
+      setShowDeleteConfirm(false)
+    }
+  }
+  
   const formatTime = (timestamp?: number) => {
     if (!timestamp) return ''
     return new Date(timestamp * 1000).toLocaleString('zh-CN', {
@@ -123,7 +145,17 @@ export const UserProfileCard: React.FC<UserProfileCardProps> = ({ profile, loadi
           </div>
         ) : profile && (
           <>
-            <div className="bg-gradient-to-r from-pink-400 to-amber-300 p-4">
+            <div className="bg-gradient-to-r from-pink-400 to-amber-300 p-4 relative">
+              {/* 删除好友按钮 */}
+              {isFriend && !profile.groupRole && (
+                <button
+                  onClick={() => setShowDeleteConfirm(true)}
+                  className="absolute top-2 right-2 p-1.5 rounded-full bg-white/20 hover:bg-white/40 text-white transition-colors"
+                  title="删除好友"
+                >
+                  <Trash2 size={16} />
+                </button>
+              )}
               <div className="flex items-start gap-4">
                 <img 
                   src={profile.avatar} 
@@ -227,6 +259,40 @@ export const UserProfileCard: React.FC<UserProfileCardProps> = ({ profile, loadi
               )}
             </div>
           </>
+        )}
+        
+        {/* 删除好友确认对话框 */}
+        {showDeleteConfirm && profile && (
+          <div className="absolute inset-0 bg-black/50 flex items-center justify-center rounded-xl">
+            <div className="bg-popup m-4 p-4 rounded-lg shadow-lg max-w-[280px]">
+              <div className="flex items-center justify-between mb-3">
+                <span className="font-medium text-theme">删除好友</span>
+                <button onClick={() => setShowDeleteConfirm(false)} className="text-theme-muted hover:text-theme">
+                  <X size={18} />
+                </button>
+              </div>
+              <p className="text-sm text-theme-secondary mb-4">
+                确定要删除好友 <span className="font-medium text-theme">{profile.remark || profile.nickname}</span> 吗？删除后将无法恢复。
+              </p>
+              <div className="flex gap-2 justify-end">
+                <button
+                  onClick={() => setShowDeleteConfirm(false)}
+                  className="px-3 py-1.5 text-sm rounded-lg bg-theme-item hover:bg-theme-hover text-theme transition-colors"
+                  disabled={deleting}
+                >
+                  取消
+                </button>
+                <button
+                  onClick={handleDeleteFriend}
+                  className="px-3 py-1.5 text-sm rounded-lg bg-red-500 hover:bg-red-600 text-white transition-colors flex items-center gap-1"
+                  disabled={deleting}
+                >
+                  {deleting && <Loader2 size={14} className="animate-spin" />}
+                  删除
+                </button>
+              </div>
+            </div>
+          </div>
         )}
       </div>
     </>,
