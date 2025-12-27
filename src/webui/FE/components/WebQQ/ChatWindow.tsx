@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom'
 import { useVirtualizer } from '@tanstack/react-virtual'
 import { Users, Loader2, ArrowLeft } from 'lucide-react'
 import type { ChatSession, RawMessage } from '../../types/webqq'
-import { getMessages, getSelfUid, getUserProfile, UserProfile, kickGroupMember, getGroupProfile, GroupProfile, quitGroup, muteGroupMember, setMemberTitle } from '../../utils/webqqApi'
+import { getMessages, getSelfUid, getSelfUin, getUserProfile, UserProfile, kickGroupMember, getGroupProfile, GroupProfile, quitGroup, muteGroupMember, setMemberTitle } from '../../utils/webqqApi'
 import { useWebQQStore, hasVisitedChat, markChatVisited } from '../../stores/webqqStore'
 import { getCachedMessages, setCachedMessages, appendCachedMessage, removeCachedMessage } from '../../utils/messageDb'
 import { showToast } from '../common'
@@ -19,21 +19,71 @@ import { MessageContextMenu, AvatarContextMenu } from './chat/ContextMenus'
 import { ChatInput } from './chat/ChatInput'
 import { EmojiReactionPicker } from './message/EmojiReactionPicker'
 
+interface EmojiReactionData {
+  groupCode: string
+  msgSeq: string
+  emojiId: string
+  userId: string
+  userName: string
+  isAdd: boolean
+}
+
+// 系统提示消息类型
+interface SystemTip {
+  id: string
+  type: 'emoji-reaction'
+  userName: string
+  emojiId: string
+  msgSeq: string
+  timestamp: number
+}
+
+// 表情回应系统提示组件（类似戳一戳）
+const EmojiReactionTip: React.FC<{ tip: SystemTip; onScrollToMessage: (msgSeq: string) => void }> = ({ tip, onScrollToMessage }) => {
+  return (
+    <div className="flex justify-center py-2">
+      <span className="text-xs text-theme-hint bg-theme-item/50 px-3 py-1 rounded-full">
+        <span className="text-blue-500">{tip.userName}</span>
+        <span> 回应了</span>
+        <span 
+          className="text-blue-500 cursor-pointer hover:underline"
+          onClick={() => onScrollToMessage(tip.msgSeq)}
+        >消息</span>
+        <span> </span>
+        <img 
+          src={`/face/${tip.emojiId}.png`} 
+          alt="emoji" 
+          className="inline-block w-4 h-4 align-text-bottom"
+          onError={(e) => {
+            const img = e.target as HTMLImageElement
+            if (!img.dataset.fallback) {
+              img.dataset.fallback = '1'
+              img.src = `https://gxh.vip.qq.com/club/item/parcel/item/${tip.emojiId.slice(0, 2)}/${tip.emojiId}/100x100.png`
+            }
+          }}
+        />
+      </span>
+    </div>
+  )
+}
+
 interface ChatWindowProps {
   session: ChatSession | null
   onShowMembers?: () => void
   onNewMessageCallback?: (callback: ((msg: RawMessage) => void) | null) => void
+  onEmojiReactionCallback?: (callback: ((data: EmojiReactionData) => void) | null) => void
   appendInputText?: string
   onAppendInputTextConsumed?: () => void
   onBack?: () => void
   showBackButton?: boolean
 }
 
-type MessageItem = { type: 'raw'; data: RawMessage } | { type: 'temp'; data: TempMessage }
+type MessageItem = { type: 'raw'; data: RawMessage } | { type: 'temp'; data: TempMessage } | { type: 'system'; data: SystemTip }
 
-const ChatWindow: React.FC<ChatWindowProps> = ({ session, onShowMembers, onNewMessageCallback, appendInputText, onAppendInputTextConsumed, onBack, showBackButton }) => {
+const ChatWindow: React.FC<ChatWindowProps> = ({ session, onShowMembers, onNewMessageCallback, onEmojiReactionCallback, appendInputText, onAppendInputTextConsumed, onBack, showBackButton }) => {
   const [messages, setMessages] = useState<RawMessage[]>([])
   const [tempMessages, setTempMessages] = useState<TempMessage[]>([])
+  const [systemTips, setSystemTips] = useState<SystemTip[]>([])
   const [loading, setLoading] = useState(false)
   const [loadingMore, setLoadingMore] = useState(false)
   const [hasMore, setHasMore] = useState(true)
@@ -103,10 +153,11 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ session, onShowMembers, onNewMe
       .map(msg => ({ type: 'raw' as const, data: msg }))
     
     const tempItems: MessageItem[] = tempMessages.map(msg => ({ type: 'temp' as const, data: msg }))
-    const items = [...rawItems, ...tempItems]
+    const systemItems: MessageItem[] = systemTips.map(tip => ({ type: 'system' as const, data: tip }))
+    const items = [...rawItems, ...tempItems, ...systemItems]
     allItemsRef.current = items
     return items
-  }, [messages, tempMessages])
+  }, [messages, tempMessages, systemTips])
 
   const virtualizer = useVirtualizer({
     count: allItems.length,
@@ -192,6 +243,66 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ session, onShowMembers, onNewMe
     }
     return () => { if (onNewMessageCallback) onNewMessageCallback(null) }
   }, [onNewMessageCallback])
+
+  // 处理表情回应事件
+  useEffect(() => {
+    if (onEmojiReactionCallback) {
+      const handleEmojiReaction = (data: EmojiReactionData) => {
+        // 更新消息的表情列表
+        setMessages(prev => prev.map(m => {
+          if (m.msgSeq !== data.msgSeq) return m
+          const existingList = m.emojiLikesList || []
+          
+          if (data.isAdd) {
+            // 添加表情
+            const existingIndex = existingList.findIndex(e => e.emojiId === data.emojiId)
+            if (existingIndex >= 0) {
+              const newList = [...existingList]
+              newList[existingIndex] = {
+                ...newList[existingIndex],
+                likesCnt: String(parseInt(newList[existingIndex].likesCnt) + 1)
+              }
+              return { ...m, emojiLikesList: newList }
+            } else {
+              return {
+                ...m,
+                emojiLikesList: [...existingList, { emojiId: data.emojiId, emojiType: parseInt(data.emojiId) > 999 ? '2' : '1', likesCnt: '1', isClicked: false }]
+              }
+            }
+          } else {
+            // 移除表情
+            const existingIndex = existingList.findIndex(e => e.emojiId === data.emojiId)
+            if (existingIndex >= 0) {
+              const newList = [...existingList]
+              const newCount = parseInt(newList[existingIndex].likesCnt) - 1
+              if (newCount <= 0) {
+                newList.splice(existingIndex, 1)
+              } else {
+                newList[existingIndex] = { ...newList[existingIndex], likesCnt: String(newCount) }
+              }
+              return { ...m, emojiLikesList: newList }
+            }
+          }
+          return m
+        }))
+        
+        // 添加系统提示消息（只在添加表情时显示）
+        if (data.isAdd) {
+          const tip: SystemTip = {
+            id: `tip_${Date.now()}_${Math.random()}`,
+            type: 'emoji-reaction',
+            userName: data.userName,
+            emojiId: data.emojiId,
+            msgSeq: data.msgSeq,
+            timestamp: Date.now()
+          }
+          setSystemTips(prev => [...prev, tip])
+        }
+      }
+      onEmojiReactionCallback(handleEmojiReaction)
+    }
+    return () => { if (onEmojiReactionCallback) onEmojiReactionCallback(null) }
+  }, [onEmojiReactionCallback])
 
   const getSessionKey = (chatType: number | string, peerId: string) => `${chatType}_${peerId}`
 
@@ -626,14 +737,17 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ session, onShowMembers, onNewMe
                   <div key={virtualRow.key} style={{ position: 'absolute', top: 0, left: 0, width: '100%', transform: `translateY(${virtualRow.start}px)`, padding: '8px 0' }} data-index={virtualRow.index} ref={virtualizer.measureElement}>
                     {item.type === 'raw' ? (
                       <RawMessageBubble message={item.data} allMessages={messages} isHighlighted={highlightMsgId === item.data.msgId} />
+                    ) : item.type === 'temp' ? (
+                      <TempMessageBubble message={item.data as TempMessage} onRetry={() => handleRetryTemp(item.data as TempMessage)} />
                     ) : (
-                      <TempMessageBubble message={item.data} onRetry={() => handleRetryTemp(item.data)} />
+                      <EmojiReactionTip tip={item.data as SystemTip} onScrollToMessage={(msgSeq) => scrollToMessage('', msgSeq)} />
                     )}
                   </div>
                 )
               })}
             </div>
           )}
+
         </div>
 
         {/* 输入区域 */}
@@ -677,27 +791,6 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ session, onShowMembers, onNewMe
           target={emojiPickerTarget}
           onClose={() => setEmojiPickerTarget(null)}
           containerRef={chatWindowRef}
-          onReactionAdded={(msgId, emojiId, emojiType) => {
-            setMessages(prev => prev.map(m => {
-              if (m.msgId !== msgId) return m
-              const existingList = m.emojiLikesList || []
-              const existingIndex = existingList.findIndex(e => e.emojiId === emojiId)
-              if (existingIndex >= 0) {
-                const newList = [...existingList]
-                newList[existingIndex] = {
-                  ...newList[existingIndex],
-                  likesCnt: String(parseInt(newList[existingIndex].likesCnt) + 1),
-                  isClicked: true
-                }
-                return { ...m, emojiLikesList: newList }
-              } else {
-                return {
-                  ...m,
-                  emojiLikesList: [...existingList, { emojiId, emojiType, likesCnt: '1', isClicked: true }]
-                }
-              }
-            }))
-          }}
         />
       )}
       
@@ -712,6 +805,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ session, onShowMembers, onNewMe
           onSetTitle={(uid, name, groupCode) => setTitleDialog({ uid, name, groupCode })}
           onMute={(uid, name, groupCode) => setMuteDialog({ uid, name, groupCode })}
           onKick={(uid, name, groupCode, groupName) => setKickConfirm({ uid, name, groupCode, groupName })}
+          onAdminChanged={() => session && fetchGroupMembers(session.peerId, true)}
           groupName={session?.peerName}
         />
       )}

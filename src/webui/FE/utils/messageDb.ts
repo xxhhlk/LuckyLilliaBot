@@ -110,6 +110,59 @@ export async function removeCachedMessage(chatType: number, peerId: string, msgI
   }
 }
 
+// 更新消息的表情回应
+export async function updateCachedMessageEmojiReaction(
+  chatType: number, 
+  peerId: string, 
+  msgSeq: string, 
+  emojiId: string, 
+  isAdd: boolean
+): Promise<void> {
+  try {
+    const existing = await getCachedMessages(chatType, peerId)
+    if (!existing) return
+    
+    const messages = existing.map(m => {
+      if (m.msgSeq !== msgSeq) return m
+      const existingList = m.emojiLikesList || []
+      
+      if (isAdd) {
+        const existingIndex = existingList.findIndex(e => e.emojiId === emojiId)
+        if (existingIndex >= 0) {
+          const newList = [...existingList]
+          newList[existingIndex] = {
+            ...newList[existingIndex],
+            likesCnt: String(parseInt(newList[existingIndex].likesCnt) + 1)
+          }
+          return { ...m, emojiLikesList: newList }
+        } else {
+          return {
+            ...m,
+            emojiLikesList: [...existingList, { emojiId, emojiType: parseInt(emojiId) > 999 ? '2' : '1', likesCnt: '1', isClicked: false }]
+          }
+        }
+      } else {
+        const existingIndex = existingList.findIndex(e => e.emojiId === emojiId)
+        if (existingIndex >= 0) {
+          const newList = [...existingList]
+          const newCount = parseInt(newList[existingIndex].likesCnt) - 1
+          if (newCount <= 0) {
+            newList.splice(existingIndex, 1)
+          } else {
+            newList[existingIndex] = { ...newList[existingIndex], likesCnt: String(newCount) }
+          }
+          return { ...m, emojiLikesList: newList }
+        }
+      }
+      return m
+    })
+    
+    await setCachedMessages(chatType, peerId, messages)
+  } catch (e) {
+    console.error('Failed to update emoji reaction:', e)
+  }
+}
+
 // 清除所有缓存
 export async function clearAllMessages(): Promise<void> {
   try {

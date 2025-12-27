@@ -1,8 +1,8 @@
 import React from 'react'
 import { createPortal } from 'react-dom'
-import { Reply, Trash2, AtSign, Hand, User, UserMinus, VolumeX, Award, Smile } from 'lucide-react'
+import { Reply, Trash2, AtSign, Hand, User, UserMinus, VolumeX, Award, Smile, Shield, ShieldOff } from 'lucide-react'
 import type { RawMessage, GroupMemberItem } from '../../../types/webqq'
-import { getSelfUid, recallMessage, sendPoke } from '../../../utils/webqqApi'
+import { getSelfUid, recallMessage, sendPoke, ntCall } from '../../../utils/webqqApi'
 import { showToast } from '../../common'
 
 interface MessageContextMenuProps {
@@ -100,6 +100,7 @@ interface AvatarContextMenuProps {
   onSetTitle: (uid: string, name: string, groupCode: string) => void
   onMute: (uid: string, name: string, groupCode: string) => void
   onKick: (uid: string, name: string, groupCode: string, groupName: string) => void
+  onAdminChanged?: () => void
   groupName?: string
 }
 
@@ -112,6 +113,7 @@ export const AvatarContextMenu: React.FC<AvatarContextMenuProps> = ({
   onSetTitle,
   onMute,
   onKick,
+  onAdminChanged,
   groupName
 }) => {
   const selfUid = getSelfUid()
@@ -122,9 +124,26 @@ export const AvatarContextMenu: React.FC<AvatarContextMenuProps> = ({
   const isAdmin = selfRole === 'admin'
   const targetMember = cachedMembers ? cachedMembers.find(m => m.uid === avatarContextMenu.senderUid) : null
   const targetRole = targetMember?.role
+  const targetIsAdmin = targetRole === 'admin'
   const canMute = isOwner || (isAdmin && targetRole === 'member')
   const canKick = isOwner || (isAdmin && targetRole === 'member')
   const isSelf = avatarContextMenu.senderUid === selfUid
+  // 只有群主可以设置/取消管理员，且不能对自己操作
+  const canSetAdmin = isOwner && !isSelf
+
+  const handleToggleAdmin = async () => {
+    const info = avatarContextMenu
+    onClose()
+    try {
+      // GroupMemberRole: Normal = 2, Admin = 3, Owner = 4
+      const newRole = targetIsAdmin ? 2 : 3
+      await ntCall('ntGroupApi', 'setMemberRole', [info.groupCode, info.senderUid, newRole])
+      showToast(targetIsAdmin ? '已取消管理员' : '已设为管理员', 'success')
+      onAdminChanged?.()
+    } catch (e: any) {
+      showToast(e.message || '操作失败', 'error')
+    }
+  }
 
   return createPortal(
     <>
@@ -173,6 +192,15 @@ export const AvatarContextMenu: React.FC<AvatarContextMenuProps> = ({
             className="w-full flex items-center gap-2 px-3 py-2 text-sm text-theme hover:bg-theme-item-hover transition-colors"
           >
             <Award size={14} /> 设置头衔
+          </button>
+        )}
+        {avatarContextMenu.chatType === 2 && avatarContextMenu.groupCode && canSetAdmin && (
+          <button 
+            onClick={handleToggleAdmin} 
+            className="w-full flex items-center gap-2 px-3 py-2 text-sm text-theme hover:bg-theme-item-hover transition-colors"
+          >
+            {targetIsAdmin ? <ShieldOff size={14} /> : <Shield size={14} />}
+            {targetIsAdmin ? '取消管理员' : '设为管理员'}
           </button>
         )}
         {avatarContextMenu.chatType === 2 && avatarContextMenu.groupCode && !isSelf && canMute && (

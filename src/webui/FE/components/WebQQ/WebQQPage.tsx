@@ -5,7 +5,7 @@ import GroupMemberPanel from './contact/GroupMemberPanel'
 import type { ChatSession, FriendItem, GroupItem, RecentChatItem, RawMessage } from '../../types/webqq'
 import { createEventSource, getLoginInfo } from '../../utils/webqqApi'
 import { useWebQQStore, resetVisitedChats } from '../../stores/webqqStore'
-import { appendCachedMessage } from '../../utils/messageDb'
+import { appendCachedMessage, updateCachedMessageEmojiReaction } from '../../utils/messageDb'
 import { showToast } from '../common'
 import { Loader2 } from 'lucide-react'
 
@@ -40,6 +40,7 @@ function extractMessageSummary(rawMessage: RawMessage): string {
 const WebQQPage: React.FC = () => {
   // 使用 ref 直接存储回调，避免 state 更新的异步问题
   const onNewMessageRef = React.useRef<((msg: RawMessage) => void) | null>(null)
+  const onEmojiReactionRef = React.useRef<((data: { groupCode: string; msgSeq: string; emojiId: string; userId: string; userName: string; isAdd: boolean }) => void) | null>(null)
   // 消息队列：缓存在回调未就绪时收到的消息
   const pendingMessagesRef = React.useRef<RawMessage[]>([])
   
@@ -110,6 +111,11 @@ const WebQQPage: React.FC = () => {
     forceUpdate(n => n + 1)
   }, [])
   
+  // 表情回应回调设置函数
+  const handleSetEmojiReactionCallback = React.useCallback((callback: ((data: { groupCode: string; msgSeq: string; emojiId: string; userId: string; userName: string; isAdd: boolean }) => void) | null) => {
+    onEmojiReactionRef.current = callback
+  }, [])
+  
   useEffect(() => {
     const eventSource = createEventSource(
       (data) => {
@@ -159,6 +165,20 @@ const WebQQPage: React.FC = () => {
           }
           
           updateRecentChat(chatType, peerId, lastMessage, parseInt(rawMessage.msgTime) * 1000, peerName, peerAvatar)
+        } else if (data.type === 'emoji-reaction') {
+          // 处理表情回应事件
+          const { groupCode, msgSeq, emojiId, userId, userName, isAdd } = data.data
+          const chat = currentChatRef.current
+          
+          // 更新本地缓存
+          updateCachedMessageEmojiReaction(2, groupCode, msgSeq, emojiId, isAdd)
+          
+          // 只有当前聊天是该群时才更新 UI
+          if (chat && chat.chatType === 2 && chat.peerId === groupCode) {
+            if (onEmojiReactionRef.current) {
+              onEmojiReactionRef.current({ groupCode, msgSeq, emojiId, userId, userName, isAdd })
+            }
+          }
         }
       },
       (error) => {
@@ -298,6 +318,7 @@ const WebQQPage: React.FC = () => {
           session={currentChat}
           onShowMembers={() => setShowMemberPanel(true)}
           onNewMessageCallback={handleSetNewMessageCallback}
+          onEmojiReactionCallback={handleSetEmojiReactionCallback}
           appendInputText={appendInputText}
           onAppendInputTextConsumed={handleAppendInputTextConsumed}
           onBack={handleBackToContacts}

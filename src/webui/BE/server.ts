@@ -1096,6 +1096,57 @@ export class WebUIServer extends Service {
         data: message
       })
     })
+    
+    // 监听表情回应事件
+    pmhq.addResListener(async data => {
+      if (this.sseClients.size === 0) return
+      if (data.type !== 'recv' || data.data.cmd !== 'trpc.msg.olpush.OlPushService.MsgPush') return
+      
+      try {
+        const { Msg } = await import('@/ntqqapi/proto')
+        const pushMsg = Msg.PushMsg.decode(Buffer.from(data.data.pb, 'hex'))
+        if (!pushMsg.message?.body) return
+        
+        const { msgType, subType } = pushMsg.message?.contentHead ?? {}
+        if (msgType === 732 && subType === 16) {
+          const notify = Msg.NotifyMessageBody.decode(pushMsg.message.body.msgContent.subarray(7))
+          if (notify.field13 === 35) {
+            const info = notify.reaction.data.body.info
+            const target = notify.reaction.data.body.target
+            const groupCode = String(notify.groupCode)
+            const userId = await this.ctx.ntUserApi.getUinByUid(info.operatorUid)
+            
+            // 获取操作者昵称（优先群名片）
+            let userName = userId
+            try {
+              const membersResult = await this.ctx.ntGroupApi.getGroupMembers(groupCode)
+              if (membersResult?.result?.infos) {
+                for (const [, member] of membersResult.result.infos) {
+                  if (member.uid === info.operatorUid || member.uin === userId) {
+                    userName = member.cardName || member.nick || userId
+                    break
+                  }
+                }
+              }
+            } catch {}
+            
+            this.broadcastMessage('message', {
+              type: 'emoji-reaction',
+              data: {
+                groupCode: groupCode,
+                msgSeq: String(target.sequence),
+                emojiId: info.code,
+                userId: userId,
+                userName: userName,
+                isAdd: info.type === 1
+              }
+            })
+          }
+        }
+      } catch (e) {
+        // 忽略解析错误
+      }
+    })
   }
 
   private getHostPort(): { host: string; port: number } {

@@ -8,18 +8,16 @@ import { EmojiPicker } from './EmojiPicker'
 interface EmojiReactionPickerProps {
   target: { message: RawMessage; x: number; y: number }
   onClose: () => void
-  onReactionAdded: (msgId: string, emojiId: string, emojiType: string) => void
   containerRef?: React.RefObject<HTMLDivElement>
 }
 
-export const EmojiReactionPicker: React.FC<EmojiReactionPickerProps> = ({ target, onClose, onReactionAdded, containerRef }) => {
+export const EmojiReactionPicker: React.FC<EmojiReactionPickerProps> = ({ target, onClose, containerRef }) => {
   const handleSelect = async (faceId: number) => {
     const msg = target.message
     onClose()
     try {
       const peer = { chatType: msg.chatType, peerUid: msg.peerUin, guildId: '' }
       await ntCall('ntMsgApi', 'setEmojiLike', [peer, msg.msgSeq, String(faceId), true])
-      onReactionAdded(msg.msgId, String(faceId), faceId > 999 ? '2' : '1')
       showToast('已贴表情', 'success')
     } catch (e: any) {
       showToast(e.message || '贴表情失败', 'error')
