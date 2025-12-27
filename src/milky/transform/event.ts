@@ -250,7 +250,7 @@ export async function transformPrivateMessageEvent(
     }
     return null
   } catch (error) {
-    ctx.logger.error('Failed to transform message event:', error)
+    ctx.logger.error('Failed to transform private message event:', error)
     return null
   }
 }
@@ -258,7 +258,7 @@ export async function transformPrivateMessageEvent(
 export async function transformGroupMessageEvent(
   ctx: Context,
   message: RawMessage
-): Promise<{ eventType: keyof MilkyEventTypes, data: any } | null> {
+): Promise<{ eventType: keyof MilkyEventTypes, data: any } | { eventType: keyof MilkyEventTypes, data: any }[] | null> {
   try {
     for (const element of message.elements) {
       if (
@@ -275,6 +275,17 @@ export async function transformGroupMessageEvent(
             invitor_id: +invitor
           } as MilkyEventTypes['group_member_increase']
         }
+      } else if (element.grayTipElement?.xmlElement?.busiId === '19373') {
+        const invitor = element.grayTipElement.xmlElement.templParam.get('invitor')!
+        const invitees = element.grayTipElement.xmlElement.templParam.get('invitees_dynamic')!.matchAll(/jp="([^"]+)"/g)
+        return invitees.map(e => ({
+          eventType: 'group_member_increase' as const,
+          data: {
+            group_id: +message.peerUid,
+            user_id: +e[1],
+            invitor_id: +invitor
+          } as MilkyEventTypes['group_member_increase']
+        })).toArray()
       } else if (element.grayTipElement?.groupElement?.type === 8) {
         if (element.grayTipElement.groupElement.shutUp?.member.uid) {
           return {
@@ -333,7 +344,7 @@ export async function transformGroupMessageEvent(
     }
     return null
   } catch (error) {
-    ctx.logger.error('Failed to transform message event:', error)
+    ctx.logger.error('Failed to transform group message event:', error)
     return null
   }
 }
@@ -453,7 +464,7 @@ export async function transformOlpushEvent(
     }
     return null
   } catch (error) {
-    ctx.logger.error('Failed to transform system message event:', error)
+    ctx.logger.error('Failed to transform olpush event:', error)
     return null
   }
 }
