@@ -318,6 +318,35 @@ export const RawMessageBubble = memo<{ message: RawMessage; allMessages: RawMess
             {otherElements.map((element, index) => <MessageElementRenderer key={index} element={element} message={message} />)}
           </div>
         )}
+        {/* 表情回应显示 */}
+        {message.emojiLikesList && message.emojiLikesList.length > 0 && (
+          <div className={`flex flex-wrap gap-1 mt-1 ${isSelf ? 'justify-end' : 'justify-start'}`}>
+            {message.emojiLikesList.map((emoji, index) => (
+              <div 
+                key={`${emoji.emojiId}-${index}`}
+                className={`flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-xs ${
+                  emoji.isClicked 
+                    ? 'bg-pink-100 dark:bg-pink-900/40 border border-pink-300 dark:border-pink-700' 
+                    : 'bg-theme-item border border-theme-divider'
+                }`}
+                title={`表情 ${emoji.emojiId}`}
+              >
+                <img 
+                  src={`/face/${emoji.emojiId}.png`} 
+                  alt={`表情${emoji.emojiId}`} 
+                  className="w-4 h-4"
+                  onError={(e) => {
+                    // 如果是标准 emoji（emojiType=2），显示 Unicode 字符
+                    if (emoji.emojiType === '2') {
+                      (e.target as HTMLImageElement).style.display = 'none'
+                    }
+                  }}
+                />
+                <span className="text-theme-secondary">{emoji.likesCnt}</span>
+              </div>
+            ))}
+          </div>
+        )}
         <span className="text-xs text-theme-hint mt-1">{formatMessageTime(timestamp)}</span>
       </div>
     </div>

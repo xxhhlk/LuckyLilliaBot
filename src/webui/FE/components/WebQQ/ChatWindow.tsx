@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { createPortal } from 'react-dom'
 import { useVirtualizer } from '@tanstack/react-virtual'
-import { Users, Reply, Trash2, AtSign, Hand, User, UserMinus, VolumeX, Award, Loader2, ArrowLeft } from 'lucide-react'
+import { Users, Loader2, ArrowLeft } from 'lucide-react'
 import type { ChatSession, RawMessage } from '../../types/webqq'
-import { getMessages, getSelfUid, recallMessage, sendPoke, getUserProfile, UserProfile, kickGroupMember, getGroupProfile, GroupProfile, quitGroup, muteGroupMember, setMemberTitle } from '../../utils/webqqApi'
+import { getMessages, getSelfUid, getUserProfile, UserProfile, kickGroupMember, getGroupProfile, GroupProfile, quitGroup, muteGroupMember, setMemberTitle } from '../../utils/webqqApi'
 import { useWebQQStore, hasVisitedChat, markChatVisited } from '../../stores/webqqStore'
 import { getCachedMessages, setCachedMessages, appendCachedMessage, removeCachedMessage } from '../../utils/messageDb'
 import { showToast } from '../common'
@@ -15,7 +15,9 @@ import { ImagePreviewContext, VideoPreviewContext } from './message/MessageEleme
 import { RawMessageBubble, TempMessageBubble, MessageContextMenuContext, AvatarContextMenuContext, ScrollToMessageContext, GroupMembersContext } from './message/MessageBubble'
 import type { TempMessage, AvatarContextMenuInfo } from './message/MessageBubble'
 import { MuteDialog, KickConfirmDialog, TitleDialog } from './chat/ChatDialogs'
+import { MessageContextMenu, AvatarContextMenu } from './chat/ContextMenus'
 import { ChatInput } from './chat/ChatInput'
+import { EmojiReactionPicker } from './message/EmojiReactionPicker'
 
 interface ChatWindowProps {
   session: ChatSession | null
@@ -47,6 +49,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ session, onShowMembers, onNewMe
   const [kickConfirm, setKickConfirm] = useState<{ uid: string; name: string; groupCode: string; groupName: string } | null>(null)
   const [muteDialog, setMuteDialog] = useState<{ uid: string; name: string; groupCode: string } | null>(null)
   const [titleDialog, setTitleDialog] = useState<{ uid: string; name: string; groupCode: string } | null>(null)
+  const [emojiPickerTarget, setEmojiPickerTarget] = useState<{ message: RawMessage; x: number; y: number } | null>(null)
 
   const imagePreviewContextValue = useMemo(() => ({
     showPreview: (url: string) => setPreviewImageUrl(url)
@@ -71,6 +74,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ session, onShowMembers, onNewMe
   
   const { getCachedMembers, setCachedMembers, fetchGroupMembers } = useWebQQStore()
   
+  const chatWindowRef = useRef<HTMLDivElement>(null)
   const parentRef = useRef<HTMLDivElement>(null)
   const chatInputRef = useRef<any>(null)
   const sessionRef = useRef(session)
@@ -523,7 +527,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ session, onShowMembers, onNewMe
     <AvatarContextMenuContext.Provider value={avatarContextMenuValue}>
     <ScrollToMessageContext.Provider value={scrollToMessageContextValue}>
     <GroupMembersContext.Provider value={groupMembersContextValue}>
-      <div className="flex flex-col h-full">
+      <div ref={chatWindowRef} className="flex flex-col h-full">
         {/* 头部 */}
         <div className="flex items-center justify-between px-2 md:px-4 py-3 border-b border-theme-divider bg-theme-card">
           {/* 返回按钮（移动端） */}
@@ -647,139 +651,69 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ session, onShowMembers, onNewMe
       </div>
 
       {/* 消息右键菜单 */}
-      {contextMenu && createPortal(
-        <>
-          <div className="fixed inset-0 z-40" onClick={() => setContextMenu(null)} onContextMenu={(e) => { e.preventDefault(); setContextMenu(null) }} />
-          <div className="fixed z-50 bg-popup backdrop-blur-sm border border-theme-divider rounded-lg shadow-lg py-1 min-w-[100px]" style={{ left: contextMenu.x, top: Math.min(contextMenu.y, window.innerHeight - 120) }} onContextMenu={(e) => e.preventDefault()}>
-            <button onClick={() => { setReplyTo(contextMenu.message); setContextMenu(null); setTimeout(() => chatInputRef.current?.focus?.(), 50) }} className="w-full flex items-center gap-2 px-3 py-2 text-sm text-theme hover:bg-theme-item-hover transition-colors">
-              <Reply size={14} /> 回复
-            </button>
-            {(() => {
-              const msg = contextMenu.message
-              const selfUid = getSelfUid()
-              const isSelfMessage = selfUid && msg.senderUid === selfUid
-              const isGroup = msg.chatType === 2
-              const cachedMembers = isGroup && session ? getCachedMembers(session.peerId) : null
-              const selfMember = cachedMembers && selfUid ? cachedMembers.find((m) => m.uid === selfUid) : null
-              const selfRole = selfMember?.role
-              const isOwner = selfRole === 'owner'
-              const isAdmin = selfRole === 'admin' || selfRole === 'owner'
-              const targetMember = cachedMembers ? cachedMembers.find((m) => m.uid === msg.senderUid) : null
-              const targetRole = targetMember?.role
-              const targetIsAdmin = targetRole === 'admin' || targetRole === 'owner'
-              const canRecall = isSelfMessage || (isGroup && (isOwner || (isAdmin && !targetIsAdmin)))
-              if (!canRecall) return null
-              return (
-                <button onClick={async () => {
-                  setContextMenu(null)
-                  try {
-                    await recallMessage(msg.chatType, msg.peerUid, msg.msgId)
-                    setMessages(prev => prev.filter(m => m.msgId !== msg.msgId))
-                    if (session) {
-                      const sessionKey = `${session.chatType}_${session.peerId}`
-                      const cached = messageCacheRef.current.get(sessionKey)
-                      if (cached) messageCacheRef.current.set(sessionKey, cached.filter(m => m.msgId !== msg.msgId))
-                      removeCachedMessage(session.chatType, session.peerId, msg.msgId)
-                    }
-                    showToast('消息已撤回', 'success')
-                  } catch (e: any) {
-                    showToast(e.message || '撤回失败', 'error')
-                  }
-                }} className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-500 hover:bg-theme-item-hover transition-colors">
-                  <Trash2 size={14} /> 撤回
-                </button>
-              )
-            })()}
-          </div>
-        </>,
-        document.body
+      {contextMenu && (
+        <MessageContextMenu
+          contextMenu={contextMenu}
+          session={session}
+          getCachedMembers={getCachedMembers}
+          onClose={() => setContextMenu(null)}
+          onReply={(msg) => { setReplyTo(msg); setTimeout(() => chatInputRef.current?.focus?.(), 50) }}
+          onEmojiReaction={(msg, x, y) => setEmojiPickerTarget({ message: msg, x, y })}
+          onRecall={(msgId) => {
+            setMessages(prev => prev.filter(m => m.msgId !== msgId))
+            if (session) {
+              const sessionKey = `${session.chatType}_${session.peerId}`
+              const cached = messageCacheRef.current.get(sessionKey)
+              if (cached) messageCacheRef.current.set(sessionKey, cached.filter(m => m.msgId !== msgId))
+              removeCachedMessage(session.chatType, session.peerId, msgId)
+            }
+          }}
+        />
+      )}
+
+      {/* 表情贴选择器 */}
+      {emojiPickerTarget && (
+        <EmojiReactionPicker
+          target={emojiPickerTarget}
+          onClose={() => setEmojiPickerTarget(null)}
+          containerRef={chatWindowRef}
+          onReactionAdded={(msgId, emojiId, emojiType) => {
+            setMessages(prev => prev.map(m => {
+              if (m.msgId !== msgId) return m
+              const existingList = m.emojiLikesList || []
+              const existingIndex = existingList.findIndex(e => e.emojiId === emojiId)
+              if (existingIndex >= 0) {
+                const newList = [...existingList]
+                newList[existingIndex] = {
+                  ...newList[existingIndex],
+                  likesCnt: String(parseInt(newList[existingIndex].likesCnt) + 1),
+                  isClicked: true
+                }
+                return { ...m, emojiLikesList: newList }
+              } else {
+                return {
+                  ...m,
+                  emojiLikesList: [...existingList, { emojiId, emojiType, likesCnt: '1', isClicked: true }]
+                }
+              }
+            }))
+          }}
+        />
       )}
       
       {/* 头像右键菜单 */}
-      {avatarContextMenu && createPortal(
-        <>
-          <div className="fixed inset-0 z-40" onClick={() => setAvatarContextMenu(null)} onContextMenu={(e) => { e.preventDefault(); setAvatarContextMenu(null) }} />
-          <div className="fixed z-50 bg-popup backdrop-blur-sm border border-theme-divider rounded-lg shadow-lg py-1 min-w-[120px]" style={{ left: avatarContextMenu.x, top: Math.min(avatarContextMenu.y, window.innerHeight - 150) }} onContextMenu={(e) => e.preventDefault()}>
-            {avatarContextMenu.chatType === 2 && (
-              <button onClick={() => { 
-                chatInputRef.current?.insertAt?.(avatarContextMenu.senderUid, avatarContextMenu.senderUin, avatarContextMenu.senderName)
-                setAvatarContextMenu(null)
-              }} className="w-full flex items-center gap-2 px-3 py-2 text-sm text-theme hover:bg-theme-item-hover transition-colors">
-                <AtSign size={14} /> 召唤ta
-              </button>
-            )}
-            <button onClick={async () => {
-              const info = avatarContextMenu
-              setAvatarContextMenu(null)
-              try {
-                if (info.chatType === 2 && info.groupCode) await sendPoke(info.chatType, parseInt(info.senderUin), parseInt(info.groupCode))
-                else await sendPoke(info.chatType, parseInt(info.senderUin))
-                showToast('戳一戳已发送', 'success')
-              } catch (e: any) {
-                showToast(e.message || '戳一戳失败', 'error')
-              }
-            }} className="w-full flex items-center gap-2 px-3 py-2 text-sm text-theme hover:bg-theme-item-hover transition-colors">
-              <Hand size={14} /> 戳一戳
-            </button>
-            <button onClick={() => { handleShowProfile(avatarContextMenu.senderUid, avatarContextMenu.senderUin, avatarContextMenu.x, avatarContextMenu.y, avatarContextMenu.groupCode); setAvatarContextMenu(null) }} className="w-full flex items-center gap-2 px-3 py-2 text-sm text-theme hover:bg-theme-item-hover transition-colors">
-              <User size={14} /> 查看资料
-            </button>
-            {/* 设置头衔 */}
-            {(() => {
-              if (avatarContextMenu.chatType !== 2 || !avatarContextMenu.groupCode) return null
-              const selfUid = getSelfUid()
-              const cachedMembers = getCachedMembers(avatarContextMenu.groupCode)
-              const selfMember = cachedMembers && selfUid ? cachedMembers.find(m => m.uid === selfUid) : null
-              if (selfMember?.role !== 'owner') return null
-              return (
-                <button onClick={() => { setTitleDialog({ uid: avatarContextMenu.senderUid, name: avatarContextMenu.senderName, groupCode: avatarContextMenu.groupCode! }); setAvatarContextMenu(null) }} className="w-full flex items-center gap-2 px-3 py-2 text-sm text-theme hover:bg-theme-item-hover transition-colors">
-                  <Award size={14} /> 设置头衔
-                </button>
-              )
-            })()}
-            {/* 禁言 */}
-            {(() => {
-              if (avatarContextMenu.chatType !== 2 || !avatarContextMenu.groupCode) return null
-              const selfUid = getSelfUid()
-              if (avatarContextMenu.senderUid === selfUid) return null
-              const cachedMembers = getCachedMembers(avatarContextMenu.groupCode)
-              const selfMember = cachedMembers && selfUid ? cachedMembers.find(m => m.uid === selfUid) : null
-              const selfRole = selfMember?.role
-              const isOwner = selfRole === 'owner'
-              const isAdmin = selfRole === 'admin'
-              const targetMember = cachedMembers ? cachedMembers.find(m => m.uid === avatarContextMenu.senderUid) : null
-              const targetRole = targetMember?.role
-              const canMute = isOwner || (isAdmin && targetRole === 'member')
-              if (!canMute) return null
-              return (
-                <button onClick={() => { setMuteDialog({ uid: avatarContextMenu.senderUid, name: avatarContextMenu.senderName, groupCode: avatarContextMenu.groupCode! }); setAvatarContextMenu(null) }} className="w-full flex items-center gap-2 px-3 py-2 text-sm text-orange-500 hover:bg-theme-item-hover transition-colors">
-                  <VolumeX size={14} /> 禁言
-                </button>
-              )
-            })()}
-            {/* 踢出群 */}
-            {(() => {
-              if (avatarContextMenu.chatType !== 2 || !avatarContextMenu.groupCode) return null
-              const selfUid = getSelfUid()
-              if (avatarContextMenu.senderUid === selfUid) return null
-              const cachedMembers = getCachedMembers(avatarContextMenu.groupCode)
-              const selfMember = cachedMembers && selfUid ? cachedMembers.find(m => m.uid === selfUid) : null
-              const selfRole = selfMember?.role
-              const isOwner = selfRole === 'owner'
-              const isAdmin = selfRole === 'admin'
-              const targetMember = cachedMembers ? cachedMembers.find(m => m.uid === avatarContextMenu.senderUid) : null
-              const targetRole = targetMember?.role
-              const canKick = isOwner || (isAdmin && targetRole === 'member')
-              if (!canKick) return null
-              return (
-                <button onClick={() => { setKickConfirm({ uid: avatarContextMenu.senderUid, name: avatarContextMenu.senderName, groupCode: avatarContextMenu.groupCode!, groupName: session?.peerName || avatarContextMenu.groupCode! }); setAvatarContextMenu(null) }} className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-500 hover:bg-theme-item-hover transition-colors">
-                  <UserMinus size={14} /> 踢出群
-                </button>
-              )
-            })()}
-          </div>
-        </>,
-        document.body
+      {avatarContextMenu && (
+        <AvatarContextMenu
+          avatarContextMenu={avatarContextMenu}
+          getCachedMembers={getCachedMembers}
+          onClose={() => setAvatarContextMenu(null)}
+          onInsertAt={(uid, uin, name) => chatInputRef.current?.insertAt?.(uid, uin, name)}
+          onShowProfile={handleShowProfile}
+          onSetTitle={(uid, name, groupCode) => setTitleDialog({ uid, name, groupCode })}
+          onMute={(uid, name, groupCode) => setMuteDialog({ uid, name, groupCode })}
+          onKick={(uid, name, groupCode, groupName) => setKickConfirm({ uid, name, groupCode, groupName })}
+          groupName={session?.peerName}
+        />
       )}
 
       {/* 用户资料卡 */}

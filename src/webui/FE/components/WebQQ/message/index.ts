@@ -4,3 +4,4 @@ export { MessageElementRenderer, ImagePreviewContext, VideoPreviewContext, hasVa
 export { EmojiPicker } from './EmojiPicker'
 export { FavEmojiPicker } from './FavEmojiPicker'
 export type { FavEmoji } from './FavEmojiPicker'
+export { EmojiReactionPicker } from './EmojiReactionPicker'

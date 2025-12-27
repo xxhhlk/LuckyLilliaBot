@@ -37,9 +37,10 @@ interface EmojiPickerProps {
   onSelect: (faceId: number) => void
   onClose: () => void
   position?: { x: number; y: number }
+  inline?: boolean // 内联模式，不使用 absolute 定位
 }
 
-export const EmojiPicker: React.FC<EmojiPickerProps> = ({ onSelect, onClose, position }) => {
+export const EmojiPicker: React.FC<EmojiPickerProps> = ({ onSelect, onClose, position, inline }) => {
   const [loadedFaces, setLoadedFaces] = useState<Set<number>>(new Set())
   const [recentEmojis, setRecentEmojis] = useState<number[]>(getRecentEmojis())
   const pickerRef = useRef<HTMLDivElement>(null)
@@ -63,7 +64,7 @@ export const EmojiPicker: React.FC<EmojiPickerProps> = ({ onSelect, onClose, pos
   return (
     <div 
       ref={pickerRef}
-      className="absolute bottom-full left-0 mb-2 bg-theme-card border border-theme-divider rounded-xl shadow-xl z-50"
+      className={`${inline ? '' : 'absolute bottom-full left-0 mb-2'} bg-theme-card border border-theme-divider rounded-xl shadow-xl z-50`}
       style={position ? { left: position.x, bottom: position.y } : undefined}
     >
       <div className="p-2 border-b border-theme-divider text-sm text-theme-secondary">表情</div>
