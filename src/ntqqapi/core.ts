@@ -301,8 +301,18 @@ class Core extends Service {
       this.ctx.parallel('nt/system-message-created', Buffer.from(payload))
     })
 
-    registerReceiveHook<[status: number, errCode: number, fileSetId: string]>(ReceiveCmdS.FLASH_FILE_DOWNLOAD_STATUS, payload => {
-      const [status, errCode, fileSetId] = payload
+    registerReceiveHook<[status: number, errCode: number | string, fileSetId: string | unknown]>(ReceiveCmdS.FLASH_FILE_DOWNLOAD_STATUS, payload => {
+      // 旧版本 QQ 会把 fileSetId 放在第 2 个参数
+      // 新版本 QQ 会把 fileSetId 放在第 3 个参数
+      const [status, errCodeOrFileSetId, fileSetIdOrFileInfo] = payload
+      let fileSetId: string;
+      // 没有精力一个个版本测试了，只能靠类型判断了
+      if (typeof fileSetIdOrFileInfo !== 'string'){
+        fileSetId = errCodeOrFileSetId as string
+      }
+      else {
+        fileSetId = fileSetIdOrFileInfo as string
+      }
       this.ctx.ntFileApi.getFlashFileInfo(fileSetId).then(info => {
         this.ctx.parallel('nt/flash-file-download-status', {
           status,

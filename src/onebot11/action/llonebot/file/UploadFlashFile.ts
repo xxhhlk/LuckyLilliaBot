@@ -40,6 +40,17 @@ export class UploadFlashFile extends BaseAction<Payload, Response> {
     if (res.result !== 0) {
       throw new Error(res.result)
     }
+
+    // 旧版本 QQ 可能没有该字段，尝试通过 fileSetId 获取
+    if (!res.createFlashTransferResult){
+      // @ts-ignore
+      const oldFlashFileInfo = await this.ctx.ntFileApi.getFlashFileInfo(res.fileSetId)
+      return {
+        file_set_id: oldFlashFileInfo.fileSetId,
+        share_link: oldFlashFileInfo.shareInfo.shareLink,
+        expire_time: parseInt(oldFlashFileInfo.expireTime),
+      }
+    }
     return {
       file_set_id: res.createFlashTransferResult.fileSetId,
       share_link: res.createFlashTransferResult.shareLink,
