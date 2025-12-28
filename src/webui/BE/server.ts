@@ -88,6 +88,7 @@ export class WebUIServer extends Service {
   public port?: number = undefined
   private sseClients: Set<Response> = new Set()
   private upload: multer.Multer
+  private fileUpload: multer.Multer  // 用于文件上传（不限制类型）
   private uploadDir: string
   static inject = ['ntLoginApi', 'ntFriendApi', 'ntGroupApi', 'ntSystemApi', 'ntMsgApi', 'ntUserApi', 'ntFileApi']
 
@@ -117,6 +118,16 @@ export class WebUIServer extends Service {
       limits: {
         fileSize: 10 * 1024 * 1024 // 10MB
       }
+    })
+    // 配置 multer 用于通用文件上传（不限制类型）
+    this.fileUpload = multer({
+      storage: multer.diskStorage({
+        destination: this.uploadDir,
+        filename: (req, file, cb) => {
+          const ext = path.extname(file.originalname)
+          cb(null, `${randomUUID()}${ext}`)
+        }
+      })
     })
     // 初始化服务器路由
     this.initServer()
@@ -646,18 +657,22 @@ export class WebUIServer extends Service {
     })
 
     // 上传文件（用于发送文件消息）
-    this.app.post('/api/webqq/upload-file', this.upload.single('file'), async (req, res) => {
+    this.app.post('/api/webqq/upload-file', this.fileUpload.single('file'), async (req, res) => {
       try {
         if (!req.file) {
           res.status(400).json({ success: false, message: '没有上传文件' })
           return
         }
 
+        // 修复中文文件名编码问题：multer 默认使用 latin1 解析 originalname
+        // 需要将 latin1 转换为 utf8
+        const fileName = Buffer.from(req.file.originalname, 'latin1').toString('utf8')
+
         res.json({
           success: true,
           data: {
             filePath: req.file.path,
-            fileName: req.file.originalname,
+            fileName,
             fileSize: req.file.size
           }
         })
