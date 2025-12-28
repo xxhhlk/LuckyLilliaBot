@@ -94,7 +94,7 @@ cleanup() {
     exit 0
 }
 
-trap cleanup SIGINT SIGTERM EXIT
+trap cleanup SIGINT SIGTERM
 
 confirm() {
     read -n 1 -s -r -p "$1 (Y/n) " key
