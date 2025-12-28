@@ -103,7 +103,7 @@ jobs:
 
       - name: Compress for Docker
         run: |
-          wget https://raw.githubusercontent.com/linyuchen/PMHQ/refs/heads/main/docker/install-llob.sh -O LLBot-Docker.sh
+          cp script/install-llbot-docker.sh LLBot-Docker.sh
 
       # 手动触发时只上传 artifacts
       - name: Upload LLBot.zip

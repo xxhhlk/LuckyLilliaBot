@@ -151,4 +151,17 @@ export interface NodeIKernelMsgService {
       }[]
     }
   }>
+
+  addFavEmoji(params: {
+    isMarkFace: boolean
+    emojiPath: string
+    fileSize: string
+    fileName: string
+    md5: string
+    isOrigin: boolean
+    emojiId: string
+    packageId: number
+  }): Promise<GeneralCallResult & { isExist: number }>
+
+  deleteFavEmoji(emojiIds: string[]): Promise<GeneralCallResult>
 }

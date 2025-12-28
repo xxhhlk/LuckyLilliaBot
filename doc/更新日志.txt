@@ -1,5 +1,21 @@
-V7.2.0
+V7.3.0
 更新时间 2025-12-
+
+* Milky 修复 API `recall_private_message` 在临时会话场景中不可用
+* Milky 修复 API `get_message` 在好友、临时会话场景中不可用
+* Milky 修复 API `get_history_messages` 在好友、临时会话场景中不可用
+* Milky 修复 API `mark_message_as_read` 在好友、临时会话场景中不可用
+* Milky 修复 API `get_cookies` 返回数据缺失 `p_skey`
+* Milky 修复新人被邀请进群事件没有上报
+* OneBot 修复 API `get_group_msg_history` 获取消息时可能报错
+* OneBot 修复 API `get_stranger_info` 获取信息时可能报错
+* OneBot 修复 API `get_login_info` 获取的昵称可能为空
+* OneBot 修复 API `get_cookies` 返回数据缺失 `p_skey`
+* OneBot 修复新人被邀请进群事件没有上报
+
+=================
+V7.2.0
+更新时间 2025-12-21
 
 * WebUI 新增日志查看功能
 * 优化 Linux CLI，Ctrl + C 现可以正常退出

@@ -532,12 +532,135 @@ export interface RawMessage {
     likesCnt: string
     isClicked: boolean
   }[]
-  msgAttrs: Map<number, {
-    attrType: number
-    attrId: string
-  }>
+  msgAttrs: Map<number, MsgAttr>
   isOnlineMsg: boolean
 }
+
+// VAS 消息信息（气泡、字体等）
+export interface VasMsgInfo {
+  msgNamePlateInfo?: {
+    msgVipType: number
+    msgVipLevel: number
+    msgBigClubFlag?: number | null
+    msgBigClubLevel: number
+    grayNamePlate: number
+    namePlateType: number
+    vipStarFlag?: number | null
+    namePlateId: number
+    carouselNamePlateIds: number[]
+    extendNamePlateId?: number | null
+    gameNamePlateId?: number | null
+  }
+  bubbleInfo?: {
+    bubbleId: number
+    bubbleDiyTextId: number
+    subBubbleId: number
+    canConvertToText?: boolean | null
+  }
+  avatarPendantInfo?: {
+    avatarId: number
+    pendantId: string
+    pendantDiyInfoId: number
+  }
+  vasFont?: {
+    fontId: number
+    subFontId?: number | null
+    diyFontCfgUpdateTime: number
+    diyFontImageId: number
+    magicFontType: number
+  }
+  iceBreakInfo?: {
+    templateID?: string | null
+    isIceBreakMsg?: boolean | null
+  }
+}
+
+// VAS 个人信息
+export interface VasPersonalInfo {
+  troopNameColorId?: number | null
+  vipNumbers: number[]
+  vaDataChangeRand: number
+  vasPersonalNamePlate?: any | null
+  extInfo?: any | null
+}
+
+// 群荣誉信息（等级、头衔）
+export interface GroupHonorInfo {
+  richFlag: number
+  honorIds: number[]
+  level: number
+  oldLevel?: number | null
+  rankSeq: string
+  titleId: number
+  uniqueTitle: string
+}
+
+// 王者荣誉信息
+export interface KingHonorInfo {
+  kingHonorLevel: number
+  groupInfoFlagEx4: number
+  groupMsgBusiBuf?: any | null
+}
+
+// 消息属性基础字段
+interface MsgAttrBase {
+  attrId: string
+  publicAccountAttrs?: any | null
+  sharedMsgInfo?: any | null
+  gameChatSession?: any | null
+  uinInfoAttr?: any | null
+  longMsgAttr?: any | null
+  robotExt?: any | null
+  zPlanMsgInfo?: any | null
+  qqConnectAttr?: any | null
+  extendBusiness?: any | null
+  sendMsgRspTransSvrInfo?: any | null
+  adelieMsgAttr?: any | null
+  feedBackStateInfo?: any | null
+  memoryStateMsgInfo?: any | null
+  attaReportData?: any | null
+  liteAction?: any | null
+  botMetaData?: any | null
+}
+
+// attrType 0: VAS 消息信息
+export interface MsgAttrVasMsg extends MsgAttrBase {
+  attrType: 0
+  vasMsgInfo: VasMsgInfo
+  vasPersonalInfo?: null
+  groupHonor?: null
+  kingHonor?: null
+}
+
+// attrType 1: VAS 个人信息
+export interface MsgAttrVasPersonal extends MsgAttrBase {
+  attrType: 1
+  vasMsgInfo?: null
+  vasPersonalInfo: VasPersonalInfo
+  groupHonor?: null
+  kingHonor?: null
+}
+
+// attrType 2: 群荣誉信息
+export interface MsgAttrGroupHonor extends MsgAttrBase {
+  attrType: 2
+  vasMsgInfo?: null
+  vasPersonalInfo?: null
+  groupHonor: GroupHonorInfo
+  kingHonor?: null
+}
+
+// attrType 3: 王者荣誉信息
+export interface MsgAttrKingHonor extends MsgAttrBase {
+  attrType: 3
+  vasMsgInfo?: null
+  vasPersonalInfo?: null
+  groupHonor?: null
+  kingHonor: KingHonorInfo
+}
+
+// 消息属性联合类型
+export type MsgAttr = MsgAttrVasMsg | MsgAttrVasPersonal | MsgAttrGroupHonor | MsgAttrKingHonor
 
 export interface Peer {
   chatType: ChatType

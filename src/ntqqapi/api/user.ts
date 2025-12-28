@@ -159,8 +159,12 @@ export class NTQQUserApi extends Service {
   }
 
   async getBuddyNick(uid: string): Promise<string> {
-    const data = await invoke<Map<string, string>>('nodeIKernelBuddyService/getBuddyNick', [[uid]])
-    return data.get(uid) || ''
+    const data = await invoke('nodeIKernelBuddyService/getBuddyNick', [[uid]])
+    const nick = data.get(uid)
+    if (!nick) {
+      this.ctx.logger.warn(`获取昵称失败, uid: ${uid}`)
+    }
+    return nick ?? ''
   }
 
   async getCookies(domain: string) {

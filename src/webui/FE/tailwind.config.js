@@ -2,12 +2,9 @@
 export default {
   content: [
     "./index.html",
-    "./App.tsx",
-    "./main.tsx",
-    "./components/**/*.{js,ts,jsx,tsx}",
-    "./utils/**/*.{js,ts,jsx,tsx}",
-    "./types/**/*.{js,ts,jsx,tsx}",
+    "./**/*.{js,ts,jsx,tsx}",
   ],
+  darkMode: 'class',
   theme: {
     extend: {
       colors: {
@@ -23,6 +20,24 @@ export default {
           800: '#075985',
           900: '#0c4a6e',
         },
+      },
+      textColor: {
+        'theme': 'var(--text-primary)',
+        'theme-secondary': 'var(--text-secondary)',
+        'theme-muted': 'var(--text-muted)',
+        'theme-hint': 'var(--text-hint)',
+      },
+      backgroundColor: {
+        'theme-card': 'var(--bg-card)',
+        'theme-item': 'var(--bg-item)',
+        'theme-item-hover': 'var(--bg-item-hover)',
+        'theme-selected': 'var(--bg-selected)',
+        'theme-input': 'var(--bg-input)',
+      },
+      borderColor: {
+        'theme': 'var(--border-card)',
+        'theme-divider': 'var(--border-divider)',
+        'theme-input': 'var(--border-input)',
       },
       boxShadow: {
         'card': '0 2px 8px rgba(0, 0, 0, 0.1)',

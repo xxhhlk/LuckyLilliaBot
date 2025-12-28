@@ -53,11 +53,13 @@ export interface NodeIKernelBuddyService {
   getBuddyReq(): Promise<GeneralCallResult>
 
   getCategoryById(categoryId: number): Promise<{
-    categoryId: number,
-    categorySortId: number,
-    categroyName: string,
-    categroyMbCount: number,
-    onlineCount: number,
+    categoryId: number
+    categorySortId: number
+    categroyName: string
+    categroyMbCount: number
+    onlineCount: number
     buddyUids: string[]
   }>
+
+  getBuddyNick(uids: string[]): Promise<Map<string, string>>
 }

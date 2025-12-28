@@ -132,7 +132,13 @@ export class MilkyAdapter extends Service {
         }
         const result = await transformGroupMessageEvent(this.ctx, message)
         if (result) {
-          this.emitEvent(result.eventType, result.data)
+          if (Array.isArray(result)) {
+            for (const item of result) {
+              this.emitEvent(item.eventType, item.data)
+            }
+          } else {
+            this.emitEvent(result.eventType, result.data)
+          }
         }
       } else if (message.chatType === ChatType.TempC2CFromGroup) {
         // Temp message

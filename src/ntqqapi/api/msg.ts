@@ -393,4 +393,31 @@ export class NTQQMsgApi extends Service {
       uiVersion: '',
     }])
   }
+
+  async addFavEmoji(emojiPath: string) {
+    const fs = await import('fs')
+    const path = await import('path')
+    const crypto = await import('crypto')
+    
+    const stat = fs.statSync(emojiPath)
+    const fileSize = String(stat.size)
+    const fileName = path.basename(emojiPath).toUpperCase()
+    const fileBuffer = fs.readFileSync(emojiPath)
+    const md5 = crypto.createHash('md5').update(fileBuffer).digest('hex')
+    
+    return await invoke('nodeIKernelMsgService/addFavEmoji', [{
+      isMarkFace: false,
+      emojiPath,
+      fileSize,
+      fileName,
+      md5,
+      isOrigin: true,
+      emojiId: '',
+      packageId: 0,
+    }])
+  }
+
+  async deleteFavEmoji(emojiIds: string[]) {
+    return await invoke('nodeIKernelMsgService/deleteFavEmoji', [emojiIds])
+  }
 }

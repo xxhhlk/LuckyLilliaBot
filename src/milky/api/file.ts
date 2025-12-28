@@ -35,7 +35,7 @@ const UploadPrivateFile = defineApi(
   UploadPrivateFileOutput,
   async (ctx, payload) => {
     const data = await resolveMilkyUri(payload.file_uri)
-    const tempPath = path.join(TEMP_DIR, `file-${randomUUID()}-${payload.file_name}`)
+    const tempPath = path.join(TEMP_DIR, `file-${randomUUID()}`)
     await writeFile(tempPath, data)
     const file = await SendElement.file(ctx, tempPath, payload.file_name)
     const uid = await ctx.ntUserApi.getUidByUin(payload.user_id.toString())
@@ -54,7 +54,7 @@ const UploadGroupFile = defineApi(
   UploadGroupFileOutput,
   async (ctx, payload) => {
     const data = await resolveMilkyUri(payload.file_uri)
-    const tempPath = path.join(TEMP_DIR, `file-${randomUUID()}-${payload.file_name}`)
+    const tempPath = path.join(TEMP_DIR, `file-${randomUUID()}`)
     await writeFile(tempPath, data)
     const file = await SendElement.file(ctx, tempPath, payload.file_name, payload.parent_folder_id)
     const peer = { chatType: 2, peerUid: payload.group_id.toString(), guildId: '' }

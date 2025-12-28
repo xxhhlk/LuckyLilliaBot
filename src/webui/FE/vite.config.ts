@@ -10,6 +10,7 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
+      '@ntqqapi/types': path.resolve(__dirname, '../../ntqqapi/types'),
     },
   },
   server: {

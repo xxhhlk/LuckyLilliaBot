@@ -52,7 +52,7 @@ npm run compile:proto    # Compile .proto files to JS/TS
 ## Build Output
 
 - Output directory: `dist/`
-- Entry point: `dist/llonebot.js`
+- Entry point: `dist/llbot.js`
 - Source maps enabled
 - Minification disabled for debugging
 - External dependencies bundled separately in `dist/node_modules/`

@@ -3,6 +3,54 @@
 @tailwind utilities;
 
 @layer base {
+  /* 主题变量定义 */
+  :root {
+    /* 文字颜色 */
+    --text-primary: #1f2937;
+    --text-secondary: #4b5563;
+    --text-muted: #6b7280;
+    --text-hint: #9ca3af;
+    
+    /* 背景颜色 */
+    --bg-card: rgba(255, 255, 255, 0.6);
+    --bg-card-hover: rgba(255, 255, 255, 0.8);
+    --bg-input: rgba(255, 255, 255, 0.4);
+    --bg-item: rgba(249, 250, 251, 0.5);
+    --bg-item-hover: rgba(243, 244, 246, 0.5);
+    --bg-selected: rgba(252, 231, 243, 1);
+    
+    /* 边框颜色 */
+    --border-card: rgba(255, 255, 255, 0.5);
+    --border-input: rgba(255, 255, 255, 0.3);
+    --border-divider: rgba(229, 231, 235, 0.5);
+    
+    /* 毛玻璃效果 */
+    --backdrop-blur: blur(24px);
+  }
+  
+  /* 暗黑模式变量 */
+  .dark {
+    --text-primary: #ffffff;
+    --text-secondary: #d4d4d4;
+    --text-muted: #a3a3a3;
+    --text-hint: #737373;
+    
+    --bg-card: rgba(38, 38, 38, 0.7);
+    --bg-card-hover: rgba(45, 45, 45, 0.8);
+    --bg-input: rgba(64, 64, 64, 0.6);
+    --bg-item: rgba(64, 64, 64, 0.5);
+    --bg-item-hover: rgba(82, 82, 82, 0.5);
+    --bg-selected: rgba(157, 23, 77, 0.3);
+    
+    --border-card: rgba(82, 82, 82, 0.5);
+    --border-input: rgba(82, 82, 82, 0.5);
+    --border-divider: rgba(82, 82, 82, 0.5);
+    
+    /* 夜间模式粉红色调整 - 更柔和 */
+    --pink-accent: #f472b6;
+    --pink-accent-hover: #f9a8d4;
+  }
+
   * {
     @apply box-border;
   }
@@ -20,6 +68,12 @@
     min-height: 100vh;
     position: relative;
   }
+
+  /* 暗黑模式背景 */
+  .dark body,
+  :root.dark body {
+    background: #0f0f0f;
+  }
   
   /* 添加彩色点阵图案 */
   body::after {
@@ -36,28 +90,279 @@
     pointer-events: none;
     z-index: 0;
   }
+
+  /* 暗黑模式 - 去掉点阵 */
+  .dark body::after,
+  :root.dark body::after {
+    background-image: none;
+  }
   
   #root {
     @apply min-h-screen;
     position: relative;
     z-index: 1;
   }
+
+  /* 自定义滚动条样式 */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.05);
+    border-radius: 4px;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.15);
+    border-radius: 4px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgba(0, 0, 0, 0.25);
+  }
+
+  /* 暗黑模式滚动条 */
+  .dark ::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.05);
+  }
+
+  .dark ::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2);
+  }
+
+  .dark ::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.3);
+  }
 }
 
 @layer components {
+  /* 主题文字颜色 */
+  .text-theme {
+    color: var(--text-primary);
+  }
+  
+  .text-theme-secondary {
+    color: var(--text-secondary);
+  }
+  
+  .text-theme-muted {
+    color: var(--text-muted);
+  }
+  
+  .text-theme-hint {
+    color: var(--text-hint);
+  }
+  
+  /* 主题背景颜色 */
+  .bg-theme-card {
+    background: var(--bg-card);
+  }
+  
+  .bg-theme-item {
+    background: var(--bg-item);
+  }
+  
+  .bg-theme-item-hover {
+    background: var(--bg-item-hover);
+  }
+  
+  .hover\:bg-theme-item-hover:hover {
+    background: var(--bg-item-hover);
+  }
+  
+  .bg-theme-selected {
+    background: var(--bg-selected);
+  }
+  
+  .bg-theme-input {
+    background: var(--bg-input);
+  }
+  
+  /* 主题边框颜色 */
+  .border-theme {
+    border-color: var(--border-card);
+  }
+  
+  .border-theme-divider {
+    border-color: var(--border-divider);
+  }
+  
+  .border-theme-input {
+    border-color: var(--border-input);
+  }
+  
+  /* 使用 CSS 变量的通用组件 */
   .card {
-    @apply bg-white/60 backdrop-blur-xl rounded-3xl shadow-card hover:shadow-card-hover transition-all duration-300 border border-white/50;
+    background: var(--bg-card);
+    backdrop-filter: var(--backdrop-blur);
+    border: 1px solid var(--border-card);
+    @apply rounded-3xl shadow-card hover:shadow-card-hover transition-all duration-300;
+  }
+  
+  .text-primary {
+    color: var(--text-primary);
+  }
+  
+  .text-secondary {
+    color: var(--text-secondary);
+  }
+  
+  .text-muted {
+    color: var(--text-muted);
+  }
+  
+  .text-hint {
+    color: var(--text-hint);
+  }
+  
+  .bg-item {
+    background: var(--bg-item);
+  }
+  
+  .bg-item-hover:hover {
+    background: var(--bg-item-hover);
+  }
+  
+  .bg-selected {
+    background: var(--bg-selected);
+  }
+
+  /* 弹出菜单和卡片背景 */
+  .bg-popup {
+    background: rgba(255, 255, 255, 0.9);
+  }
+  
+  .dark .bg-popup {
+    background: rgba(23, 23, 23, 0.95);
+  }
+  
+  .border-divider {
+    border-color: var(--border-divider);
+  }
+  
+  /* 主题渐变色 - 粉珊瑚系 */
+  .gradient-primary {
+    background: linear-gradient(to right, #ec4899 0%, #f87171 100%);
+  }
+
+  /* 暗黑模式渐变 - 和日间模式一样 */
+  .dark .gradient-primary {
+    background: linear-gradient(to right, #ec4899 0%, #f87171 100%);
+  }
+  
+  .gradient-primary-br {
+    background: linear-gradient(to bottom right, #ec4899 0%, #f87171 100%);
+  }
+
+  .dark .gradient-primary-br {
+    background: linear-gradient(to bottom right, #ec4899 0%, #f87171 100%);
   }
   
   .btn-primary {
-    @apply bg-gradient-to-r from-blue-500 to-purple-600 text-white px-6 py-2.5 rounded-xl font-medium hover:shadow-lg hover:scale-105 transition-all duration-200;
+    @apply gradient-primary text-white px-6 py-2.5 rounded-xl font-medium hover:shadow-lg hover:scale-105 transition-all duration-200;
+  }
+  
+  /* Switch 开关样式 */
+  .switch-toggle {
+    @apply w-12 h-6 rounded-full relative cursor-pointer appearance-none
+      transition-colors duration-200 ease-in-out
+      before:content-[''] before:absolute before:top-0.5 before:left-0.5
+      before:w-5 before:h-5 before:rounded-full before:bg-white
+      before:transition-transform before:duration-200
+      checked:before:translate-x-6;
+    background: #d1d5db;
+    &:checked {
+      background: linear-gradient(to right, #ec4899 0%, #f87171 100%);
+    }
+  }
+
+  .dark .switch-toggle {
+    background: #404040;
+  }
+
+  .dark .switch-toggle:checked {
+    background: linear-gradient(to right, #ec4899 0%, #f87171 100%);
+  }
+  
+  .switch-toggle-lg {
+    @apply w-14 h-7 rounded-full relative cursor-pointer appearance-none
+      transition-colors duration-200 ease-in-out
+      before:content-[''] before:absolute before:top-0.5 before:left-0.5
+      before:w-6 before:h-6 before:rounded-full before:bg-white
+      before:transition-transform before:duration-200
+      checked:before:translate-x-7;
+    background: #d1d5db;
+    &:checked {
+      background: linear-gradient(to right, #ec4899 0%, #f87171 100%);
+    }
+  }
+
+  .dark .switch-toggle-lg {
+    background: #404040;
+  }
+
+  .dark .switch-toggle-lg:checked {
+    background: linear-gradient(to right, #ec4899 0%, #f87171 100%);
   }
   
   .input-field {
-    @apply w-full px-4 py-2.5 border border-white/30 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all bg-white/40 backdrop-blur-sm;
+    @apply w-full px-4 py-2.5 rounded-xl focus:outline-none focus:ring-2 focus:ring-pink-400 focus:border-transparent transition-all;
+    background: var(--bg-input);
+    border: 1px solid var(--border-input);
+    color: var(--text-primary);
+    backdrop-filter: blur(8px);
+  }
+  
+  .input-field::placeholder {
+    color: var(--text-hint);
   }
   
   .switch {
     @apply relative inline-flex items-center cursor-pointer;
+  }
+
+  /* 夜间模式粉红色按钮调整 - 更柔和 */
+  .dark .bg-pink-500 {
+    background-color: #db2777 !important;
+  }
+  
+  .dark .hover\:bg-pink-600:hover {
+    background-color: #be185d !important;
+  }
+  
+  .dark .text-pink-500 {
+    color: #f472b6 !important;
+  }
+  
+  .dark .text-pink-600 {
+    color: #ec4899 !important;
+  }
+  
+  .dark .ring-pink-500\/20 {
+    --tw-ring-color: rgb(244 114 182 / 0.15) !important;
+  }
+  
+  .dark .focus\:ring-pink-500\/20:focus {
+    --tw-ring-color: rgb(244 114 182 / 0.15) !important;
+  }
+}
+
+@layer utilities {
+  /* 淡入动画 */
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  
+  .animate-fade-in {
+    animation: fade-in 0.3s ease-out forwards;
   }
 }

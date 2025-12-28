@@ -1,23 +1,34 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import Sidebar from './components/Sidebar';
-import OneBotConfigNew from './components/OneBotConfigNew';
-import OtherConfig from './components/OtherConfig';
-import TokenDialog from './components/TokenDialog';
-import ChangePasswordDialog from './components/ChangePasswordDialog';
-import QQLogin from './components/QQLogin';
-import Dashboard from './components/Dashboard';
-import LogViewer from './components/LogViewer';
-import { ToastContainer, showToast } from './components/Toast';
-import AnimatedBackground from './components/AnimatedBackground';
+import {
+  Sidebar,
+  Dashboard,
+  LogViewer,
+  OneBotConfigNew,
+  OtherConfig,
+  TokenDialog,
+  ChangePasswordDialog,
+  QQLogin,
+  ToastContainer,
+  showToast,
+  AnimatedBackground,
+} from './components';
+import { WebQQPage } from './components/WebQQ';
 import { Config, ResConfig } from './types';
 import { apiFetch, setPasswordPromptHandler } from './utils/api';
-import { Save, Loader2, Settings, Eye, EyeOff, Plus, Trash2 } from 'lucide-react';
+import { Save, Loader2, Settings, Eye, EyeOff, Plus, Trash2, Menu } from 'lucide-react';
 import { defaultConfig } from '../../common/defaultConfig'
 import { version } from '../../version'
 
 
 function App() {
-  const [activeTab, setActiveTab] = useState('dashboard');
+  // 从 URL hash 读取初始 tab，默认 dashboard
+  const getInitialTab = () => {
+    const hash = window.location.hash.slice(1) // 去掉 #
+    const validTabs = ['dashboard', 'onebot', 'satori', 'milky', 'logs', 'other', 'webqq', 'about']
+    return validTabs.includes(hash) ? hash : 'dashboard'
+  }
+
+  const [activeTab, setActiveTab] = useState(getInitialTab);
   const [config, setConfig] = useState<Config>(defaultConfig);
   const [loading, setLoading] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -31,6 +42,7 @@ function App() {
   const [showMilkyWebhookToken, setShowMilkyWebhookToken] = useState(false);
   const [showChangePasswordDialog, setShowChangePasswordDialog] = useState(false);
   const [qqVersion, setQqVersion] = useState<string>('');
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   // 设置密码提示处理器
   useEffect(() => {
@@ -42,6 +54,24 @@ function App() {
       });
     });
   }, []);
+
+  // 同步 tab 和 URL hash
+  useEffect(() => {
+    window.location.hash = activeTab
+  }, [activeTab])
+
+  // 监听浏览器前进/后退
+  useEffect(() => {
+    const handleHashChange = () => {
+      const hash = window.location.hash.slice(1)
+      const validTabs = ['dashboard', 'onebot', 'satori', 'milky', 'logs', 'other', 'webqq', 'about']
+      if (validTabs.includes(hash)) {
+        setActiveTab(hash)
+      }
+    }
+    window.addEventListener('hashchange', handleHashChange)
+    return () => window.removeEventListener('hashchange', handleHashChange)
+  }, [])
 
   // 处理密码确认
   const handlePasswordConfirm = useCallback((password: string) => {
@@ -128,7 +158,7 @@ function App() {
         <AnimatedBackground />
 
         <div className="relative flex items-center justify-center min-h-screen z-10">
-          <Loader2 size={48} className="animate-spin text-blue-500" />
+          <Loader2 size={48} className="animate-spin text-pink-500" />
         </div>
 
         {/* Password Dialog - 支持加载时的 401 设置密码 */}
@@ -169,18 +199,34 @@ function App() {
       {/* Animated Background */}
       <AnimatedBackground />
 
-      <Sidebar activeTab={activeTab} onTabChange={setActiveTab} accountInfo={accountInfo || undefined} />
+      <Sidebar 
+        activeTab={activeTab} 
+        onTabChange={setActiveTab} 
+        accountInfo={accountInfo || undefined}
+        isOpen={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
+      />
 
-      <main className="flex-1 p-8 overflow-auto z-10">
-        <div className="max-w-6xl mx-auto">
-          {/* Header */}
-          <div className="mb-8">
+      <main className="flex-1 overflow-auto z-10">
+        {/* 移动端顶部导航栏 */}
+        <div className="md:hidden sticky top-0 z-30 bg-theme-card/95 backdrop-blur-xl border-b border-theme-divider px-4 py-3 flex items-center gap-3">
+          <button 
+            onClick={() => setSidebarOpen(true)}
+            className="p-2 text-theme-muted hover:text-theme hover:bg-theme-item rounded-lg transition-colors"
+          >
+            <Menu size={24} />
+          </button>
+          <div className="flex items-center gap-2">
+            <img src="/logo.jpg" alt="Logo" className="w-8 h-8 rounded-lg" />
+            <span className="font-semibold text-theme">LLBot</span>
+          </div>
+        </div>
+        
+        <div className="p-4 md:p-8 max-w-6xl mx-auto">
+          {/* Header - 桌面端显示 */}
+          <div className="mb-8 hidden md:block">
             <h2 className="text-3xl font-bold text-white mb-2">
               {activeTab === 'dashboard' && 'Dashboard'}
-              {/*{activeTab === 'onebot' && 'OneBot 11 配置'}*/}
-              {/*{activeTab === 'satori' && 'Satori 配置'}*/}
-              {/*{activeTab === 'other' && '其他配置'}*/}
-              {/*{activeTab === 'about' && '关于'}*/}
             </h2>
             <p className="text-white/80">
               {activeTab === 'dashboard' && '欢迎使用 Lucky Lillia Bot'}
@@ -188,7 +234,9 @@ function App() {
           </div>
 
           {/* Content */}
-          {activeTab === 'dashboard' && <Dashboard />}
+          {activeTab === 'dashboard' && <Dashboard llbotVersion={version} qqVersion={qqVersion} />}
+
+          {activeTab === 'webqq' && <WebQQPage />}
 
           {activeTab === 'logs' && <LogViewer />}
 
@@ -216,20 +264,20 @@ function App() {
           {activeTab === 'satori' && (
             <div className="card p-6">
               <div className="flex items-center gap-3 mb-6">
-                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center">
+                <div className="w-12 h-12 rounded-xl gradient-primary-br flex items-center justify-center">
                   <Settings size={24} className="text-white" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-semibold text-gray-800">Satori 协议</h3>
-                  <p className="text-sm text-gray-600">配置 Satori 协议相关设置</p>
+                  <h3 className="text-lg font-semibold text-theme">Satori 协议</h3>
+                  <p className="text-sm text-theme-secondary">配置 Satori 协议相关设置</p>
                 </div>
               </div>
 
               <div className="space-y-4">
-                <div className="flex items-center justify-between p-4 bg-gray-50/50 rounded-xl hover:bg-gray-100/50 transition-colors">
+                <div className="flex items-center justify-between p-4 bg-theme-item rounded-xl hover:bg-theme-item-hover transition-colors">
                   <div>
-                    <div className="text-sm font-medium text-gray-800">启用 Satori 协议</div>
-                    <div className="text-xs text-gray-500 mt-0.5">开启后将支持 Satori 协议连接</div>
+                    <div className="text-sm font-medium text-theme">启用 Satori 协议</div>
+                    <div className="text-xs text-theme-muted mt-0.5">开启后将支持 Satori 协议连接</div>
                   </div>
                   <input
                     type="checkbox"
@@ -238,20 +286,14 @@ function App() {
                       ...config,
                       satori: { ...config.satori, enable: e.target.checked }
                     })}
-                    className="w-12 h-6 rounded-full bg-gray-300 relative cursor-pointer appearance-none
-                      checked:bg-gradient-to-r checked:from-blue-500 checked:to-purple-600
-                      transition-colors duration-200 ease-in-out
-                      before:content-[''] before:absolute before:top-0.5 before:left-0.5
-                      before:w-5 before:h-5 before:rounded-full before:bg-white
-                      before:transition-transform before:duration-200
-                      checked:before:translate-x-6"
+                    className="switch-toggle"
                   />
                 </div>
 
                 {config.satori.enable && (
                   <>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <label className="block text-sm font-medium text-theme-secondary mb-2">
                         Satori 端口
                       </label>
                       <input
@@ -266,10 +308,10 @@ function App() {
                         placeholder="5500"
                         className="input-field"
                       />
-                      <p className="text-xs text-gray-500 mt-1">Satori 服务监听端口（1-65535）</p>
+                      <p className="text-xs text-theme-muted mt-1">Satori 服务监听端口（1-65535）</p>
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <label className="block text-sm font-medium text-theme-secondary mb-2">
                         Satori Token
                       </label>
                       <div className="relative">
@@ -286,12 +328,12 @@ function App() {
                         <button
                           type="button"
                           onClick={() => setShowSatoriToken(!showSatoriToken)}
-                          className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors p-1"
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-theme-hint hover:text-theme transition-colors p-1"
                         >
                           {showSatoriToken ? <EyeOff size={20} /> : <Eye size={20} />}
                         </button>
                       </div>
-                      <p className="text-xs text-gray-500 mt-1">用于 Satori 连接验证的 Token</p>
+                      <p className="text-xs text-theme-muted mt-1">用于 Satori 连接验证的 Token</p>
                     </div>
                   </>
                 )}
@@ -329,16 +371,16 @@ function App() {
                   <Settings size={24} className="text-white" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-semibold text-gray-800">Milky 协议</h3>
-                  <p className="text-sm text-gray-600">配置 Milky 协议相关设置</p>
+                  <h3 className="text-lg font-semibold text-theme">Milky 协议</h3>
+                  <p className="text-sm text-theme-secondary">配置 Milky 协议相关设置</p>
                 </div>
               </div>
 
               <div className="space-y-4">
-                <div className="flex items-center justify-between p-4 bg-gray-50/50 rounded-xl hover:bg-gray-100/50 transition-colors">
+                <div className="flex items-center justify-between p-4 bg-theme-item rounded-xl hover:bg-theme-item-hover transition-colors">
                   <div>
-                    <div className="text-sm font-medium text-gray-800">启用 Milky 协议</div>
-                    <div className="text-xs text-gray-500 mt-0.5">开启后将支持 Milky 协议连接</div>
+                    <div className="text-sm font-medium text-theme">启用 Milky 协议</div>
+                    <div className="text-xs text-theme-muted mt-0.5">开启后将支持 Milky 协议连接</div>
                   </div>
                   <input
                     type="checkbox"
@@ -347,22 +389,16 @@ function App() {
                       ...config,
                       milky: { ...config.milky, enable: e.target.checked }
                     })}
-                    className="w-12 h-6 rounded-full bg-gray-300 relative cursor-pointer appearance-none
-                      checked:bg-gradient-to-r checked:from-blue-500 checked:to-purple-600
-                      transition-colors duration-200 ease-in-out
-                      before:content-[''] before:absolute before:top-0.5 before:left-0.5
-                      before:w-5 before:h-5 before:rounded-full before:bg-white
-                      before:transition-transform before:duration-200
-                      checked:before:translate-x-6"
+                    className="switch-toggle"
                   />
                 </div>
 
                 {config.milky.enable && (
                   <>
-                    <div className="flex items-center justify-between p-4 bg-gray-50/50 rounded-xl hover:bg-gray-100/50 transition-colors">
+                    <div className="flex items-center justify-between p-4 bg-theme-item rounded-xl hover:bg-theme-item-hover transition-colors">
                       <div>
-                        <div className="text-sm font-medium text-gray-800">上报自己发送的消息</div>
-                        <div className="text-xs text-gray-500 mt-0.5">启用后将上报自己发送的消息</div>
+                        <div className="text-sm font-medium text-theme">上报自己发送的消息</div>
+                        <div className="text-xs text-theme-muted mt-0.5">启用后将上报自己发送的消息</div>
                       </div>
                       <input
                         type="checkbox"
@@ -371,22 +407,16 @@ function App() {
                           ...config,
                           milky: { ...config.milky, reportSelfMessage: e.target.checked }
                         })}
-                        className="w-12 h-6 rounded-full bg-gray-300 relative cursor-pointer appearance-none
-                          checked:bg-gradient-to-r checked:from-blue-500 checked:to-purple-600
-                          transition-colors duration-200 ease-in-out
-                          before:content-[''] before:absolute before:top-0.5 before:left-0.5
-                          before:w-5 before:h-5 before:rounded-full before:bg-white
-                          before:transition-transform before:duration-200
-                          checked:before:translate-x-6"
+                        className="switch-toggle"
                       />
                     </div>
 
                     {/* HTTP 配置 */}
-                    <div className="border-t border-gray-200 pt-4 mt-4">
-                      <h4 className="text-md font-semibold text-gray-800 mb-4">HTTP 配置</h4>
+                    <div className="border-t border-theme-divider pt-4 mt-4">
+                      <h4 className="text-md font-semibold text-theme mb-4">HTTP 配置</h4>
                       <div className="space-y-4">
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                          <label className="block text-sm font-medium text-theme-secondary mb-2">
                             HTTP 端口
                           </label>
                           <input
@@ -404,11 +434,11 @@ function App() {
                             placeholder="3010"
                             className="input-field"
                           />
-                          <p className="text-xs text-gray-500 mt-1">Milky HTTP 服务监听端口（1-65535）</p>
+                          <p className="text-xs text-theme-muted mt-1">Milky HTTP 服务监听端口（1-65535）</p>
                         </div>
 
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                          <label className="block text-sm font-medium text-theme-secondary mb-2">
                             路径前缀
                           </label>
                           <input
@@ -424,11 +454,11 @@ function App() {
                             placeholder="/api"
                             className="input-field"
                           />
-                          <p className="text-xs text-gray-500 mt-1">HTTP API 路径前缀（可选）</p>
+                          <p className="text-xs text-theme-muted mt-1">HTTP API 路径前缀（可选）</p>
                         </div>
 
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                          <label className="block text-sm font-medium text-theme-secondary mb-2">
                             Access Token
                           </label>
                           <div className="relative">
@@ -448,21 +478,21 @@ function App() {
                             <button
                               type="button"
                               onClick={() => setShowMilkyToken(!showMilkyToken)}
-                              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors p-1"
+                              className="absolute right-3 top-1/2 -translate-y-1/2 text-theme-hint hover:text-theme transition-colors p-1"
                             >
                               {showMilkyToken ? <EyeOff size={20} /> : <Eye size={20} />}
                             </button>
                           </div>
-                          <p className="text-xs text-gray-500 mt-1">用于 Milky HTTP 连接验证的 Token</p>
+                          <p className="text-xs text-theme-muted mt-1">用于 Milky HTTP 连接验证的 Token</p>
                         </div>
                       </div>
                     </div>
 
                     {/* Webhook 配置 */}
-                    <div className="border-t border-gray-200 pt-4 mt-4">
-                      <h4 className="text-md font-semibold text-gray-800 mb-4">Webhook 配置</h4>
+                    <div className="border-t border-theme-divider pt-4 mt-4">
+                      <h4 className="text-md font-semibold text-theme mb-4">Webhook 配置</h4>
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                        <label className="block text-sm font-medium text-theme-secondary mb-2">
                           Webhook URLs
                         </label>
                         <div className="space-y-2">
@@ -499,7 +529,7 @@ function App() {
                                     }
                                   });
                                 }}
-                                className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                                className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition-colors"
                                 title="删除"
                               >
                                 <Trash2 size={18} />
@@ -523,17 +553,17 @@ function App() {
                                 }
                               });
                             }}
-                            className="flex items-center gap-2 px-4 py-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors text-sm font-medium"
+                            className="flex items-center gap-2 px-4 py-2 text-pink-500 hover:bg-pink-50 dark:hover:bg-pink-900/30 rounded-lg transition-colors text-sm font-medium"
                           >
                             <Plus size={18} />
                             添加 Webhook URL
                           </button>
                         </div>
-                        <p className="text-xs text-gray-500 mt-2">事件上报的 Webhook 地址</p>
+                        <p className="text-xs text-theme-muted mt-2">事件上报的 Webhook 地址</p>
                       </div>
 
                       <div className="mt-4">
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                        <label className="block text-sm font-medium text-theme-secondary mb-2">
                           Access Token
                         </label>
                         <div className="relative">
@@ -553,12 +583,12 @@ function App() {
                           <button
                             type="button"
                             onClick={() => setShowMilkyWebhookToken(!showMilkyWebhookToken)}
-                            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors p-1"
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-theme-hint hover:text-theme transition-colors p-1"
                           >
                             {showMilkyWebhookToken ? <EyeOff size={20} /> : <Eye size={20} />}
                           </button>
                         </div>
-                        <p className="text-xs text-gray-500 mt-1">用于 Webhook 请求验证的 Token</p>
+                        <p className="text-xs text-theme-muted mt-1">用于 Webhook 请求验证的 Token</p>
                       </div>
                     </div>
                   </>
@@ -647,14 +677,14 @@ function App() {
                 <div className="w-20 h-20 rounded-3xl overflow-hidden mx-auto mb-6 shadow-lg">
                   <img src="/logo.jpg" alt="Logo" className="w-full h-full object-cover" />
                 </div>
-                <h1 className="text-3xl font-bold text-gray-800 mb-2">Lucky Lillia Bot</h1>
-                <p className="text-gray-600 mb-6">使你的 QQNT 支持 OneBot 11 协议、Satori 协议、Milky 协议进行 QQ 机器人开发</p>
+                <h1 className="text-3xl font-bold text-theme mb-2">Lucky Lillia Bot</h1>
+                <p className="text-theme-secondary mb-6">使你的 QQNT 支持 OneBot 11 协议、Satori 协议、Milky 协议进行 QQ 机器人开发</p>
                 <div className="flex items-center justify-center gap-4">
                   <a
                     href="https://github.com/LLOneBot/LLOneBot"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="px-6 py-2.5 bg-gray-800 text-white rounded-xl hover:bg-gray-900 transition-colors flex items-center gap-2"
+                    className="px-6 py-2.5 bg-gray-800 dark:bg-neutral-700 text-white rounded-xl hover:bg-gray-900 dark:hover:bg-neutral-600 transition-colors flex items-center gap-2"
                   >
                     <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
                       <path fillRule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" clipRule="evenodd" />
@@ -665,7 +695,7 @@ function App() {
                     href="https://llonebot.com"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="px-6 py-2.5 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-xl hover:shadow-lg transition-all flex items-center gap-2"
+                    className="px-6 py-2.5 gradient-primary text-white rounded-xl hover:shadow-lg transition-all flex items-center gap-2"
                   >
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
@@ -679,21 +709,21 @@ function App() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="card p-6">
                   <div className="flex items-center gap-3 mb-4">
-                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-600 flex items-center justify-center">
+                    <div className="w-12 h-12 rounded-xl gradient-primary-br flex items-center justify-center">
                       <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24">
                         <path d="M16.5 3c-1.862 0-3.505.928-4.5 2.344C11.005 3.928 9.362 3 7.5 3 4.462 3 2 5.462 2 8.5c0 4.171 4.912 8.213 6.281 9.49a2.94 2.94 0 0 0 2.438.94 2.94 2.94 0 0 0 2.438-.94C14.588 16.713 19.5 12.671 19.5 8.5 19.5 5.462 17.038 3 16.5 3z" />
                       </svg>
                     </div>
                     <div>
-                      <h3 className="text-lg font-semibold text-gray-800">Telegram 群</h3>
-                      <p className="text-sm text-gray-600"></p>
+                      <h3 className="text-lg font-semibold text-theme">Telegram 群</h3>
+                      <p className="text-sm text-theme-secondary"></p>
                     </div>
                   </div>
                   <a
                     href="https://t.me/+nLZEnpne-pQ1OWFl"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-blue-600 hover:text-blue-700 hover:underline text-sm break-all"
+                    className="text-pink-500 hover:text-pink-600 hover:underline text-sm break-all"
                   >
                     https://t.me/+nLZEnpne-pQ1OWFl
                   </a>
@@ -707,7 +737,7 @@ function App() {
                       </svg>
                     </div>
                     <div>
-                      <h3 className="text-lg font-semibold text-gray-800">QQ 群</h3>
+                      <h3 className="text-lg font-semibold text-theme">QQ 群</h3>
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
@@ -715,7 +745,7 @@ function App() {
                       href="https://qm.qq.com/q/EZndy3xntQ"
                       target="_blank"
                       rel="noopener noreferrer"
-                      className=" text-blue-600 hover:text-blue-700 hover:underline"
+                      className=" text-pink-500 hover:text-pink-600 hover:underline"
                     >
                       545402644
                     </a>
@@ -727,19 +757,19 @@ function App() {
               <div className="card p-6">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500 to-pink-600 flex items-center justify-center">
+                    <div className="w-10 h-10 rounded-xl gradient-primary-br flex items-center justify-center">
                       <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                       </svg>
                     </div>
                     <div>
-                      <div className="text-sm font-medium text-gray-800">版本信息</div>
-                      <div className="text-xs text-gray-500">Lucky Lillia Bot {version}</div>
-                      {qqVersion && <div className="text-xs text-gray-500">QQ {qqVersion}</div>}
+                      <div className="text-sm font-medium text-theme">版本信息</div>
+                      <div className="text-xs text-theme-muted">Lucky Lillia Bot {version}</div>
+                      {qqVersion && <div className="text-xs text-theme-muted">QQ {qqVersion}</div>}
                     </div>
                   </div>
-                  <div className="text-sm text-gray-600">
-                    WebUI Powered by  <span className="font-semibold text-purple-600">React + Tailwind</span>
+                  <div className="text-sm text-theme-secondary">
+                    WebUI Powered by  <span className="font-semibold text-pink-500">React + Tailwind</span>
                   </div>
                 </div>
               </div>
@@ -750,10 +780,10 @@ function App() {
 
       {/* Loading Overlay */}
       {loading && (
-        <div className="fixed inset-0 bg-black/20 flex items-center justify-center" style={{ zIndex: 9000 }}>
-          <div className="bg-white rounded-2xl p-6 shadow-2xl">
-            <Loader2 size={48} className="animate-spin text-blue-600 mx-auto" />
-            <p className="mt-4 text-gray-700">加载中...</p>
+        <div className="fixed inset-0 bg-black/20 dark:bg-black/40 flex items-center justify-center" style={{ zIndex: 9000 }}>
+          <div className="bg-theme-card backdrop-blur-xl rounded-2xl p-6 shadow-2xl">
+            <Loader2 size={48} className="animate-spin text-pink-500 mx-auto" />
+            <p className="mt-4 text-theme">加载中...</p>
           </div>
         </div>
       )}

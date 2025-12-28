@@ -319,22 +319,24 @@ export namespace OB11Entities {
       }
       else if (element.arkElement) {
         const { arkElement } = element
-        const data = JSON.parse(arkElement.bytesData)
-        if (data.app === 'com.tencent.multimsg') {
-          messageSegment = {
-            type: OB11MessageDataType.Forward,
-            data: {
-              id: msg.msgId
+        try {
+          const data = JSON.parse(arkElement.bytesData)
+          if (data.app === 'com.tencent.multimsg') {
+            messageSegment = {
+              type: OB11MessageDataType.Forward,
+              data: {
+                id: msg.msgId
+              }
+            }
+          } else {
+            messageSegment = {
+              type: OB11MessageDataType.Json,
+              data: {
+                data: arkElement.bytesData
+              }
             }
           }
-        } else {
-          messageSegment = {
-            type: OB11MessageDataType.Json,
-            data: {
-              data: arkElement.bytesData
-            }
-          }
-        }
+        } catch { }
       }
       else if (element.faceElement) {
         const { faceElement } = element
@@ -549,7 +551,7 @@ export namespace OB11Entities {
     }
   }
 
-  export async function groupEvent(ctx: Context, msg: RawMessage): Promise<OB11GroupNoticeEvent | void> {
+  export async function groupEvent(ctx: Context, msg: RawMessage): Promise<OB11GroupNoticeEvent | OB11GroupNoticeEvent[] | void> {
     if (msg.chatType !== ChatType.Group) {
       return
     }
@@ -617,6 +619,13 @@ export namespace OB11Entities {
             const invitee = xmlElement.templParam.get('invitee')
             if (invitor && invitee) {
               return new OB11GroupIncreaseEvent(+msg.peerUid, +invitee, +invitor, 'invite')
+            }
+          } else if (xmlElement.templId === '10485') {
+            ctx.logger.info('收到新人被邀请进群消息', xmlElement)
+            const invitor = xmlElement.templParam.get('invitor')
+            const invitees = xmlElement.templParam.get('invitees_dynamic')?.matchAll(/jp="([^"]+)"/g)
+            if (invitor && invitees) {
+              return invitees.map(e => new OB11GroupIncreaseEvent(+msg.peerUid, +e[1], +invitor, 'invite')).toArray()
             }
           }
         }

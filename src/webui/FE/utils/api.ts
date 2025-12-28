@@ -1,5 +1,5 @@
 import { ApiResponse } from '../types';
-import { showToast } from '../components/Toast';
+import { showToast } from '../components/common';
 import { hashPassword } from './passwordHash';
 import { getCookie, setCookie } from './cookie';
 

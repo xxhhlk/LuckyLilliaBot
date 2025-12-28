@@ -2,18 +2,23 @@ import { BaseAction } from '../BaseAction'
 import { OB11User } from '../../types'
 import { ActionName } from '../types'
 import { selfInfo } from '@/common/globalVars'
+import { sleep } from '@/common/utils'
 
 class GetLoginInfo extends BaseAction<{}, OB11User> {
   actionName = ActionName.GetLoginInfo
 
   protected async _handle() {
-    let nickname = selfInfo.nick
-    try {
-      nickname = await this.ctx.ntUserApi.getSelfNick(true)
-    } catch { }
+    for (let i = 0; i < 5; i++) {
+      try {
+        await this.ctx.ntUserApi.getSelfNick(true)
+        break
+      } catch {
+        await sleep(500)
+      }
+    }
     return {
       user_id: parseInt(selfInfo.uin),
-      nickname
+      nickname: selfInfo.nick
     }
   }
 }
