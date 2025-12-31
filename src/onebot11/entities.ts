@@ -238,9 +238,9 @@ export namespace OB11Entities {
       else if (element.videoElement) {
         const { videoElement } = element
         const videoUrl = await ctx.ntFileApi.getVideoUrl(
-          {
+          peer ?? {
             chatType: msg.chatType,
-            peerUid: peer?.peerUid ?? msg.peerUid,
+            peerUid: msg.peerUid,
             guildId: ''
           },
           rootMsgID ?? msg.msgId,
