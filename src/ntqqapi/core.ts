@@ -120,8 +120,8 @@ class Core extends Service {
     const returnMsg = await ctx.ntMsgApi.sendMsg(peer, sendElements, timeout)
     this.messageSentCount++
     ctx.logger.info('消息发送', peer)
-    deleteAfterSentFiles.map(path => {
-      unlink(path).then().catch(e => { })
+    deleteAfterSentFiles.forEach(path => {
+      unlink(path).catch(e => { })
     })
     return returnMsg
   }
@@ -307,7 +307,7 @@ class Core extends Service {
       const [status, errCodeOrFileSetId, fileSetIdOrFileInfo] = payload
       let fileSetId: string;
       // 没有精力一个个版本测试了，只能靠类型判断了
-      if (typeof fileSetIdOrFileInfo !== 'string'){
+      if (typeof fileSetIdOrFileInfo !== 'string') {
         fileSetId = errCodeOrFileSetId as string
       }
       else {

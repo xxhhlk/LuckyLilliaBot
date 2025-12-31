@@ -166,6 +166,9 @@ export class SendForwardMsg extends BaseAction<Payload, Response> {
     const encoder = new MessageEncoder(this.ctx, peer)
     const raw = await encoder.generate(nodes)
     const resid = await this.ctx.app.pmhq.uploadForward(peer, raw.multiMsgItems)
+    encoder.deleteAfterSentFiles.forEach(path => {
+      unlink(path).catch(e => { })
+    })
     const uuid = randomUUID()
     try {
       const msg = await this.ctx.ntMsgApi.sendMsg(peer, [{

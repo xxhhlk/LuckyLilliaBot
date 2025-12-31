@@ -3,7 +3,7 @@ import { OB11MessageData, OB11MessageDataType } from '../types'
 import { Msg, Media } from '@/ntqqapi/proto'
 import { handleOb11RichMedia } from './createMessage'
 import { selfInfo } from '@/common/globalVars'
-import { Peer, RichMediaUploadCompleteNotify } from '@/ntqqapi/types'
+import { ElementType, Peer, RichMediaUploadCompleteNotify } from '@/ntqqapi/types'
 import { deflateSync } from 'node:zlib'
 import faceConfig from '@/ntqqapi/helper/face_config.json'
 import { InferProtoModelInput } from '@saltify/typeproto'
@@ -200,11 +200,16 @@ export class MessageEncoder {
         this.preview += face.QDes
       }
     } else if (type === OB11MessageDataType.Image) {
-      const { path } = await handleOb11RichMedia(this.ctx, segment, this.deleteAfterSentFiles)
+      const busiType = Number(segment.data.subType) ?? 0
+      const { path: picPath } = await handleOb11RichMedia(this.ctx, segment, this.deleteAfterSentFiles)
+      const { path, fileSize } = await this.ctx.ntFileApi.uploadFile(picPath, ElementType.Pic, busiType)
+      if (fileSize === 0) {
+        throw new Error('文件异常，大小为 0')
+      }
       const data = await this.ctx.ntFileApi.uploadRMFileWithoutMsg(path, this.isGroup ? 4 : 3, this.isGroup ? this.peer.peerUid : selfInfo.uid)
-      const busiType = Number(segment.data.subType) || 0
       this.children.push(await this.packImage(data, busiType))
       this.preview += busiType === 1 ? '[动画表情]' : '[图片]'
+      this.deleteAfterSentFiles.push(path)
     } else if (type === OB11MessageDataType.Forward) {
       this.children.push(this.packForwardMessage(data.id))
       this.preview += '[聊天记录]'
