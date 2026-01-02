@@ -7,6 +7,7 @@ import { ElementType, Peer, RichMediaUploadCompleteNotify } from '@/ntqqapi/type
 import { deflateSync } from 'node:zlib'
 import faceConfig from '@/ntqqapi/helper/face_config.json'
 import { InferProtoModelInput } from '@saltify/typeproto'
+import { stat } from 'node:fs/promises'
 
 export class MessageEncoder {
   static support = ['text', 'face', 'image', 'markdown', 'forward']
@@ -202,10 +203,11 @@ export class MessageEncoder {
     } else if (type === OB11MessageDataType.Image) {
       const busiType = Number(segment.data.subType) ?? 0
       const { path: picPath } = await handleOb11RichMedia(this.ctx, segment, this.deleteAfterSentFiles)
-      const { path, fileSize } = await this.ctx.ntFileApi.uploadFile(picPath, ElementType.Pic, busiType)
+      const fileSize = (await stat(picPath)).size
       if (fileSize === 0) {
-        throw new Error('文件异常，大小为 0')
+        throw new Error(`文件异常，大小为 0: ${picPath}`)
       }
+      const { path } = await this.ctx.ntFileApi.uploadFile(picPath, ElementType.Pic, busiType)
       const data = await this.ctx.ntFileApi.uploadRMFileWithoutMsg(path, this.isGroup ? 4 : 3, this.isGroup ? this.peer.peerUid : selfInfo.uid)
       this.children.push(await this.packImage(data, busiType))
       this.preview += busiType === 1 ? '[动画表情]' : '[图片]'

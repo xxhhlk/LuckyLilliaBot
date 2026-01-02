@@ -4,7 +4,7 @@ import pathLib from 'node:path'
 import {
   AtType,
   ElementType,
-  FaceIndex, FaceType,
+  FaceIndex,
   PicType,
   SendArkElement,
   SendFaceElement,
@@ -16,7 +16,7 @@ import {
   SendTextElement,
   SendVideoElement,
 } from './types'
-import { stat, writeFile, copyFile, unlink, access } from 'node:fs/promises'
+import { stat, writeFile, copyFile, unlink } from 'node:fs/promises'
 import { calculateFileMD5 } from '../common/utils/file'
 import { defaultVideoThumb, getVideoInfo } from '../common/utils/video'
 import { encodeSilk } from '../common/utils/audio'
@@ -66,10 +66,11 @@ export namespace SendElement {
   }
 
   export async function pic(ctx: Context, picPath: string, summary = '', subType: 0 | 1 = 0, isFlashPic?: boolean): Promise<SendPicElement> {
-    const { md5, fileName, path, fileSize } = await ctx.ntFileApi.uploadFile(picPath, ElementType.Pic, subType)
+    const fileSize = (await stat(picPath)).size
     if (fileSize === 0) {
-      throw new Error('文件异常，大小为 0')
+      throw new Error(`文件异常，大小为 0: ${picPath}`)
     }
+    const { md5, fileName, path } = await ctx.ntFileApi.uploadFile(picPath, ElementType.Pic, subType)
     const imageSize = await ctx.ntFileApi.getImageSize(picPath)
     const picElement = {
       md5HexStr: md5,
@@ -115,17 +116,17 @@ export namespace SendElement {
     return element
   }
 
-  export async function video(ctx: Context, filePath: string, diyThumbPath = ''): Promise<SendVideoElement> {
-    await access(filePath)
-    const { fileName, path, fileSize, md5 } = await ctx.ntFileApi.uploadFile(filePath, ElementType.Video)
-
+  export async function video(ctx: Context, filePath: string, diyThumbPath?: string): Promise<SendVideoElement> {
+    const fileSize = (await stat(filePath)).size
     if (fileSize === 0) {
-      throw new Error('文件异常，大小为 0')
+      throw new Error(`文件异常，大小为 0: ${filePath}`)
     }
     const maxMB = 100
     if (fileSize > 1024 * 1024 * maxMB) {
       throw new Error(`视频过大，最大支持${maxMB}MB，当前文件大小${fileSize}B`)
     }
+    const { fileName, path, md5 } = await ctx.ntFileApi.uploadFile(filePath, ElementType.Video)
+
     const thumbDir = pathLib.dirname(path.replaceAll('\\', '/').replace(`/Ori/`, `/Thumb/`))
     let videoInfo = {
       width: 1920,
@@ -144,47 +145,45 @@ export namespace SendElement {
     const createThumb = new Promise<string>((resolve, reject) => {
       const thumbFileName = `${md5}_0.png`
       const thumbPath = pathLib.join(thumbDir, thumbFileName)
-      ctx.logger.info('开始生成视频缩略图', filePath)
-      let completed = false
-
-      function useDefaultThumb() {
-        if (completed) return
-        ctx.logger.info('获取视频封面失败，使用默认封面')
-        writeFile(thumbPath, defaultVideoThumb)
+      if (diyThumbPath) {
+        copyFile(diyThumbPath, thumbPath)
           .then(() => {
             resolve(thumbPath)
           })
           .catch(reject)
-      }
+      } else {
+        ctx.logger.info('开始生成视频缩略图', filePath)
+        let completed = false
 
-      setTimeout(useDefaultThumb, 5000)
-      ffmpeg(filePath)
-        .on('error', () => {
-          if (diyThumbPath) {
-            copyFile(diyThumbPath, thumbPath)
-              .then(() => {
-                completed = true
-                resolve(thumbPath)
-              })
-              .catch(reject)
-          } else {
+        function useDefaultThumb() {
+          if (completed) return
+          ctx.logger.info('获取视频封面失败，使用默认封面')
+          writeFile(thumbPath, defaultVideoThumb)
+            .then(() => {
+              resolve(thumbPath)
+            })
+            .catch(reject)
+        }
+
+        setTimeout(useDefaultThumb, 5000)
+        ffmpeg(filePath)
+          .on('error', () => {
             useDefaultThumb()
-          }
-        })
-        .screenshots({
-          timestamps: [0],
-          filename: thumbFileName,
-          folder: thumbDir,
-          size: videoInfo.width + 'x' + videoInfo.height,
-        })
-        .on('end', () => {
-          completed = true
-          resolve(thumbPath)
-        })
+          })
+          .screenshots({
+            timestamps: [0],
+            filename: thumbFileName,
+            folder: thumbDir,
+            size: videoInfo.width + 'x' + videoInfo.height,
+          })
+          .on('end', () => {
+            completed = true
+            resolve(thumbPath)
+          })
+      }
     })
     const thumbPath = new Map()
     const _thumbPath = await createThumb
-    ctx.logger.info('生成视频缩略图', _thumbPath)
     const thumbSize = (await stat(_thumbPath)).size
     thumbPath.set(0, _thumbPath)
     const thumbMd5 = await calculateFileMD5(_thumbPath)
@@ -210,10 +209,11 @@ export namespace SendElement {
 
   export async function ptt(ctx: Context, pttPath: string): Promise<SendPttElement> {
     const { converted, path: silkPath, duration } = await encodeSilk(ctx, pttPath)
-    const { md5, fileName, path, fileSize } = await ctx.ntFileApi.uploadFile(silkPath, ElementType.Ptt)
+    const fileSize = (await stat(silkPath)).size
     if (fileSize === 0) {
-      throw new Error('文件异常，大小为 0')
+      throw new Error(`文件异常，大小为 0: ${silkPath}`)
     }
+    const { md5, fileName, path } = await ctx.ntFileApi.uploadFile(silkPath, ElementType.Ptt)
     if (converted) {
       unlink(silkPath).then().catch(e => { })
     }

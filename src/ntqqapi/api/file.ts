@@ -102,12 +102,10 @@ export class NTQQFileApi extends Service {
       },
     ])
     await copyFile(filePath, mediaPath)
-    const fileSize = (await stat(filePath)).size
     return {
       md5: fileMd5,
       fileName,
       path: mediaPath,
-      fileSize,
     }
   }
 
