@@ -143,8 +143,10 @@ install_arch() {
         if ! command -v yay &> /dev/null; then
             warn "未检测到 yay，尝试安装..."
             sudo pacman -S --needed --noconfirm yay || {
-                rm -rf /tmp/yay_install && git clone https://aur.archlinux.org/yay.git /tmp/yay_install
-                (cd /tmp/yay_install && makepkg -si --noconfirm) || error "yay 编译失败"
+                local TMP_DIR="/tmp/yay_install"
+                rm -rf "$TMP_DIR" && git clone https://aur.archlinux.org/yay.git "$TMP_DIR"
+                (cd "$TMP_DIR" && makepkg -si --noconfirm) || { rm -rf "$TMP_DIR"; error "yay 编译失败"; }
+                rm -rf "$TMP_DIR"
             }
         fi
         yay -S --noconfirm linuxqq || error "LinuxQQ 安装失败"
@@ -154,7 +156,11 @@ install_arch() {
 install_debian() {
     check_sudo
     local MACHINE=$(uname -m)
-    local ARCH=$([ "$MACHINE" == "x86_64" ] && echo "amd64" || echo "arm64")
+    case "$MACHINE" in
+      x86_64)  ARCH="amd64" ;;
+      aarch64) ARCH="arm64" ;;
+      *)       error "不支持的架构: $MACHINE" ;;
+    esac
 
     if [ ! -f "/opt/QQ/qq" ] && confirm "未检测到 QQ，是否安装?"; then
         sudo apt-get update && sudo apt-get install -y wget || error "基础工具安装失败"
