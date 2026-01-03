@@ -7,8 +7,9 @@ import path from 'path'
 import { fileURLToPath } from 'url'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
-const SOURCE_DIR = path.join(__dirname, '../dist/QFace/QFace-master/public/assets/qq_emoji')
-const OUTPUT_DIR = path.join(__dirname, '../src/webui/FE/public/face')
+// https://github.com/koishijs/QFace
+const SOURCE_DIR = path.join(__dirname, '../../../../dist/QFace/public/assets/qq_emoji')
+const OUTPUT_DIR = path.join(__dirname, '../public/face')
 
 // 确保输出目录存在
 if (!fs.existsSync(OUTPUT_DIR)) {
