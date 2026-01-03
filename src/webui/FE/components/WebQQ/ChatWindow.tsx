@@ -336,6 +336,9 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ session, onShowMembers, onNewMe
   useEffect(() => {
     if (onEmojiReactionCallback) {
       const handleEmojiReaction = (data: EmojiReactionData) => {
+        const selfUin = getSelfUin()
+        const isSelf = selfUin && data.userId === selfUin
+        
         // 更新消息的表情列表
         setMessages(prev => prev.map(m => {
           if (m.msgSeq !== data.msgSeq) return m
@@ -348,13 +351,15 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ session, onShowMembers, onNewMe
               const newList = [...existingList]
               newList[existingIndex] = {
                 ...newList[existingIndex],
-                likesCnt: String(parseInt(newList[existingIndex].likesCnt) + 1)
+                likesCnt: String(parseInt(newList[existingIndex].likesCnt) + 1),
+                // 如果是自己贴的，标记为已点击
+                isClicked: newList[existingIndex].isClicked || isSelf
               }
               return { ...m, emojiLikesList: newList }
             } else {
               return {
                 ...m,
-                emojiLikesList: [...existingList, { emojiId: data.emojiId, emojiType: parseInt(data.emojiId) > 999 ? '2' : '1', likesCnt: '1', isClicked: false }]
+                emojiLikesList: [...existingList, { emojiId: data.emojiId, emojiType: parseInt(data.emojiId) > 999 ? '2' : '1', likesCnt: '1', isClicked: isSelf }]
               }
             }
           } else {
@@ -366,7 +371,12 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ session, onShowMembers, onNewMe
               if (newCount <= 0) {
                 newList.splice(existingIndex, 1)
               } else {
-                newList[existingIndex] = { ...newList[existingIndex], likesCnt: String(newCount) }
+                newList[existingIndex] = { 
+                  ...newList[existingIndex], 
+                  likesCnt: String(newCount),
+                  // 如果是自己取消的，标记为未点击
+                  isClicked: isSelf ? false : newList[existingIndex].isClicked
+                }
               }
               return { ...m, emojiLikesList: newList }
             }
@@ -374,8 +384,8 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ session, onShowMembers, onNewMe
           return m
         }))
         
-        // 添加系统提示消息（只在添加表情时显示）
-        if (data.isAdd) {
+        // 添加系统提示消息（只在添加表情时显示，且不是自己的回应）
+        if (data.isAdd && !isSelf) {
           const tip: SystemTip = {
             id: `tip_${Date.now()}_${Math.random()}`,
             type: 'emoji-reaction',
