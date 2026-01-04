@@ -1,6 +1,14 @@
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
+// 全局异常处理，防止未捕获的异常导致程序崩溃
+process.on('uncaughtException', (err) => {
+  console.error('[uncaughtException]', err?.message || err)
+})
+process.on('unhandledRejection', (reason) => {
+  console.error('[unhandledRejection]', reason)
+})
+
 const __dirname = typeof window === 'undefined'
   ? path.dirname(fileURLToPath(import.meta.url))
   : ''

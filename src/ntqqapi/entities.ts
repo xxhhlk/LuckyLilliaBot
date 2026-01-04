@@ -142,44 +142,55 @@ export namespace SendElement {
     } catch (e) {
       ctx.logger.info('获取视频信息失败', e)
     }
-    const createThumb = new Promise<string>((resolve, reject) => {
+    const createThumb = new Promise<string>((resolve) => {
       const thumbFileName = `${md5}_0.png`
       const thumbPath = pathLib.join(thumbDir, thumbFileName)
       if (diyThumbPath) {
         copyFile(diyThumbPath, thumbPath)
-          .then(() => {
-            resolve(thumbPath)
+          .then(() => resolve(thumbPath))
+          .catch(() => {
+            writeFile(thumbPath, defaultVideoThumb)
+              .then(() => resolve(thumbPath))
+              .catch(() => resolve(thumbPath))
           })
-          .catch(reject)
       } else {
         ctx.logger.info('开始生成视频缩略图', filePath)
         let completed = false
 
         function useDefaultThumb() {
           if (completed) return
+          completed = true
           ctx.logger.info('获取视频封面失败，使用默认封面')
           writeFile(thumbPath, defaultVideoThumb)
-            .then(() => {
-              resolve(thumbPath)
-            })
-            .catch(reject)
+            .then(() => resolve(thumbPath))
+            .catch(() => resolve(thumbPath))
         }
 
-        setTimeout(useDefaultThumb, 5000)
-        ffmpeg(filePath)
-          .on('error', () => {
+        const timeout = setTimeout(useDefaultThumb, 5000)
+        try {
+          const cmd = ffmpeg(filePath)
+          cmd.on('error', (err) => {
+            clearTimeout(timeout)
+            ctx.logger.warn('FFmpeg 生成缩略图失败:', err?.message || err)
             useDefaultThumb()
           })
-          .screenshots({
+          cmd.on('end', () => {
+            if (completed) return
+            completed = true
+            clearTimeout(timeout)
+            resolve(thumbPath)
+          })
+          cmd.screenshots({
             timestamps: [0],
             filename: thumbFileName,
             folder: thumbDir,
             size: videoInfo.width + 'x' + videoInfo.height,
           })
-          .on('end', () => {
-            completed = true
-            resolve(thumbPath)
-          })
+        } catch (e) {
+          clearTimeout(timeout)
+          ctx.logger.warn('FFmpeg 调用异常:', e)
+          useDefaultThumb()
+        }
       }
     })
     const thumbPath = new Map()
