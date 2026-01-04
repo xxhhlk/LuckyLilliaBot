@@ -111,45 +111,46 @@ async function onLoad() {
     })
   }
 
-  let pmhqSelfInfo = { ...selfInfo }
-  let checkLoginInterval: NodeJS.Timeout = setInterval(async () => {
+  const checkLogin = async () => {
+    let pmhqSelfInfo = { ...selfInfo }
     try {
       pmhqSelfInfo = await pmhq.call('getSelfInfo', [])
     } catch (e) {
       ctx.logger.info('获取账号信息状态失败', e)
+      setTimeout(checkLogin, 1000)
+      return
     }
-    if (pmhqSelfInfo.online) {
-      clearInterval(checkLoginInterval)
-      selfInfo.uin = pmhqSelfInfo.uin
-      selfInfo.uid = pmhqSelfInfo.uid
-      selfInfo.nick = pmhqSelfInfo.nick
-      if (!selfInfo.uin) {
-        let uin: string
-        // 循环 5次 获取uin
-        for (let i = 0; i < 5; i++) {
-          try {
-            uin = await ctx.ntUserApi.getUinByUid(selfInfo.uid)
-            selfInfo.uin = uin
-            break
-          } catch (e) {
-            await sleep(1000)
-          }
+    if (!pmhqSelfInfo.online) {
+      setTimeout(checkLogin, 1000)
+      return
+    }
+    selfInfo.uin = pmhqSelfInfo.uin
+    selfInfo.uid = pmhqSelfInfo.uid
+    selfInfo.nick = pmhqSelfInfo.nick
+    if (!selfInfo.uin) {
+      for (let i = 0; i < 5; i++) {
+        try {
+          selfInfo.uin = await ctx.ntUserApi.getUinByUid(selfInfo.uid)
+          break
+        } catch (e) {
+          await sleep(1000)
         }
       }
-      selfInfo.online = true
-      if (!selfInfo.nick) {
-        await ctx.ntUserApi.getSelfNick(true).catch(e => {
-          ctx.logger.warn('获取登录号昵称失败', e)
-        })
-      }
-      config = getConfigUtil(true).getConfig()
-      getConfigUtil().listenChange(c => {
-        ctx.parallel('llob/config-updated', c)
-      })
-      ctx.parallel('llob/config-updated', config)
-      loadPluginAfterLogin()
     }
-  }, 1000)
+    selfInfo.online = true
+    if (!selfInfo.nick) {
+      await ctx.ntUserApi.getSelfNick(true).catch(e => {
+        ctx.logger.warn('获取登录号昵称失败', e)
+      })
+    }
+    config = getConfigUtil(true).getConfig()
+    getConfigUtil().listenChange(c => {
+      ctx.parallel('llob/config-updated', c)
+    })
+    ctx.parallel('llob/config-updated', config)
+    loadPluginAfterLogin()
+  }
+  checkLogin()
 
   ctx.logger.info(`LLBot ${version}`)
   // setFFMpegPath(config.ffmpeg || '')
