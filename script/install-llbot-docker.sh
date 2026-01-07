@@ -66,7 +66,7 @@ LLBOT_TAG="latest"
 read -p "是否使用docker镜像源(y/n): " use_docker_mirror
 
 if [[ "$use_docker_mirror" =~ ^[yY]$ ]]; then
-  docker_mirror="docker.1ms.run/"
+  docker_mirror="docker.1panel.live/"
   echo "正在获取最新版本信息..."
   
   # 获取PMHQ最新标签
