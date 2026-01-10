@@ -209,4 +209,12 @@ export interface NodeIKernelGroupService {
   deleteGroupBulletin(groupCode: string, psKey: string, feedsId: string): Promise<GeneralCallResult>
 
   modifyGroupRemark(groupCode: string, groupRemark: string): Promise<GeneralCallResult>
+
+  checkGroupMemberCache(groupCodes: string[]): Promise<{
+    errCode: number
+    errMsg: string
+    cacheResult: {
+      datas: Map<string, boolean>
+    }
+  }>
 }

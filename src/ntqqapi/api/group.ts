@@ -419,4 +419,8 @@ export class NTQQGroupApi extends Service {
       newFileName
     ])
   }
+
+  async checkGroupMemberCache(groupCodes: string[]) {
+    return await invoke('nodeIKernelGroupService/checkGroupMemberCache', [groupCodes])
+  }
 }
