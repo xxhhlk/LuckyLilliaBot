@@ -105,7 +105,7 @@ jobs:
           wget https://github.com/linyuchen/PMHQ/releases/latest/download/pmhq-linux-arm64.zip
           unzip pmhq-linux-arm64.zip
           rm pmhq-linux-arm64.zip
-          mv pmhq-linux-arm64 llbot/pmhq/pmhq
+          mv pmhq-linux-arm64 bin/pmhq/pmhq
           mv libpmhq.so bin/pmhq/
           wget https://github.com/LLOneBot/exe/releases/latest/download/node-linux-arm64 -O bin/llbot/node
           wget https://github.com/LLOneBot/LuckyLillia.CLI/releases/latest/download/llbot-linux-arm64 -O llbot
