@@ -63,11 +63,10 @@ jobs:
       - name: Compress for Windows Desktop
         run: |
           mkdir llbot-desktop-win-x64
-          mkdir -p bin/llbot
           cd llbot-desktop-win-x64
+          mkdir -p bin/llbot
           cp ../dist/使用说明.txt ./
           cp ../dist/更新日志.txt ./
-          mkdir -p ./bin/llbot
           cp -r ../dist/* ./bin/llbot/
           wget https://github.com/LLOneBot/LuckyLilliaDesktop.Avalonia/releases/latest/download/lucky-lillia-desktop-win-x64.zip
           unzip lucky-lillia-desktop-win-x64.zip
@@ -78,9 +77,9 @@ jobs:
       - name: Compress for Linux CLI x64
         run: |
           mkdir llbot-cli-linux-x64
+          cd llbot-cli-linux-x64
           mkdir -p bin/llbot
           mkdir -p bin/pmhq
-          cd llbot-cli-linux-x64
           cp ../dist/使用说明.txt ./
           cp ../dist/更新日志.txt ./
           cp -r ../dist ./bin/llbot
@@ -97,9 +96,9 @@ jobs:
       - name: Compress for Linux CLI arm64
         run: |
           mkdir llbot-cli-linux-arm64
+          cd llbot-cli-linux-arm64
           mkdir -p bin/llbot
           mkdir -p bin/pmhq
-          cd llbot-cli-linux-arm64
           cp ../dist/使用说明.txt ./
           cp ../dist/更新日志.txt ./
           cp -r ../dist ./bin/llbot
