@@ -137,8 +137,6 @@ if [[ "$use_docker_mirror" =~ ^[yY]$ ]]; then
 fi
 # 生成docker-compose.yml（使用双引号包裹并保留转义）
 cat << EOF > docker-compose.yml
-version: '3.8'
-
 services:
   pmhq:
     image: ${docker_mirror}linyuchen/pmhq:${PMHQ_TAG}
