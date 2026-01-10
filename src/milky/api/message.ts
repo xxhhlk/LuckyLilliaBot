@@ -273,6 +273,10 @@ const GetMessage = defineApi(
     }
 
     const rawMsg = msgResult.msgList[0]
+    if (rawMsg.elements[0].grayTipElement?.subElementType === 1) {
+      return Failed(-404, 'Message not found')
+    }
+
     if (payload.message_scene === 'friend') {
       const friend = await ctx.ntUserApi.getUserSimpleInfo(rawMsg.senderUid)
       const category = await ctx.ntFriendApi.getCategoryById(friend.baseInfo.categoryId)
