@@ -210,9 +210,9 @@ export async function transformPrivateMessageEvent(
             user_id: userId,
             is_self_send: templParam.get('uin_str1') === selfInfo.uin,
             is_self_receive: templParam.get('uin_str2') === selfInfo.uin,
-            display_action: templParam.get('action_str')!,
-            display_suffix: templParam.get('suffix_str')!,
-            display_action_img_url: templParam.get('action_img_url')!
+            display_action: templParam.get('action_str') ?? '',
+            display_suffix: templParam.get('suffix_str') ?? '',
+            display_action_img_url: templParam.get('action_img_url') ?? ''
           } satisfies MilkyEventTypes['friend_nudge']
         }
       } else if (element.fileElement) {
@@ -316,9 +316,9 @@ export async function transformGroupMessageEvent(
             group_id: +message.peerUid,
             sender_id: +templParam.get('uin_str1')!,
             receiver_id: +templParam.get('uin_str2')!,
-            display_action: templParam.get('action_str')!,
-            display_suffix: templParam.get('suffix_str')!,
-            display_action_img_url: templParam.get('action_img_url')!
+            display_action: templParam.get('action_str') ?? '',
+            display_suffix: templParam.get('suffix_str') ?? '',
+            display_action_img_url: templParam.get('action_img_url') ?? ''
           } satisfies MilkyEventTypes['group_nudge']
         }
       } else if (element.fileElement) {
