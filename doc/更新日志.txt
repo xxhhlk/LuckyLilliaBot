@@ -2,6 +2,9 @@ V7.5.1
 更新时间 2026-01-
 
 * OneBot `get_file` API 新增 `download` 参数，可控制是否下载文件到 QQ 目录
+* OneBot 支持自定义合并转发外显和嵌套合并转发
+* Milky 修复 `group_nudge` 事件的部分字段可能缺失
+* 移除 `onlyLocalhost` 配置项，改为各组件独立配置 `host`
 
 =================
 V7.5.0
