@@ -65,7 +65,6 @@ LLBOT_TAG="latest"
 
 # Docker 镜像源列表
 DOCKER_MIRRORS=(
-  "docker.1panel.live"
   "docker.1ms.run"
   "hub.rat.dev"
   "001090.xyz"
@@ -75,7 +74,7 @@ DOCKER_MIRRORS=(
 test_mirror() {
   local mirror=$1
   local tag=$2
-  echo "测试镜像源: ${mirror} ..."
+  echo "测试镜像源: ${mirror} ..." >&2
   if docker manifest inspect "${mirror}/linyuchen/llbot:${tag}" > /dev/null 2>&1; then
     return 0
   fi
@@ -87,13 +86,13 @@ find_available_mirror() {
   local tag=$1
   for mirror in "${DOCKER_MIRRORS[@]}"; do
     if test_mirror "$mirror" "$tag"; then
-      echo "找到可用镜像源: ${mirror}"
+      echo "找到可用镜像源: ${mirror}" >&2
       echo "${mirror}/"
       return 0
     fi
-    echo "镜像源 ${mirror} 不可用"
+    echo "镜像源 ${mirror} 不可用" >&2
   done
-  echo "所有镜像源均不可用，将使用官方源"
+  echo "所有镜像源均不可用，将使用官方源" >&2
   echo ""
   return 1
 }
@@ -107,8 +106,13 @@ if [[ "$use_docker_mirror" =~ ^[yY]$ ]]; then
   PMHQ_RELEASE=$(curl -s -L "https://gh-proxy.com/https://api.github.com/repos/linyuchen/PMHQ/releases/latest")
   if [ $? -eq 0 ]; then
     PMHQ_TAG=$(echo "$PMHQ_RELEASE" | grep -o '"tag_name": "[^"]*' | cut -d'"' -f4 | sed 's/^v//')
-    [ -z "$PMHQ_TAG" ] && PMHQ_TAG="latest"
-    echo "PMHQ 最新版本: $PMHQ_TAG"
+    if [ -z "$PMHQ_TAG" ]; then
+      echo "警告: 无法解析PMHQ版本号，镜像源可能不支持latest标签"
+      echo "请手动指定版本号或不使用镜像源"
+      PMHQ_TAG="latest"
+    else
+      echo "PMHQ 最新版本: $PMHQ_TAG"
+    fi
   else
     echo "警告: 无法获取PMHQ最新版本，使用latest"
   fi
@@ -117,8 +121,13 @@ if [[ "$use_docker_mirror" =~ ^[yY]$ ]]; then
   LLBOT_RELEASE=$(curl -s -L "https://gh-proxy.com/https://api.github.com/repos/LLOneBot/LuckyLilliaBot/releases/latest")
   if [ $? -eq 0 ]; then
     LLBOT_TAG=$(echo "$LLBOT_RELEASE" | grep -o '"tag_name": "[^"]*' | cut -d'"' -f4 | sed 's/^v//')
-    [ -z "$LLBOT_TAG" ] && LLBOT_TAG="latest"
-    echo "LLBot 最新版本: $LLBOT_TAG"
+    if [ -z "$LLBOT_TAG" ]; then
+      echo "警告: 无法解析LLBot版本号，镜像源可能不支持latest标签"
+      echo "请手动指定版本号或不使用镜像源"
+      LLBOT_TAG="latest"
+    else
+      echo "LLBot 最新版本: $LLBOT_TAG"
+    fi
   else
     echo "警告: 无法获取LLBot最新版本，使用latest"
   fi
@@ -128,8 +137,6 @@ if [[ "$use_docker_mirror" =~ ^[yY]$ ]]; then
 fi
 # 生成docker-compose.yml（使用双引号包裹并保留转义）
 cat << EOF > docker-compose.yml
-version: '3.8'
-
 services:
   pmhq:
     image: ${docker_mirror}linyuchen/pmhq:${PMHQ_TAG}
