@@ -60,8 +60,9 @@ const OneBotConfigNew: React.FC<OneBotConfigProps> = ({ config, onChange, onSave
     // 检查：如果监听所有地址且是 ws/http 类型，token 必须设置
     const needsTokenValidation = selectedAdapter.type === 'ws' || selectedAdapter.type === 'http';
     const adapterHost = (selectedAdapter as WsConnectConfig | HttpConnectConfig).host;
-    if (needsTokenValidation && adapterHost === '' && !selectedAdapter.token?.trim()) {
-      showToast('当监听所有地址时，必须设置 Token！', 'error');
+    const isListenAll = !adapterHost || adapterHost === '0.0.0.0' || adapterHost === '::';
+    if (needsTokenValidation && isListenAll && !selectedAdapter.token?.trim()) {
+      showToast('监听全部地址时必须设置 Token', 'error', 5000);
       return;
     }
 
@@ -111,13 +112,13 @@ const OneBotConfigNew: React.FC<OneBotConfigProps> = ({ config, onChange, onSave
     let newAdapter: ConnectConfig;
     switch (type) {
       case 'ws':
-        newAdapter = { ...baseConfig, type: 'ws', port: 3001, heartInterval: 60000 };
+        newAdapter = { ...baseConfig, type: 'ws', host: '', port: 3001, heartInterval: 60000 };
         break;
       case 'ws-reverse':
         newAdapter = { ...baseConfig, type: 'ws-reverse', url: '', heartInterval: 60000 };
         break;
       case 'http':
-        newAdapter = { ...baseConfig, type: 'http', port: 3000 };
+        newAdapter = { ...baseConfig, type: 'http', host: '', port: 3000 };
         break;
       case 'http-post':
         newAdapter = { ...baseConfig, type: 'http-post', url: '', enableHeart: false, heartInterval: 60000 };
