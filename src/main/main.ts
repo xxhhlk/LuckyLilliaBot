@@ -82,7 +82,7 @@ async function onLoad() {
     enable: config.log!,
     filename: logFileName,
   })
-  ctx.plugin(WebUIServer, { ...config.webui, onlyLocalhost: config.onlyLocalhost })
+  ctx.plugin(WebUIServer, config.webui)
 
   const loadPluginAfterLogin = () => {
     ctx.plugin(Database)
@@ -92,7 +92,6 @@ async function onLoad() {
     ctx.plugin(Core, config)
     ctx.plugin(OneBot11Adapter, {
       ...config.ob11,
-      onlyLocalhost: config.onlyLocalhost,
       musicSignUrl: config.musicSignUrl,
       enableLocalFile2Url: config.enableLocalFile2Url!,
       ffmpeg: config.ffmpeg,
@@ -100,12 +99,8 @@ async function onLoad() {
     ctx.plugin(SatoriAdapter, {
       ...config.satori,
       ffmpeg: config.ffmpeg,
-      onlyLocalhost: config.onlyLocalhost,
     })
-    ctx.plugin(MilkyAdapter, {
-      ...config.milky,
-      onlyLocalhost: config.onlyLocalhost,
-    })
+    ctx.plugin(MilkyAdapter, config.milky)
     ctx.plugin(Store, {
       msgCacheExpire: config.msgCacheExpire! * 1000,
     })
