@@ -1,4 +1,4 @@
-import { GroupMember } from '../types'
+import { GroupAllInfo } from '../types'
 
 export interface GroupGeoInfo {
   ownerUid: string
@@ -184,4 +184,6 @@ export interface GroupInfo {
 
 export interface NodeIKernelGroupListener {
   onGroupDetailInfoChange(groupDetail: GroupInfo): void
+
+  onGroupAllInfoChange(groupAll: GroupAllInfo): void
 }

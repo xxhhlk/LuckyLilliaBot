@@ -248,7 +248,7 @@ export class NTQQGroupApi extends Service {
   }
 
   async getGroupAllInfo(groupCode: string) {
-    return await invoke<GroupAllInfo>(
+    return await invoke(
       'nodeIKernelGroupService/getGroupAllInfo',
       [
         groupCode,

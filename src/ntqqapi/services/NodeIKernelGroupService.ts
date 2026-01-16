@@ -4,7 +4,8 @@ import {
   GroupNotifyType,
   GroupRequestOperateTypes,
   GroupMsgMask,
-  PublishGroupBulletinReq
+  PublishGroupBulletinReq,
+  GroupInfoSource
 } from '@/ntqqapi/types'
 import { GeneralCallResult } from './common'
 
@@ -217,4 +218,6 @@ export interface NodeIKernelGroupService {
       datas: Map<string, boolean>
     }
   }>
+
+  getGroupAllInfo(groupCode: string, source: GroupInfoSource): Promise<GeneralCallResult>
 }

@@ -79,7 +79,7 @@ export class NTQQMsgApi extends Service {
     })
 
     let sentMsgId: string
-    const data = await invoke<RawMessage[]>(
+    const data = await invoke(
       'nodeIKernelMsgService/sendMsg',
       [
         '0',
@@ -108,15 +108,14 @@ export class NTQQMsgApi extends Service {
   async forwardMsg(srcPeer: Peer, destPeer: Peer, msgIds: string[]) {
     const uniqueId = await this.generateMsgUniqueId(destPeer.chatType)
     destPeer.guildId = uniqueId
-    const commentElements: unknown = []
     const msgAttributeInfos = new Map()
-    const data = await invoke<RawMessage[]>(
+    const data = await invoke(
       'nodeIKernelMsgService/forwardMsgWithComment',
       [
         msgIds,
         srcPeer,
         [destPeer],
-        commentElements,
+        [],
         msgAttributeInfos,
       ],
       {
@@ -137,7 +136,7 @@ export class NTQQMsgApi extends Service {
   }
 
   async forwardMultiMsg(srcPeer: Peer, destPeer: Peer, msgIds: string[]) {
-    const data = await invoke<RawMessage[]>(
+    const data = await invoke(
       'nodeIKernelMsgService/forwardMsgWithComment',
       [
         msgIds,
@@ -192,15 +191,14 @@ export class NTQQMsgApi extends Service {
     const msgInfos = msgIds.map(id => {
       return { msgId: id, senderShowName }
     })
-    const commentElements: unknown[] = []
     const msgAttributeInfos = new Map()
-    const data = await invoke<RawMessage[]>(
+    const data = await invoke(
       'nodeIKernelMsgService/multiForwardMsgWithComment',
       [
         msgInfos,
         srcPeer,
         destPeer,
-        commentElements,
+        [],
         msgAttributeInfos,
       ],
       {
@@ -398,13 +396,13 @@ export class NTQQMsgApi extends Service {
     const fs = await import('fs')
     const path = await import('path')
     const crypto = await import('crypto')
-    
+
     const stat = fs.statSync(emojiPath)
     const fileSize = String(stat.size)
     const fileName = path.basename(emojiPath).toUpperCase()
     const fileBuffer = fs.readFileSync(emojiPath)
     const md5 = crypto.createHash('md5').update(fileBuffer).digest('hex')
-    
+
     return await invoke('nodeIKernelMsgService/addFavEmoji', [{
       isMarkFace: false,
       emojiPath,

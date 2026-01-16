@@ -188,3 +188,13 @@ export enum GroupMsgMask {
   BoxNotNotify = 2,  // 收进群助手不提醒
   NotAllow = 3,  // 屏蔽
 }
+
+export enum GroupInfoSource {
+  Unspecified,
+  BigDataCard,
+  DataCard,
+  Notice,
+  AIO,
+  RecentContact,
+  MorePanel
+}
