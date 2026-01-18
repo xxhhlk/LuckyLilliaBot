@@ -86,7 +86,7 @@ install_debian() {
 [ "$DISTRO" == "arch" ] && install_arch || install_debian
 
 # 配置权限
-chmod +x "$SCRIPT_DIR/llbot/node" "$LLBOT_CLI_BIN" 2>/dev/null
+chmod +x "$SCRIPT_DIR/bin/llbot/node" "$SCRIPT_DIR/bin/pmhq/pmhq" "$LLBOT_CLI_BIN" 2>/dev/null
 sudo chown -R $(whoami):$(whoami) "$SCRIPT_DIR/bin" 2>/dev/null
 
 
