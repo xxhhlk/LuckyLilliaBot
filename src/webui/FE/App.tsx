@@ -19,6 +19,8 @@ import { apiFetch, setPasswordPromptHandler } from './utils/api';
 import { Save, Loader2, Settings, Eye, EyeOff, Plus, Trash2, Menu } from 'lucide-react';
 import { defaultConfig } from '../../common/defaultConfig'
 import { version } from '../../version'
+import SettingsDialog from './components/common/SettingsDialog'
+import { useSettingsStore } from './stores/settingsStore'
 
 
 function App() {
@@ -46,6 +48,8 @@ function App() {
   const [qqVersion, setQqVersion] = useState<string>('');
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [showSettingsDialog, setShowSettingsDialog] = useState(false);
+  const { autoHideSidebarInWebQQ } = useSettingsStore();
 
   // 设置密码提示处理器
   useEffect(() => {
@@ -62,6 +66,13 @@ function App() {
   useEffect(() => {
     window.location.hash = activeTab
   }, [activeTab])
+
+  // WebQQ 自动隐藏侧边栏
+  useEffect(() => {
+    if (autoHideSidebarInWebQQ && activeTab === 'webqq') {
+      setSidebarCollapsed(true)
+    }
+  }, [activeTab, autoHideSidebarInWebQQ])
 
   // 监听浏览器前进/后退
   useEffect(() => {
@@ -247,6 +258,7 @@ function App() {
         onClose={() => setSidebarOpen(false)}
         collapsed={sidebarCollapsed}
         onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
+        onOpenSettings={() => setShowSettingsDialog(true)}
       />
 
       <main className={`flex-1 overflow-auto z-10 transition-all duration-300 ${sidebarCollapsed ? '' : 'md:ml-64'}`}>
@@ -876,6 +888,12 @@ function App() {
 
       {/* Toast Container */}
       <ToastContainer />
+
+      {/* Settings Dialog */}
+      <SettingsDialog
+        visible={showSettingsDialog}
+        onClose={() => setShowSettingsDialog(false)}
+      />
     </div>
   );
 }
