@@ -1,7 +1,8 @@
 import React from 'react'
-import { Config } from '../../types'
+import { Config, EmailConfig } from '../../types'
 import { Globe, FileText, Trash2, Music, Lock, Clock, Shield, Edit, Paperclip, Server } from 'lucide-react'
 import { DurationPicker, HostSelector } from '../common'
+import EmailConfigSection from './EmailConfigSection'
 
 interface OtherConfigProps {
   config: Config;
@@ -12,6 +13,26 @@ interface OtherConfigProps {
 const OtherConfig: React.FC<OtherConfigProps> = ({ config, onChange, onOpenChangePassword }) => {
   const handleChange = (field: keyof Config, value: any) => {
     onChange({ ...config, [field]: value })
+  }
+
+  const handleEmailChange = (emailConfig: EmailConfig) => {
+    onChange({ ...config, email: emailConfig })
+  }
+
+  // 默认邮件配置
+  const defaultEmailConfig: EmailConfig = {
+    enabled: false,
+    smtp: {
+      host: '',
+      port: 587,
+      secure: false,
+      auth: {
+        user: '',
+        pass: '',
+      },
+    },
+    from: '',
+    to: '',
   }
 
   return (
@@ -37,7 +58,14 @@ const OtherConfig: React.FC<OtherConfigProps> = ({ config, onChange, onOpenChang
             <HostSelector 
               value={config.webui?.host ?? '127.0.0.1'} 
               onChange={(host) => {
-                onChange({ ...config, webui: { ...(config.webui || {}), enable: config.webui?.enable ?? true, port: config.webui?.port || 6099, host } });
+                onChange({ 
+                  ...config, 
+                  webui: { 
+                    enable: config.webui?.enable ?? true, 
+                    port: config.webui?.port || 6099, 
+                    host 
+                  } 
+                });
               }} 
             />
             <p className='text-xs text-theme-muted mt-2'>选择 WebUI 监听的网络地址</p>
@@ -51,7 +79,14 @@ const OtherConfig: React.FC<OtherConfigProps> = ({ config, onChange, onOpenChang
             <input 
               type='number' 
               value={config.webui?.port || 6099} 
-              onChange={(e) => onChange({ ...config, webui: { ...(config.webui || {}), port: parseInt(e.target.value) } })} 
+              onChange={(e) => onChange({ 
+                ...config, 
+                webui: { 
+                  enable: config.webui?.enable ?? true, 
+                  host: config.webui?.host || '127.0.0.1',
+                  port: parseInt(e.target.value) 
+                } 
+              })} 
               min='1' 
               max='65535' 
               className='input-field' 
@@ -61,6 +96,12 @@ const OtherConfig: React.FC<OtherConfigProps> = ({ config, onChange, onOpenChang
           </label>
         </div>
       </div>
+
+      {/* 邮件通知 */}
+      <EmailConfigSection 
+        value={config.email || defaultEmailConfig} 
+        onChange={handleEmailChange} 
+      />
 
       {/* 系统功能 */}
       <div className='card p-6'>

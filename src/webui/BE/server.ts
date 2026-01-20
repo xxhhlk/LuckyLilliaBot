@@ -23,7 +23,8 @@ import {
   createLoginRoutes,
   createLogsRoutes,
   createWebQQRoutes,
-  createNtCallRoutes
+  createNtCallRoutes,
+  createEmailRoutes
 } from './routes'
 
 const __filename = fileURLToPath(import.meta.url)
@@ -129,6 +130,7 @@ export class WebUIServer extends Service {
     this.app.use('/api', createDashboardRoutes(this.ctx))
     this.app.use('/api', createLogsRoutes(this.ctx))
     this.app.use('/api', createNtCallRoutes(this.ctx))
+    this.app.use('/api/email', createEmailRoutes(this.ctx))
     this.app.use('/api/webqq', createWebQQRoutes(this.ctx, {
       upload: this.upload,
       fileUpload: this.fileUpload,

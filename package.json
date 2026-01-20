@@ -21,6 +21,7 @@
     "@satorijs/element": "^3.1.8",
     "@satorijs/protocol": "^1.6.1",
     "@types/multer": "^2.0.0",
+    "@types/nodemailer": "^7.0.5",
     "compare-versions": "^6.1.1",
     "cordis": "^3.18.1",
     "cors": "^2.8.5",
@@ -34,6 +35,7 @@
     "json5": "^2.2.3",
     "minato": "^3.7.0",
     "multer": "^2.0.2",
+    "nodemailer": "^7.0.12",
     "silk-wasm": "^3.7.1",
     "ws": "^8.19.0",
     "zod": "^4.3.5"

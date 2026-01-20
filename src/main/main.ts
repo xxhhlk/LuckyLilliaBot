@@ -43,6 +43,7 @@ import { version } from '../version'
 import { WebUIServer } from '../webui/BE/server'
 import { pmhq } from '@/ntqqapi/native/pmhq'
 import { sleep } from '@/common/utils'
+import EmailNotificationService from '@/common/emailNotification'
 
 declare module 'cordis' {
   interface Events {
@@ -104,6 +105,7 @@ async function onLoad() {
     ctx.plugin(Store, {
       msgCacheExpire: config.msgCacheExpire!,
     })
+    ctx.plugin(EmailNotificationService)
   }
 
   const checkLogin = async () => {
