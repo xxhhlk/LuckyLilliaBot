@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { Mail, Server, Lock, Send, Loader } from 'lucide-react'
+import { Mail, Server, Lock, Send, Loader, BookOpen } from 'lucide-react'
 import { testEmail } from '../../utils/emailApi'
 import { showToast } from '../common'
 import { EmailConfig } from '../../types'
@@ -99,6 +99,15 @@ const EmailConfigSection: React.FC<EmailConfigSectionProps> = (props) => {
           <h3 className='text-lg font-semibold text-theme'>邮件通知</h3>
           <p className='text-sm text-theme-secondary'>机器人掉线时发送邮件通知</p>
         </div>
+        <a
+          href='https://luckylillia.com/guide/config_email'
+          target='_blank'
+          rel='noopener noreferrer'
+          className='px-3 py-2 text-sm font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-lg transition-colors flex items-center gap-2'
+        >
+          <BookOpen size={16} />
+          设置向导
+        </a>
         <input
           type='checkbox'
           checked={value.enabled}
