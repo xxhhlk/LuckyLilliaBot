@@ -45,6 +45,7 @@ function App() {
   const [showChangePasswordDialog, setShowChangePasswordDialog] = useState(false);
   const [qqVersion, setQqVersion] = useState<string>('');
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   // 设置密码提示处理器
   useEffect(() => {
@@ -206,9 +207,11 @@ function App() {
         accountInfo={accountInfo || undefined}
         isOpen={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
+        collapsed={sidebarCollapsed}
+        onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
       />
 
-      <main className="flex-1 overflow-auto z-10">
+      <main className={`flex-1 overflow-auto z-10 transition-all duration-300 ${sidebarCollapsed ? '' : 'md:ml-64'}`}>
         {/* 移动端顶部导航栏 */}
         <div className="md:hidden sticky top-0 z-30 bg-theme-card/95 backdrop-blur-xl border-b border-theme-divider px-4 py-3 flex items-center gap-3">
           <button 
