@@ -14,6 +14,8 @@ declare module 'cordis' {
 }
 
 export class EmailNotificationService extends Service {
+  static inject = ['logger']
+  
   private emailService: EmailService
   private configManager: EmailConfigManager
   private notificationSent: boolean = false

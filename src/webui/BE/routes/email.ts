@@ -7,11 +7,12 @@ export function createEmailRoutes(ctx: Context): Router {
 
   router.get('/config', async (_req: Request, res: Response) => {
     try {
-      const emailService = ctx.emailNotification
-      if (!emailService) {
-        res.status(500).json({ success: false, message: '邮件服务未初始化' })
+      if (!ctx.emailNotification) {
+        res.status(503).json({ success: false, message: '邮件服务未初始化，请等待登录完成' })
         return
       }
+      
+      const emailService = ctx.emailNotification
 
       const config = emailService.getConfigManager().getConfig()
       
@@ -41,11 +42,12 @@ export function createEmailRoutes(ctx: Context): Router {
 
   router.post('/config', async (req: Request, res: Response) => {
     try {
-      const emailService = ctx.emailNotification
-      if (!emailService) {
-        res.status(500).json({ success: false, message: '邮件服务未初始化' })
+      if (!ctx.emailNotification) {
+        res.status(503).json({ success: false, message: '邮件服务未初始化，请等待登录完成' })
         return
       }
+      
+      const emailService = ctx.emailNotification
 
       const emailConfig: EmailConfig = req.body
       
@@ -91,11 +93,12 @@ export function createEmailRoutes(ctx: Context): Router {
 
   router.post('/test', async (req: Request, res: Response) => {
     try {
-      const emailService = ctx.emailNotification
-      if (!emailService) {
-        res.status(500).json({ success: false, message: '邮件服务未初始化' })
+      if (!ctx.emailNotification) {
+        res.status(503).json({ success: false, message: '邮件服务未初始化，请等待登录完成' })
         return
       }
+      
+      const emailService = ctx.emailNotification
 
       const { config: testConfig } = req.body as { config?: EmailConfig }
       

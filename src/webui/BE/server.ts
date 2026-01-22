@@ -56,7 +56,10 @@ export class WebUIServer extends Service {
   private upload: multer.Multer
   private fileUpload: multer.Multer
   private uploadDir: string
-  static inject = ['ntLoginApi', 'ntFriendApi', 'ntGroupApi', 'ntSystemApi', 'ntMsgApi', 'ntUserApi', 'ntFileApi']
+  static inject = {
+    required: ['ntLoginApi', 'ntFriendApi', 'ntGroupApi', 'ntSystemApi', 'ntMsgApi', 'ntUserApi', 'ntFileApi'],
+    optional: ['emailNotification']
+  }
 
   constructor(ctx: Context, public config: WebUIServerConfig) {
     super(ctx, 'webuiServer', true)
