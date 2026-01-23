@@ -88,6 +88,10 @@ export class EmailConfigManager {
   validateConfig(config: EmailConfig): ValidationResult {
     const errors: string[] = []
 
+    if (!config.enabled) {
+      return { valid: true, errors: [] }
+    }
+
     if (!config.smtp.host || config.smtp.host.trim() === '') {
       errors.push('SMTP 服务器不能为空')
     }

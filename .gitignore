@@ -1,3 +1,4 @@
+.shared/
 .yarn/*
 !.yarn/patches
 !.yarn/plugins
