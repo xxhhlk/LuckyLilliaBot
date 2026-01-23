@@ -334,70 +334,43 @@ if [[ "$use_docker_mirror" =~ ^[yY]$ ]]; then
   echo "正在检测可用的镜像源..."
   docker_mirror=$(find_available_mirror "$LLBOT_TAG" "$PMHQ_TAG")
 fi
-# 生成docker-compose.yml
+# 生成 PMHQ 环境变量
 if [ "$config_mode" == "2" ]; then
-    # 稍后配置模式：不设置 AUTO_LOGIN_QQ，挂载 config.json
-    cat << EOF > docker-compose.yml
-services:
-  pmhq:
-    image: ${docker_mirror}linyuchen/pmhq:${PMHQ_TAG}
-    container_name: pmhq
-    privileged: true
-    environment:
-      - ENABLE_HEADLESS=false
-    networks:
-      - app_network
-    volumes:
-      - qq_volume:/root/.config/QQ
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:13000/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
-
-  llbot:
-    image: ${docker_mirror}linyuchen/llbot:${LLBOT_TAG}
-$([ ${#SERVICE_PORTS[@]} -gt 0 ] && echo "    ports:" && for port in "${!SERVICE_PORTS[@]}"; do echo "      - \"${port}:${port}\""; done)
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
-    environment:
-      - PMHQ_HOST=pmhq
-      - WEBUI_PORT=${WEBUI_PORT}
-    networks:
-      - app_network
-    volumes:
-      - qq_volume:/root/.config/QQ
-      - ./llbot_config:/app/llbot/data:rw
-    depends_on:
-      - pmhq
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "sh", "-c", "ps | grep '[n]ode'"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
-
-volumes:
-  qq_volume:
-
-networks:
-  app_network:
-    driver: bridge
-EOF
+    PMHQ_ENV="      - ENABLE_HEADLESS=false"
 else
-    # 完整配置模式：设置 AUTO_LOGIN_QQ，挂载特定配置文件
-    cat << EOF > docker-compose.yml
+    PMHQ_ENV="      - ENABLE_HEADLESS=${ENABLE_HEADLESS}
+      - AUTO_LOGIN_QQ=${AUTO_LOGIN_QQ}"
+fi
+
+# 生成 LLBot volumes
+if [ "$config_mode" == "2" ]; then
+    LLBOT_VOLUMES="      - qq_volume:/root/.config/QQ
+      - ./llbot_config:/app/llbot/data:rw"
+else
+    LLBOT_VOLUMES="      - qq_volume:/root/.config/QQ
+      - ./llbot_config/config_${AUTO_LOGIN_QQ}.json:/app/llbot/data/config_${AUTO_LOGIN_QQ}.json:ro
+      - ./llbot_config/webui_token.txt:/app/llbot/data/webui_token.txt:ro"
+fi
+
+# 生成 ports 配置
+PORTS_CONFIG=""
+if [ ${#SERVICE_PORTS[@]} -gt 0 ]; then
+    PORTS_CONFIG="    ports:"
+    for port in "${!SERVICE_PORTS[@]}"; do
+        PORTS_CONFIG="${PORTS_CONFIG}
+      - \"${port}:${port}\""
+    done
+fi
+
+# 生成 docker-compose.yml
+cat << EOF > docker-compose.yml
 services:
   pmhq:
     image: ${docker_mirror}linyuchen/pmhq:${PMHQ_TAG}
     container_name: pmhq
     privileged: true
     environment:
-      - ENABLE_HEADLESS=${ENABLE_HEADLESS}
-      - AUTO_LOGIN_QQ=${AUTO_LOGIN_QQ}
+${PMHQ_ENV}
     networks:
       - app_network
     volumes:
@@ -412,7 +385,7 @@ services:
 
   llbot:
     image: ${docker_mirror}linyuchen/llbot:${LLBOT_TAG}
-$([ ${#SERVICE_PORTS[@]} -gt 0 ] && echo "    ports:" && for port in "${!SERVICE_PORTS[@]}"; do echo "      - \"${port}:${port}\""; done)
+${PORTS_CONFIG}
     extra_hosts:
       - "host.docker.internal:host-gateway"
     environment:
@@ -421,9 +394,7 @@ $([ ${#SERVICE_PORTS[@]} -gt 0 ] && echo "    ports:" && for port in "${!SERVICE
     networks:
       - app_network
     volumes:
-      - qq_volume:/root/.config/QQ
-      - ./llbot_config/config_${AUTO_LOGIN_QQ}.json:/app/llbot/data/config_${AUTO_LOGIN_QQ}.json:ro
-      - ./llbot_config/webui_token.txt:/app/llbot/data/webui_token.txt:ro
+${LLBOT_VOLUMES}
     depends_on:
       - pmhq
     restart: unless-stopped
@@ -441,7 +412,6 @@ networks:
   app_network:
     driver: bridge
 EOF
-fi
 
 echo ""
 echo "Docker Compose 配置已生成: docker-compose.yml"
