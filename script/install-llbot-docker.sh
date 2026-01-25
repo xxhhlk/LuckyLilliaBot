@@ -245,6 +245,9 @@ fi
 echo "$WEBUI_TOKEN" > "llbot_config/webui_token.txt"
 echo "WebUI 密码文件已生成: llbot_config/webui_token.txt"
 
+# 设置配置目录权限，确保 Docker 容器可以读写
+chmod -R 777 llbot_config
+
 echo ""
 read -p "是否使用 Docker 镜像源 (y/n): " use_docker_mirror
 
@@ -347,9 +350,9 @@ if [ "$config_mode" == "2" ]; then
     LLBOT_VOLUMES="      - qq_volume:/root/.config/QQ
       - ./llbot_config:/app/llbot/data:rw"
 else
+    # 完整配置模式也使用 rw，允许 WebUI 修改配置
     LLBOT_VOLUMES="      - qq_volume:/root/.config/QQ
-      - ./llbot_config/config_${AUTO_LOGIN_QQ}.json:/app/llbot/data/config_${AUTO_LOGIN_QQ}.json:ro
-      - ./llbot_config/webui_token.txt:/app/llbot/data/webui_token.txt:ro"
+      - ./llbot_config:/app/llbot/data:rw"
 fi
 
 # 生成 ports 配置
