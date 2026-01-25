@@ -88,6 +88,7 @@ export class EmailConfigManager {
   validateConfig(config: EmailConfig): ValidationResult {
     const errors: string[] = []
 
+    // 关闭邮件通知时允许保存空配置（issue##690）
     if (!config.enabled) {
       return { valid: true, errors: [] }
     }
