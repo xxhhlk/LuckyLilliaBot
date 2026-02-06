@@ -10,7 +10,6 @@ V7.8.0
 * 修复无头模式不生效
 * 支持合并转发 node 指定 time
 * 支持 get_group_info 接口返回的 group_create_time 字段在未加群时获取
-* 移除 get_group_info 接口返回的 groupAll 字段
 * 优化 Desktop 一键对接框架使用体验
 * 优化 WebQQ 上传文件自动清理
 * 优化保存 Email 相关配置时，不再往 config_<qq>.json 写入，而是只保存在 email_config.json
