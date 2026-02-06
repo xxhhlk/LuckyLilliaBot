@@ -108,12 +108,12 @@ async function decodeElement(ctx: Context, data: NT.RawMessage, quoted = false) 
       }, data.msgId, v.elementId)) || pathToFileURL(v.videoElement.filePath).href
       buffer.push(h.video(src))
     } else if (v.marketFaceElement) {
-      // mface
+      // llonebot:market-face
       const { emojiId, supportSize } = v.marketFaceElement
       const { width = 300, height = 300 } = supportSize?.[0] ?? {}
       const dir = emojiId.substring(0, 2)
       const src = `https://gxh.vip.qq.com/club/item/parcel/item/${dir}/${emojiId}/raw${width}.gif`
-      buffer.push(h('mface', {
+      buffer.push(h('llonebot:market-face', {
         emojiPackageId: v.marketFaceElement.emojiPackageId,
         emojiId,
         key: v.marketFaceElement.key,
