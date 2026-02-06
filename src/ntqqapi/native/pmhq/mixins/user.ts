@@ -1,12 +1,15 @@
-import { Oidb, Action } from '@/ntqqapi/proto'
+import { Action, Misc, Oidb } from '@/ntqqapi/proto'
 import type { PMHQBase } from '../base'
 
 export function UserMixin<T extends new (...args: any[]) => PMHQBase>(Base: T) {
   return class extends Base {
-    async fetchUserLevel(uin: number) {
+    async fetchUserInfo(uin: number) {
       const body = Oidb.FetchUserInfoReq.encode({
         uin,
-        keys: [{ key: 105 }],
+        keys: [
+          { key: 104 },  // 标签
+          { key: 105 },  // 等级
+        ],
       })
       const data = Oidb.Base.encode({
         command: 0xfe1,
@@ -17,7 +20,11 @@ export function UserMixin<T extends new (...args: any[]) => PMHQBase>(Base: T) {
       const res = await this.httpSendPB('OidbSvcTrpcTcp.0xfe1_2', data)
       const oidbRespBody = Oidb.Base.decode(Buffer.from(res.pb, 'hex')).body
       const info = Oidb.FetchUserInfoResp.decode(oidbRespBody)
-      return info.body!.properties!.numberProperties![0].value!
+      const { labels } = Misc.UserInfoLabel.decode(info.body.properties.bytesProperties[0].value)
+      return {
+        level: info.body.properties.numberProperties[0].value,
+        labels: labels.map(e => e.content),
+      }
     }
 
     async fetchUserLoginDays(uin: number): Promise<number> {

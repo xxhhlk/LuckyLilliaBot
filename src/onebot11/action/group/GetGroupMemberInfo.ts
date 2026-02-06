@@ -38,13 +38,12 @@ class GetGroupMemberInfo extends BaseAction<Payload, OB11GroupMember> {
       }
     }
     if (info) {
-      console.log(info)
       ret.sex = OB11Entities.sex(info.simpleInfo.baseInfo.sex)
       ret.qq_level = info.commonExt?.qqLevel && calcQQLevel(info.commonExt.qqLevel) || 0
       ret.age = info.simpleInfo.baseInfo.age ?? 0
     }
     if (ret.qq_level === 0) {
-      ret.qq_level = await this.ctx.app.pmhq.fetchUserLevel(+payload.user_id)
+      ret.qq_level = (await this.ctx.app.pmhq.fetchUserInfo(+payload.user_id)).level
     }
     return ret
   }
