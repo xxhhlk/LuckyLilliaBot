@@ -17,7 +17,11 @@ export async function transformPrivateMessageCreated(
     const friend = await ctx.ntUserApi.getUserSimpleInfo(message.senderUid)
     const category = await ctx.ntFriendApi.getCategoryById(friend.baseInfo.categoryId)
 
-    return await transformIncomingPrivateMessage(ctx, friend, category, message)
+    const transformedMessage = await transformIncomingPrivateMessage(ctx, friend, category, message)
+    if (transformedMessage.segments.length === 0) {
+      return null
+    }
+    return transformedMessage
   } catch (error) {
     ctx.logger.error('Failed to transform private message created event:', error)
     return null
@@ -36,7 +40,11 @@ export async function transformGroupMessageCreated(
     const group = await ctx.ntGroupApi.getGroupAllInfo(message.peerUid)
     const member = await ctx.ntGroupApi.getGroupMember(message.peerUin, message.senderUid)
 
-    return await transformIncomingGroupMessage(ctx, group, member, message)
+    const transformedMessage = await transformIncomingGroupMessage(ctx, group, member, message)
+    if (transformedMessage.segments.length === 0) {
+      return null
+    }
+    return transformedMessage
   } catch (error) {
     ctx.logger.error('Failed to transform group message created event:', error)
     return null
@@ -55,7 +63,11 @@ export async function transformTempMessageCreated(
     const { tmpChatInfo } = await ctx.ntMsgApi.getTempChatInfo(100, message.peerUid)
     const group = await ctx.ntGroupApi.getGroupAllInfo(tmpChatInfo.groupCode)
 
-    return await transformIncomingTempMessage(ctx, group, message)
+    const transformedMessage = await transformIncomingTempMessage(ctx, group, message)
+    if (transformedMessage.segments.length === 0) {
+      return null
+    }
+    return transformedMessage
   } catch (error) {
     ctx.logger.error('Failed to transform temp message created event:', error)
     return null
