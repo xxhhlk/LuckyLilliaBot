@@ -1,5 +1,4 @@
 import path from 'node:path'
-import { fileURLToPath } from 'node:url'
 
 // 全局异常处理，防止未捕获的异常导致程序崩溃
 process.on('uncaughtException', (err) => {
@@ -9,10 +8,6 @@ process.on('unhandledRejection', (reason) => {
   console.error('[unhandledRejection]', reason)
 })
 
-const __dirname = typeof window === 'undefined'
-  ? path.dirname(fileURLToPath(import.meta.url))
-  : ''
-global.__dirname = __dirname
 import Log from './log'
 import Core from '../ntqqapi/core'
 import OneBot11Adapter from '../onebot11/adapter'

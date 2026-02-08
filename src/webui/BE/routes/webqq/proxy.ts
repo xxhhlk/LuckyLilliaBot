@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express'
 import { Context } from 'cordis'
 import path from 'path'
 import { existsSync } from 'node:fs'
+import { decodeSilk } from '@/common/utils/audio'
 
 export function createProxyRoutes(ctx: Context): Router {
   const router = Router()
@@ -126,7 +127,6 @@ export function createProxyRoutes(ctx: Context): Router {
 
       ctx.logger.info('语音代理请求:', { fileUuid, filePath, isGroup })
 
-      const { decodeSilk } = await import('@/common/utils/audio')
       const fs = await import('fs/promises')
       const pathModule = await import('path')
       const os = await import('os')
@@ -182,9 +182,9 @@ export function createProxyRoutes(ctx: Context): Router {
         // 清理临时文件
         const os = await import('os')
         if (audioFilePath.includes(os.tmpdir())) {
-          fs.unlink(audioFilePath).catch(() => {})
+          fs.unlink(audioFilePath).catch(() => { })
         }
-        fs.unlink(mp3Path).catch(() => {})
+        fs.unlink(mp3Path).catch(() => { })
 
         res.setHeader('Content-Type', 'audio/mpeg')
         res.setHeader('Cache-Control', 'public, max-age=86400')
