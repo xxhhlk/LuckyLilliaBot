@@ -248,7 +248,7 @@ const OneBotConfigNew: React.FC<OneBotConfigProps> = ({ config, onChange, onSave
             <div className="flex items-center justify-between p-6 border-b border-white/20 dark:border-neutral-700/50">
               <div className="flex items-center gap-3 flex-1">
                 {editingName ? (
-                  <div className="flex items-center gap-2 flex-1">
+                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 flex-1">
                     <input
                       type="text"
                       value={tempName}
@@ -261,8 +261,10 @@ const OneBotConfigNew: React.FC<OneBotConfigProps> = ({ config, onChange, onSave
                       className="flex-1 px-3 py-2 border border-theme-input rounded-xl focus:outline-none focus:ring-2 focus:ring-pink-500 bg-theme-input text-theme"
                       autoFocus
                     />
-                    <button onClick={handleSaveName} className="px-4 py-2 bg-pink-500 text-white rounded-xl hover:bg-pink-600 transition-colors">确定</button>
-                    <button onClick={handleCancelEditName} className="px-4 py-2 bg-theme-item text-theme-secondary rounded-xl hover:bg-theme-item-hover transition-colors">取消</button>
+                    <div className="flex gap-2 sm:flex-shrink-0">
+                      <button onClick={handleSaveName} className="flex-1 sm:flex-none px-4 py-2 bg-pink-500 text-white rounded-xl hover:bg-pink-600 transition-colors whitespace-nowrap">确定</button>
+                      <button onClick={handleCancelEditName} className="flex-1 sm:flex-none px-4 py-2 bg-theme-item text-theme-secondary rounded-xl hover:bg-theme-item-hover transition-colors whitespace-nowrap">取消</button>
+                    </div>
                   </div>
                 ) : (
                   <>
