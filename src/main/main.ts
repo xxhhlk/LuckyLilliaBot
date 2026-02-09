@@ -8,6 +8,8 @@ process.on('unhandledRejection', (reason) => {
   console.error('[unhandledRejection]', reason)
 })
 
+// fluent-ffmpeg 需要用到这个
+globalThis.__dirname = import.meta.dirname
 import Log from './log'
 import Core from '../ntqqapi/core'
 import OneBot11Adapter from '../onebot11/adapter'
