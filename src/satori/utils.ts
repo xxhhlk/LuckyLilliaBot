@@ -202,19 +202,31 @@ export function decodeGuild(data: Record<'groupCode' | 'groupName', string>): Ob
 }
 
 export async function getPeer(ctx: Context, channelId: string): Promise<NT.Peer> {
-  let peerUid = channelId
-  let chatType: NT.ChatType = NT.ChatType.Group
-  if (peerUid.includes('private:')) {
+  if (channelId.startsWith('private:')) {
     const uin = channelId.replace('private:', '')
     const uid = await ctx.ntUserApi.getUidByUin(uin)
     if (!uid) throw new Error('无法获取用户信息')
     const isBuddy = await ctx.ntFriendApi.isBuddy(uid)
-    chatType = isBuddy ? NT.ChatType.C2C : NT.ChatType.TempC2CFromGroup
-    peerUid = uid
-  }
-  return {
-    chatType,
-    peerUid,
-    guildId: ''
+    if (!isBuddy) {
+      const res = await ctx.ntMsgApi.getTempChatInfo(NT.ChatType.TempC2CFromGroup, uid)
+      if (res.tmpChatInfo.groupCode) {
+        return {
+          chatType: NT.ChatType.TempC2CFromGroup,
+          peerUid: uid,
+          guildId: ''
+        }
+      }
+    }
+    return {
+      chatType: NT.ChatType.C2C,
+      peerUid: uid,
+      guildId: ''
+    }
+  } else {
+    return {
+      chatType: NT.ChatType.Group,
+      peerUid: channelId,
+      guildId: ''
+    }
   }
 }

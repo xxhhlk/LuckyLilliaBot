@@ -100,7 +100,6 @@ class ForwardMessageEncoder {
   static support = ['text', 'face', 'image', 'markdown', 'forward']
   results: InferProtoModelInput<typeof Msg.Message>[]
   children: InferProtoModelInput<typeof Msg.Elem>[]
-  deleteAfterSentFiles: string[]
   isGroup: boolean
   seq: number
   tsum: number
@@ -112,7 +111,6 @@ class ForwardMessageEncoder {
   constructor(private ctx: Context, private peer: Peer) {
     this.results = []
     this.children = []
-    this.deleteAfterSentFiles = []
     this.isGroup = peer.chatType === 2
     this.seq = Math.trunc(Math.random() * 65430)
     this.tsum = 0
@@ -289,10 +287,10 @@ class ForwardMessageEncoder {
         const tempPath = path.join(TEMP_DIR, `image-${randomUUID()}`)
         await writeFile(tempPath, imageBuffer)
         const data = await this.ctx.ntFileApi.uploadRMFileWithoutMsg(tempPath, this.isGroup ? 4 : 3, this.isGroup ? this.peer.peerUid : selfInfo.uid)
-        unlink(tempPath).catch(e => { })
         const busiType = segment.data.sub_type === 'sticker' ? 1 : 0
         this.children.push(await this.packImage(data, busiType))
         this.preview += busiType === 1 ? '[动画表情]' : '[图片]'
+        unlink(tempPath).catch(e => { })
       }
     }
     await this.flush()
