@@ -105,6 +105,7 @@ export namespace Oidb {
 
   export const GetGroupFileResp = ProtoMessage.of({
     download: ProtoField(3, {
+      clientWording: ProtoField(3, 'string'),
       downloadDns: ProtoField(5, 'string'),
       downloadUrl: ProtoField(6, 'bytes')
     })
