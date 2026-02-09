@@ -97,7 +97,7 @@ async function decodeElement(ctx: Context, data: NT.RawMessage, quoted = false) 
       }))
     } else if (v.pttElement) {
       // audio
-      const src = pathToFileURL(v.pttElement.filePath).href
+      const src = await ctx.ntFileApi.getPttUrl(v.pttElement.fileUuid, data.chatType === NT.ChatType.Group)
       buffer.push(h.audio(src, { duration: v.pttElement.duration }))
     } else if (v.videoElement) {
       // video
