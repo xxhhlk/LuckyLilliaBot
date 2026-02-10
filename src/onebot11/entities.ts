@@ -1,5 +1,4 @@
 import {
-  OB11Group,
   OB11GroupMember,
   OB11GroupMemberRole,
   OB11Message,
@@ -15,7 +14,6 @@ import {
   FaceType,
   GrayTipElementSubType,
   GroupMember,
-  GroupSimpleInfo,
   JsonGrayTipBusId,
   Peer,
   RawMessage,
@@ -64,8 +62,7 @@ export namespace OB11Entities {
       message_type: msg.chatType === ChatType.Group ? 'group' : 'private',
       sender: {
         user_id: Number(msg.senderUin),
-        nickname: msg.sendNickName,
-        card: msg.sendMemberName ?? '',
+        nickname: msg.sendNickName
       },
       raw_message: '',
       font: 14,
@@ -90,17 +87,14 @@ export namespace OB11Entities {
       resMsg.sub_type = 'normal'
       resMsg.group_id = +msg.peerUin
       resMsg.group_name = msg.peerName
+      resMsg.sender.card = msg.sendMemberName
       // 284840486: 合并转发内部
       if (msg.peerUin !== '284840486') {
-        try {
-          const member = await ctx.ntGroupApi.getGroupMember(msg.peerUin, msg.senderUid)
-          resMsg.sender.role = groupMemberRole(member.role)
-          resMsg.sender.nickname = member.nick
-          resMsg.sender.title = member.memberSpecialTitle ?? ''
-        } catch {
-          resMsg.sender.role = OB11GroupMemberRole.Member
-          resMsg.sender.title = ''
-        }
+        const member = await ctx.ntGroupApi.getGroupMember(msg.peerUin, msg.senderUid)
+        resMsg.sender.nickname = member.nick
+        resMsg.sender.role = groupMemberRole(member.role)
+        resMsg.sender.level = member.memberRealLevel.toString()
+        resMsg.sender.title = member.memberSpecialTitle
       }
     }
     else if (msg.chatType === ChatType.C2C) {
