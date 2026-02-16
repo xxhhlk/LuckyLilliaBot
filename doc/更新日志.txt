@@ -4,6 +4,7 @@ V7.8.4
 * 支持上报群成员名片更新事件 `group_card`
 * 支持上报消息事件的 `sender.level`
 * 支持伪造合并转发发送视频和文件
+* Milky HTTP 放宽 Content-Type 校验逻辑以支持 charset 参数
 
 =================
 V7.8.3
