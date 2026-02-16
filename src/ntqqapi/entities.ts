@@ -145,8 +145,9 @@ export namespace SendElement {
     if (diyThumbPath) {
       await copyFile(diyThumbPath, thumbFilePath)
     } else {
-      const path = await createThumb(ctx, videoInfo.filePath, md5, videoInfo.width, videoInfo.height)
+      const path = await createThumb(ctx, videoInfo.filePath)
       await copyFile(path, thumbFilePath)
+      unlink(path).catch(e => { })
     }
     const thumbPath = new Map()
     const thumbSize = (await stat(thumbFilePath)).size
@@ -160,7 +161,7 @@ export namespace SendElement {
         filePath: path,
         videoMd5: md5,
         thumbMd5,
-        fileTime: videoInfo.time,
+        fileTime: Math.trunc(videoInfo.time),
         thumbPath: thumbPath,
         thumbSize,
         thumbWidth: videoInfo.width,

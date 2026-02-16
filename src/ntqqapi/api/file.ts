@@ -411,6 +411,10 @@ export class NTQQFileApi extends Service {
         await new HighwayHttpSession(trans).upload()
       }
     }
+    return {
+      msgInfo: result.info,
+      compat: result.compat
+    }
   }
 
   async uploadC2CVideo(peerUid: string, filePath: string, thumbPath: string) {
@@ -457,6 +461,10 @@ export class NTQQFileApi extends Service {
         await new HighwayHttpSession(trans).upload()
       }
     }
+    return {
+      msgInfo: result.info,
+      compat: result.compat
+    }
   }
 
   async uploadGroupFile(groupCode: string, filePath: string, fileName: string, parentFolderId = '/') {
@@ -470,35 +478,35 @@ export class NTQQFileApi extends Service {
           busiBuff: {
             senderUin: +selfInfo.uin,
             receiverUin: +groupCode,
-            groupCode: +groupCode,
+            groupCode: +groupCode
           },
           fileEntry: {
             fileSize: result.fileSize,
             md5: result.md5,
             checkKey: result.checkKey,
             fileId: result.fileId,
-            uploadKey: result.fileKey,
+            uploadKey: result.fileKey
           },
           clientInfo: {
             clientType: 3,
             appId: '100',
             terminalType: 3,
             clientVer: '1.1.1',
-            unknown: 4,
+            unknown: 4
           },
           fileNameInfo: {
-            fileName,
+            fileName
           },
           host: {
             hosts: [{
               url: {
                 unknown: 1,
-                host: result.addr.ip,
+                host: result.addr.ip
               },
-              port: result.addr.port,
-            }],
-          },
-        },
+              port: result.addr.port
+            }]
+          }
+        }
       })
       const maxBlockSize = 1024 * 1024
       const trans = {
@@ -518,67 +526,74 @@ export class NTQQFileApi extends Service {
         await new HighwayHttpSession(trans).upload()
       }
     }
+    return {
+      fileId: result.fileId,
+      fileMd5: result.md5.toString('hex')
+    }
   }
 
   async uploadC2CFile(peerUid: string, filePath: string, fileName: string) {
     const result = await this.ctx.get('app')!.pmhq.getC2CFileUploadInfo(peerUid, filePath, fileName)
-    if (!result.isExist) {
-      const highwaySession = await this.ctx.get('app')!.pmhq.getHighwaySession()
-      const ext = Media.FileUploadExt.encode({
-        unknown1: 100,
-        unknown2: 1,
-        entry: {
-          busiBuff: {
-            senderUin: +selfInfo.uin,
-          },
-          fileEntry: {
-            fileSize: result.fileSize,
-            md5: result.md5CheckSum,
-            checkKey: result.sha1CheckSum,
-            md510M: result.md510MCheckSum,
-            sha3: result.sha3CheckSum,
-            fileId: result.fileId,
-            uploadKey: result.uploadKey,
-          },
-          clientInfo: {
-            clientType: 3,
-            appId: '100',
-            terminalType: 3,
-            clientVer: '1.1.1',
-            unknown: 4,
-          },
-          fileNameInfo: {
-            fileName,
-          },
-          host: {
-            hosts: result.rtpMediaPlatformUploadAddress.map(([ip, port]) => ({
-              url: {
-                unknown: 1,
-                host: ip,
-              },
-              port,
-            })),
-          },
+    const highwaySession = await this.ctx.get('app')!.pmhq.getHighwaySession()
+    const ext = Media.FileUploadExt.encode({
+      unknown1: 100,
+      unknown2: 1,
+      entry: {
+        busiBuff: {
+          senderUin: +selfInfo.uin
         },
-        unknown200: 1,
-      })
-      const maxBlockSize = 1024 * 1024
-      const trans = {
-        uin: selfInfo.uin,
-        cmd: 95,
-        readable: createReadStream(filePath, { highWaterMark: maxBlockSize }),
-        sum: result.md5CheckSum,
-        size: result.fileSize,
-        ticket: highwaySession.sigSession,
-        ext,
-        server: highwaySession.highwayHostAndPorts[1][0].host,
-        port: highwaySession.highwayHostAndPorts[1][0].port
-      }
-      try {
-        await new HighwayTcpSession(trans).upload()
-      } catch {
-        await new HighwayHttpSession(trans).upload()
-      }
+        fileEntry: {
+          fileSize: result.fileSize,
+          md5: result.md5CheckSum,
+          checkKey: result.sha1CheckSum,
+          md510M: result.md510MCheckSum,
+          sha3: result.sha3CheckSum,
+          fileId: result.fileId,
+          uploadKey: result.uploadKey
+        },
+        clientInfo: {
+          clientType: 3,
+          appId: '100',
+          terminalType: 3,
+          clientVer: '1.1.1',
+          unknown: 4
+        },
+        fileNameInfo: {
+          fileName
+        },
+        host: {
+          hosts: result.rtpMediaPlatformUploadAddress.map(([ip, port]) => ({
+            url: {
+              unknown: 1,
+              host: ip
+            },
+            port
+          }))
+        }
+      },
+      unknown200: 1,
+    })
+    const maxBlockSize = 1024 * 1024
+    const trans = {
+      uin: selfInfo.uin,
+      cmd: 95,
+      readable: createReadStream(filePath, { highWaterMark: maxBlockSize }),
+      sum: result.md5CheckSum,
+      size: result.fileSize,
+      ticket: highwaySession.sigSession,
+      ext,
+      server: highwaySession.highwayHostAndPorts[1][0].host,
+      port: highwaySession.highwayHostAndPorts[1][0].port
+    }
+    try {
+      await new HighwayTcpSession(trans).upload()
+    } catch {
+      await new HighwayHttpSession(trans).upload()
+    }
+    return {
+      fileId: result.fileId,
+      file10MMd5: result.md510MCheckSum,
+      crcMedia: result.crcMedia
     }
   }
 }

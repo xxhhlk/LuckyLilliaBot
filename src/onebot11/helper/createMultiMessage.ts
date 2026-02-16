@@ -8,14 +8,17 @@ import { deflateSync } from 'node:zlib'
 import faceConfig from '@/ntqqapi/helper/face_config.json'
 import { InferProtoModelInput } from '@saltify/typeproto'
 import { stat } from 'node:fs/promises'
+import { createThumb } from '@/common/utils/video'
+import { getMd5HexFromFile, uri2local } from '@/common/utils'
 
 // 最大嵌套深度
 const MAX_FORWARD_DEPTH = 3
 
 export class MessageEncoder {
-  static support = ['text', 'face', 'image', 'markdown', 'forward', 'node']
+  static support = ['text', 'face', 'image', 'forward', 'node', 'video', 'file']
   results: InferProtoModelInput<typeof Msg.Message>[]
   children: InferProtoModelInput<typeof Msg.Elem>[]
+  content?: Buffer
   deleteAfterSentFiles: string[]
   isGroup: boolean
   seq: number
@@ -41,7 +44,7 @@ export class MessageEncoder {
   }
 
   async flush() {
-    if (this.children.length === 0) return
+    if (this.children.length === 0 && !this.content) return
 
     const nick = this.name || selfInfo.nick || 'QQ用户'
 
@@ -81,13 +84,15 @@ export class MessageEncoder {
       body: {
         richText: {
           elems: this.children
-        }
+        },
+        msgContent: this.content
       }
     })
 
     this.seq++
     this.tsum++
     this.children = []
+    this.content = undefined
     this.preview = ''
   }
 
@@ -179,6 +184,16 @@ export class MessageEncoder {
     return {
       lightApp: {
         data: Buffer.concat([Buffer.from([1]), deflateSync(Buffer.from(content, 'utf-8'))])
+      }
+    }
+  }
+
+  packVideo(msgInfo: InferProtoModelInput<typeof Media.MsgInfo>) {
+    return {
+      commonElem: {
+        serviceType: 48,
+        pbElem: Media.MsgInfo.encode(msgInfo),
+        businessType: this.isGroup ? 21 : 11
       }
     }
   }
@@ -295,6 +310,82 @@ export class MessageEncoder {
         this.children.push(this.packForwardMessage(resid, innerRaw.uuid, innerRaw))
       }
       this.preview += '[聊天记录]'
+    } else if (type === OB11MessageDataType.Video) {
+      const { path: videoPath } = await handleOb11RichMedia(this.ctx, segment, this.deleteAfterSentFiles)
+      const fileSize = (await stat(videoPath)).size
+      if (fileSize === 0) {
+        throw new Error(`文件异常，大小为 0: ${videoPath}`)
+      }
+      let thumb = segment.data.cover ?? segment.data.thumb
+      if (thumb) {
+        const uri2LocalRes = await uri2local(this.ctx, thumb)
+        if (uri2LocalRes.success) {
+          if (!uri2LocalRes.isLocal) {
+            this.deleteAfterSentFiles.push(uri2LocalRes.path)
+          }
+          thumb = uri2LocalRes.path
+        } else {
+          throw new Error(uri2LocalRes.errMsg)
+        }
+      } else {
+        thumb = await createThumb(this.ctx, videoPath)
+        this.deleteAfterSentFiles.push(thumb)
+      }
+      let data
+      if (this.isGroup) {
+        data = await this.ctx.ntFileApi.uploadGroupVideo(this.peer.peerUid, videoPath, thumb)
+      } else {
+        data = await this.ctx.ntFileApi.uploadC2CVideo(this.peer.peerUid, videoPath, thumb)
+      }
+      this.children.push(this.packVideo(data.msgInfo))
+      this.preview += '[视频]'
+    } else if (type === OB11MessageDataType.File) {
+      const { path, fileName } = await handleOb11RichMedia(this.ctx, segment, this.deleteAfterSentFiles)
+      const fileSize = (await stat(path)).size
+      if (fileSize === 0) {
+        throw new Error(`文件异常，大小为 0: ${path}`)
+      }
+      if (this.isGroup) {
+        const data = await this.ctx.ntFileApi.uploadGroupFile(this.peer.peerUid, path, fileName)
+        const extra = Msg.GroupFileExtra.encode({
+          field1: 6,
+          fileName,
+          inner: {
+            info: {
+              busId: 102,
+              fileId: data.fileId,
+              fileSize,
+              fileName,
+              fileMd5: data.fileMd5,
+            },
+          },
+        })
+        const lenBuf = Buffer.alloc(2)
+        lenBuf.writeUInt16BE(extra.length)
+        this.children.push({
+          transElemInfo: {
+            elemType: 24,
+            elemValue: Buffer.concat([Buffer.from([0x01]), lenBuf, extra]),
+          }
+        })
+      } else {
+        const data = await this.ctx.ntFileApi.uploadC2CFile(this.peer.peerUid, path, fileName)
+        const extra = Msg.FileExtra.encode({
+          file: {
+            fileType: 0,
+            fileUuid: data.fileId,
+            fileMd5: data.file10MMd5,
+            fileName,
+            fileSize,
+            subCmd: 1,
+            dangerLevel: 0,
+            expireTime: Math.floor((Date.now() / 1000) + 7 * 24 * 60 * 60),
+            fileIdCrcMedia: data.crcMedia
+          }
+        })
+        this.content = extra
+      }
+      this.preview += `[文件] ${fileName}`
     }
   }
 

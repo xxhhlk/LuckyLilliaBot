@@ -93,12 +93,12 @@ export namespace Media {
         thumbParam: ProtoField(3, 'string')
       }),
       domain: ProtoField(3, 'string')
-    }),
+    }, 'optional'),
     fileExist: ProtoField(5, 'bool'),
     hashSum: ProtoField(6, {
       bytesPbReserveC2c: ProtoField(201, {
         friendUid: ProtoField(2, 'string')
-      }),
+      }, 'optional'),
       troopSource: ProtoField(202, {
         groupCode: ProtoField(1, 'uint32')
       }, 'optional')
@@ -333,8 +333,8 @@ export namespace Media {
             unknown: ProtoField(1, 'int32'),
             host: ProtoField(2, 'string'),
           }),
-          port: ProtoField(2, 'uint32'),
-        }, 'repeated'),
+          port: ProtoField(2, 'uint32')
+        }, 'repeated')
       })
     }),
     unknown200: ProtoField(200, 'int32', 'optional')

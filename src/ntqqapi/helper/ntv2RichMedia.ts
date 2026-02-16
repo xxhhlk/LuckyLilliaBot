@@ -1,7 +1,7 @@
 import { InferProtoModel, InferProtoModelInput } from '@saltify/typeproto'
 import { ChatType, Peer, PicType } from '../types'
 import { Media } from '../proto'
-import { getFileType, getImageSize, getMd5HexFromFile, getSha1HexFromFile, uint32ToIPV4Addr } from '@/common/utils'
+import { getFileType, getImageSize, getMd5HexFromFile, getSha1HexFromFile, getVideoInfo, uint32ToIPV4Addr } from '@/common/utils'
 import { randomInt } from 'node:crypto'
 import { stat } from 'node:fs/promises'
 
@@ -71,10 +71,15 @@ export namespace NTV2RichMedia {
     const md5HexStr = await getMd5HexFromFile(entity.filePath)
     const sha1HexStr = await getSha1HexFromFile(entity.filePath)
     const { size: fileSize } = await stat(entity.filePath)
-    let fileName, fileType, width, height, original
+    let fileName, fileType, width, height, time, original
     if (entity.type === 'video') {
+      const { width: w, height: h, time: t } = await getVideoInfo(entity.filePath)
       fileName = `${md5HexStr}.mp4`
       fileType = { type: 2 }
+      width = w
+      height = h
+      time = Math.trunc(t)
+      original = 1
     } else if (entity.type === 'image') {
       const { width: w, height: h } = await getImageSize(entity.filePath)
       const { ext } = await getFileType(entity.filePath)
@@ -96,6 +101,7 @@ export namespace NTV2RichMedia {
       fileType,
       width,
       height,
+      time,
       original
     } satisfies InferProtoModelInput<typeof Media.FileInfo>
   }

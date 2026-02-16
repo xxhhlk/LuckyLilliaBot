@@ -11,6 +11,8 @@ import { Msg, Media } from '@/ntqqapi/proto'
 import faceConfig from '@/ntqqapi/helper/face_config.json'
 import { deflateSync } from 'node:zlib'
 import { InferProtoModelInput } from '@saltify/typeproto'
+import { getMd5HexFromFile } from '@/common/utils'
+import { createThumb } from '@/common/utils/video'
 
 export async function transformOutgoingMessage(
   ctx: Context,
@@ -68,7 +70,7 @@ export async function transformOutgoingMessage(
         let thumbTempPath: string | undefined = undefined
         if (segment.data.thumb_uri) {
           const thumbBuffer = await resolveMilkyUri(segment.data.thumb_uri)
-          const thumbTempPath = path.join(TEMP_DIR, `thumb-${randomUUID()}`)
+          thumbTempPath = path.join(TEMP_DIR, `thumb-${randomUUID()}`)
           await writeFile(thumbTempPath, thumbBuffer)
           deleteAfterSentFiles.push(thumbTempPath)
         }
@@ -261,6 +263,16 @@ class ForwardMessageEncoder {
     }
   }
 
+  packVideo(msgInfo: InferProtoModelInput<typeof Media.MsgInfo>) {
+    return {
+      commonElem: {
+        serviceType: 48,
+        pbElem: Media.MsgInfo.encode(msgInfo),
+        businessType: this.isGroup ? 21 : 11
+      }
+    }
+  }
+
   async visit(content: OutgoingForwardedMessage) {
     this.uin = content.user_id
     this.name = content.sender_name
@@ -298,6 +310,28 @@ class ForwardMessageEncoder {
         const resid = await this.ctx.app.pmhq.uploadForward(this.peer, innerRaw.multiMsgItems)
         this.children.push(this.packForwardMessage(resid, innerRaw.uuid, innerRaw))
         this.preview += '[聊天记录]'
+      } else if (type === 'video') {
+        const videoBuffer = await resolveMilkyUri(segment.data.uri)
+        const tempPath = path.join(TEMP_DIR, `video-${randomUUID()}`)
+        await writeFile(tempPath, videoBuffer)
+        let thumbTempPath
+        if (segment.data.thumb_uri) {
+          const thumbBuffer = await resolveMilkyUri(segment.data.thumb_uri)
+          thumbTempPath = path.join(TEMP_DIR, `thumb-${randomUUID()}`)
+          await writeFile(thumbTempPath, thumbBuffer)
+        } else {
+          thumbTempPath = await createThumb(this.ctx, tempPath)
+        }
+        let data
+        if (this.isGroup) {
+          data = await this.ctx.ntFileApi.uploadGroupVideo(this.peer.peerUid, tempPath, thumbTempPath)
+        } else {
+          data = await this.ctx.ntFileApi.uploadC2CVideo(this.peer.peerUid, tempPath, thumbTempPath)
+        }
+        this.children.push(this.packVideo(data.msgInfo))
+        this.preview += '[视频]'
+        unlink(tempPath).catch(e => { })
+        unlink(thumbTempPath).catch(e => { })
       }
     }
     await this.flush()
