@@ -295,7 +295,7 @@ export class MessageEncoder {
       }
     } else if (type === 'face') {
       this.elements.push(SendElement.face(+attrs.id, +attrs.type))
-    } else if (type === 'mface') {
+    } else if (type === 'llonebot:market-face') {
       this.elements.push(SendElement.mface(
         +attrs.emojiPackageId,
         attrs.emojiId,

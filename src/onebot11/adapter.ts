@@ -574,7 +574,7 @@ class OneBot11Adapter extends Service {
                   emoji_id: info.code,
                   count: 1,
                 }],
-                info.type === 1
+                info.actionType === 1
               )
               this.dispatch(event)
             }

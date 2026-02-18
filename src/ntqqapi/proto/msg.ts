@@ -149,9 +149,10 @@ export namespace Msg {
           }),
           info: ProtoField(3, {
             code: ProtoField(1, 'string'),
+            reactionType: ProtoField(2, 'uint32'),
             count: ProtoField(3, 'uint32'),
             operatorUid: ProtoField(4, 'string'),
-            type: ProtoField(5, 'uint32')
+            actionType: ProtoField(5, 'uint32')
           })
         })
       })
