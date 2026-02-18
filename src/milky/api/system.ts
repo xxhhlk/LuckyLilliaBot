@@ -111,10 +111,21 @@ const GetFriendList = defineApi(
   GetFriendListOutput,
   async (ctx, payload) => {
     const friends = await ctx.ntFriendApi.getBuddyList()
-    const friendList: GetFriendListOutput['friends'] = []
+    const category: Map<number, {
+      categoryId: number
+      categorySortId: number
+      categroyName: string
+      categroyMbCount: number
+      onlineCount: number
+      buddyUids: string[]
+    }> = new Map()
+    const friendList = []
     for (const friend of friends) {
-      const category = await ctx.ntFriendApi.getCategoryById(friend.baseInfo.categoryId)
-      friendList.push(transformFriend(friend, category))
+      const { categoryId } = friend.baseInfo
+      if (!category.has(categoryId)) {
+        category.set(categoryId, await ctx.ntFriendApi.getCategoryById(categoryId))
+      }
+      friendList.push(transformFriend(friend, category.get(categoryId)!))
     }
     return Ok({
       friends: friendList,
