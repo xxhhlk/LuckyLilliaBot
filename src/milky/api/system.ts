@@ -26,6 +26,8 @@ import {
   SetNicknameInput,
   SetBioInput,
   GetCustomFaceUrlListOutput,
+  GetPeerPinsOutput,
+  SetPeerPinInput,
 } from '@saltify/milky-types'
 import z from 'zod'
 import { selfInfo, TEMP_DIR } from '@/common/globalVars'
@@ -34,6 +36,7 @@ import { unlink, writeFile } from 'node:fs/promises'
 import { randomUUID } from 'node:crypto'
 import path from 'node:path'
 import { sleep } from '@/common/utils'
+import { ChatType } from '@/ntqqapi/types'
 
 const GetLoginInfo = defineApi(
   'get_login_info',
@@ -230,6 +233,74 @@ const GetGroupMemberInfo = defineApi(
   }
 )
 
+const GetPeerPins = defineApi(
+  'get_peer_pins',
+  z.object({}),
+  GetPeerPinsOutput,
+  async (ctx, payload) => {
+    const friends = await ctx.ntFriendApi.getBuddyList()
+    const category: Map<number, {
+      categoryId: number
+      categorySortId: number
+      categroyName: string
+      categroyMbCount: number
+      onlineCount: number
+      buddyUids: string[]
+    }> = new Map()
+    const groups = await ctx.ntGroupApi.getGroups()
+    return Ok({
+      friends: await Promise.all(
+        friends.filter(e => e.relationFlags?.topTime !== '0').map(async e => {
+          const { categoryId } = e.baseInfo
+          if (!category.has(categoryId)) {
+            category.set(categoryId, await ctx.ntFriendApi.getCategoryById(categoryId))
+          }
+          return transformFriend(e, category.get(categoryId)!)
+        })
+      ),
+      groups: groups.filter(e => e.isTop).map(e => {
+        return {
+          group_id: +e.groupCode,
+          group_name: e.groupName,
+          member_count: e.memberCount,
+          max_member_count: e.maxMember
+        }
+      })
+    })
+  }
+)
+
+const SetPeerPin = defineApi(
+  'set_peer_pin',
+  SetPeerPinInput,
+  z.object({}),
+  async (ctx, payload) => {
+    if (payload.message_scene === 'friend') {
+      const uid = await ctx.ntUserApi.getUidByUin(payload.peer_id.toString())
+      const result = await ctx.ntFriendApi.setTop(uid, payload.is_pinned)
+      if (result.result !== 0) {
+        return Failed(-500, result.errMsg)
+      }
+    } else if (payload.message_scene === 'group') {
+      const result = await ctx.ntGroupApi.setTop(payload.peer_id.toString(), payload.is_pinned)
+      if (result.result !== 0) {
+        return Failed(-500, result.errMsg)
+      }
+    } else if (payload.message_scene === 'temp') {
+      const uid = await ctx.ntUserApi.getUidByUin(payload.peer_id.toString())
+      const result = await ctx.ntMsgApi.setContactLocalTop({
+        chatType: ChatType.TempC2CFromGroup,
+        peerUid: uid,
+        guildId: ''
+      }, payload.is_pinned)
+      if (result.result !== 0) {
+        return Failed(-500, result.errMsg)
+      }
+    }
+    return Ok({})
+  }
+)
+
 const SetAvatar = defineApi(
   'set_avatar',
   SetAvatarInput,
@@ -363,6 +434,8 @@ export const SystemApi: MilkyApiHandler[] = [
   GetGroupInfo,
   GetGroupMemberList,
   GetGroupMemberInfo,
+  GetPeerPins,
+  SetPeerPin,
   SetAvatar,
   SetNickname,
   SetBio,
