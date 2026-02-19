@@ -1,3 +1,9 @@
+V7.9.1
+更新时间 2026-02-
+
+* Milky 给 `group_message_reaction` 事件增加了字段 `reaction_type`，含义与 `send_group_message_reaction` 中的 `reaction_type` 参数相同
+
+=================
 V7.9.0
 更新时间 2026-02-18
 
