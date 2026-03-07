@@ -42,7 +42,7 @@ export async function transformOutgoingMessage(
           peerUid,
           guildId: ''
         }
-        const source = await ctx.ntMsgApi.getMsgsBySeqAndCount(peer, replyMsgSeq, 1, true, true)
+        const source = await ctx.ntMsgApi.getSingleMsg(peer, replyMsgSeq)
         if (source.msgList.length === 0) {
           throw new Error('被回复的消息未找到')
         }
