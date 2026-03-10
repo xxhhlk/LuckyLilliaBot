@@ -291,7 +291,12 @@ if [[ "$use_docker_mirror" =~ ^[yY]$ ]]; then
   # Docker 镜像源列表
   DOCKER_MIRRORS=(
     "docker.1ms.run"
+    "docker.1panel.live"
+    "dockerproxy.net"
     "hub.rat.dev"
+    "docker.m.daocloud.io"
+    "registry.cyou"
+    "proxy.vvvv.ee"
     "001090.xyz"
   )
 
