@@ -5,6 +5,7 @@ import { getConfigUtil, webuiTokenUtil } from '@/common/config'
 import { selfInfo } from '@/common/globalVars'
 import { ReqConfig, ResConfig } from '../types'
 import { Config } from '@/common/types'
+import { isDockerEnvironment } from '@/common/utils/environment'
 
 function isListenAllInterfaces(host: string | undefined): boolean {
   return !host || host === '0.0.0.0' || host === '::'
@@ -41,16 +42,19 @@ export function createConfigRoutes(ctx: Context): Router {
   // 获取网卡列表
   router.get('/network-interfaces', (req, res) => {
     try {
+      const isDocker = isDockerEnvironment()
       const interfaces = networkInterfaces()
       const addresses: string[] = []
-      for (const name in interfaces) {
-        for (const iface of interfaces[name] || []) {
-          if (iface.family === 'IPv4' && !iface.internal) {
-            addresses.push(iface.address)
+      if (!isDocker) {
+        for (const name in interfaces) {
+          for (const iface of interfaces[name] || []) {
+            if (iface.family === 'IPv4' && !iface.internal) {
+              addresses.push(iface.address)
+            }
           }
         }
       }
-      res.json({ success: true, data: addresses })
+      res.json({ success: true, data: addresses, isDocker })
     } catch (e) {
       res.status(500).json({ success: false, message: '获取网卡列表失败', error: e })
     }

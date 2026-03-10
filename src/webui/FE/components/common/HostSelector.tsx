@@ -13,9 +13,11 @@ interface Option {
 }
 
 let cachedNetworkInterfaces: string[] | null = null
+let cachedIsDocker: boolean = false
 
 export const HostSelector: React.FC<HostSelectorProps> = ({ value, onChange }) => {
   const [networkInterfaces, setNetworkInterfaces] = useState<string[]>(cachedNetworkInterfaces || [])
+  const [isDocker, setIsDocker] = useState(cachedIsDocker)
   const [isOpen, setIsOpen] = useState(false)
   const [isCustom, setIsCustom] = useState(false)
   const [customHost, setCustomHost] = useState('')
@@ -26,9 +28,16 @@ export const HostSelector: React.FC<HostSelectorProps> = ({ value, onChange }) =
       apiFetch<string[]>('/api/network-interfaces').then(res => {
         if (res.success) {
           cachedNetworkInterfaces = res.data
+          cachedIsDocker = !!(res as any).isDocker
           setNetworkInterfaces(res.data)
+          setIsDocker(cachedIsDocker)
+          if (cachedIsDocker && value !== '') {
+            onChange('')
+          }
         }
       })
+    } else if (isDocker && value !== '') {
+      onChange('')
     }
   }, [])
 
@@ -82,6 +91,16 @@ export const HostSelector: React.FC<HostSelectorProps> = ({ value, onChange }) =
   const handleCustomChange = (val: string) => {
     setCustomHost(val)
     onChange(val)
+  }
+
+  if (isDocker) {
+    return (
+      <div className='flex items-center gap-2'>
+        <div className='input-field w-full text-left opacity-70 cursor-not-allowed'>
+          全部 (0.0.0.0 和 ::)
+        </div>
+      </div>
+    )
   }
 
   return (
