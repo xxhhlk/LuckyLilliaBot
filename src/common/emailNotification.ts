@@ -88,7 +88,7 @@ export class EmailNotificationService extends Service {
   }
 
   private registerPmhqDisconnectCallback() {
-    this.pmhqDisconnectId = pmhq.onDisconnect(60000, (duration) => {
+    this.pmhqDisconnectId = pmhq.onDisconnect(10000, (duration) => {
       if (!this.notificationSent && this.hasLoggedIn) {
         this.ctx.logger.warn(`[EmailNotification] PMHQ disconnected for ${duration}ms`)
         this.onOffline('可能 QQ 已经有点死了')
