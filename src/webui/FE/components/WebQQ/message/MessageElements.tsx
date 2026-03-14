@@ -1,4 +1,4 @@
-import React, { useState, memo, useRef, useCallback } from 'react'
+import React, { useState, memo, useRef } from 'react'
 import { Loader2, Mic, Play, Pause, ChevronRight, X } from 'lucide-react'
 import { createPortal } from 'react-dom'
 import type { MessageElement, RawMessage } from '../../../types/webqq'
