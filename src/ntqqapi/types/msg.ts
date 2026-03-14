@@ -501,7 +501,7 @@ export enum ChatType {
 
 export interface RawMessage {
   msgId: string
-  msgType: ElementType
+  msgType: MsgType
   subMsgType: number
   msgTime: string // 时间戳，秒
   msgSeq: string
@@ -852,3 +852,26 @@ export enum RMBizType {
   GroupPtt,
 }
 
+export enum MsgType {
+  ArkStruct = 11,
+  FaceBubble = 24,
+  File = 3,
+  Gift = 14,
+  Giphy = 13,
+  GrayTips = 5,
+  Mix = 2,
+  MultiMsgForward = 8,
+  Null = 1,
+  OnlineFile = 21,
+  OnlineFolder = 27,
+  Prologue = 29,
+  Ptt = 6,
+  Reply = 9,
+  ShareLocation = 25,
+  Struct = 4,
+  StructLongMsg = 12,
+  TextGift = 15,
+  Unknown = 0,
+  Video = 7,
+  Wallet = 10,
+}
