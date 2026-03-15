@@ -1,9 +1,17 @@
 import { defineConfig } from 'vite'
 import { builtinModules } from 'module'
 import cp from 'vite-plugin-cp'
-import { writeVersion } from './src/version'
+import { version } from './src/version'
 import path from 'node:path'
 import fs from 'node:fs'
+
+function writeVersion() {
+  const pkgJsonPath = './package-dist.json'
+  const pkgJsonRaw = fs.readFileSync(pkgJsonPath, 'utf8')
+  const packageJson = JSON.parse(pkgJsonRaw)
+  packageJson.version = version
+  fs.writeFileSync(pkgJsonPath, JSON.stringify(packageJson), 'utf8')
+}
 
 writeVersion()
 
@@ -82,7 +90,7 @@ export default defineConfig({
   },
   resolve: {
     alias: {
-      'qrcode': 'node_modules/qrcode/lib/server.js',
+      'qrcode': path.resolve(import.meta.dirname, 'node_modules/qrcode/lib/server.js'),
     },
     tsconfigPaths: true
   },

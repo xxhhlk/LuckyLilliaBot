@@ -15,6 +15,7 @@ import {
   SendMessageElement,
   ElementType,
   KickedOffLineInfo,
+  MsgType,
 } from './types'
 import { selfInfo } from '../common/globalVars'
 import { pmhq } from './native/pmhq'
@@ -123,8 +124,7 @@ class Core extends Service {
   private async handleMessage(msgList: RawMessage[]) {
     for (const message of msgList) {
       const msgTime = +message.msgTime
-      const isGrayTip = message.elements.some(e => e.grayTipElement)
-      if (msgTime < this.startupTime || ('isOnlineMsg' in message && !message.isOnlineMsg && !isGrayTip)) {
+      if (msgTime < this.startupTime || ('isOnlineMsg' in message && !message.isOnlineMsg && message.msgType !== MsgType.GrayTips)) {
         const existing = await this.ctx.store.checkMsgExist(message)
         if (!existing) {
           this.ctx.parallel('nt/offline-message-created', message)
