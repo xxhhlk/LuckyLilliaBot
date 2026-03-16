@@ -9,18 +9,18 @@ export const ImagePreviewModal: React.FC<{ url: string | null; onClose: () => vo
   
   return createPortal(
     <div 
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/80"
+      className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/80"
       onClick={onClose}
     >
-      <button 
+      <button
         onClick={onClose}
         className="absolute top-4 right-4 p-2 text-white/80 hover:text-white bg-black/50 rounded-full"
       >
         <X size={24} />
       </button>
-      <img 
-        src={url} 
-        alt="预览" 
+      <img
+        src={url}
+        alt="预览"
         className="max-w-[90vw] max-h-[90vh] object-contain"
         onClick={(e) => e.stopPropagation()}
       />
@@ -57,7 +57,7 @@ export const VideoPreviewModal: React.FC<{
   
   return createPortal(
     <div 
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/80"
+      className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/80"
       onClick={onClose}
     >
       <button 
