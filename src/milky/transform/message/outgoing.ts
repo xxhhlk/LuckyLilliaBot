@@ -314,7 +314,8 @@ class ForwardMessageEncoder {
         this.preview += busiType === 1 ? '[动画表情]' : '[图片]'
         unlink(tempPath).catch(e => { })
       } else if (type === 'forward') {
-        const innerRaw = await this.generate(data.messages as OutgoingForwardedMessage[], {
+        const encoder = new ForwardMessageEncoder(this.ctx, this.peer)
+        const innerRaw = await encoder.generate(data.messages as OutgoingForwardedMessage[], {
           title: data.title,
           preview: data.preview,
           summary: data.summary,
