@@ -4,6 +4,7 @@ V7.11.1
 * 修复自己发送的合并转发消息无法正确显示
 * 修复合并转发图片可能上传失败
 * OneBot 修复获取群文件列表接口无法拿到 `upload_time`
+* OneBot 当音乐卡片的 `type` 不为 `custom` 时，支持自定义音乐卡片
 * Milky 修复 SSE 端点未生效配置的前缀
 * Milky 修复获取群文件列表接口无法拿到 `uploaded_time`
 * Milky 修复合并转发可能渲染异常
