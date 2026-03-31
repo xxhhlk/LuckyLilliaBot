@@ -1,5 +1,4 @@
 import { Action, Msg, Oidb } from '@/ntqqapi/proto'
-import { Peer, ChatType } from '@/ntqqapi/types/msg'
 import { selfInfo } from '@/common/globalVars'
 import { randomBytes } from 'node:crypto'
 import { gunzipSync, gzipSync } from 'node:zlib'
@@ -8,14 +7,13 @@ import type { PMHQBase } from '../base'
 
 export function MessageMixin<T extends new (...args: any[]) => PMHQBase>(Base: T) {
   return class extends Base {
-    async uploadForward(peer: Peer, items: InferProtoModelInput<typeof Msg.PbMultiMsgItem>[]) {
+    async uploadForward(peerUid: string, isGroup: boolean, items: InferProtoModelInput<typeof Msg.PbMultiMsgItem>[]) {
       const transmit = Msg.PbMultiMsgTransmit.encode({ pbItemList: items })
-      const isGroup = peer.chatType === ChatType.Group
       const data = Action.SendLongMsgReq.encode({
         info: {
           type: isGroup ? 3 : 1,
-          peer: { uid: isGroup ? peer.peerUid : selfInfo.uid },
-          groupCode: isGroup ? +peer.peerUid : 0,
+          peer: { uid: isGroup ? peerUid : selfInfo.uid },
+          groupCode: isGroup ? +peerUid : 0,
           payload: gzipSync(transmit),
         },
         settings: { field1: 4, field2: 1, field3: 7, field4: 0 },

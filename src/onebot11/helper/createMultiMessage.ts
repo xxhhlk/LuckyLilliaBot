@@ -3,13 +3,13 @@ import { OB11MessageData, OB11MessageDataType, OB11MessageNode } from '../types'
 import { Msg, Media } from '@/ntqqapi/proto'
 import { handleOb11RichMedia, message2List } from './createMessage'
 import { selfInfo } from '@/common/globalVars'
-import { ElementType, Peer, RichMediaUploadCompleteNotify } from '@/ntqqapi/types'
+import { ChatType, ElementType, Peer, RichMediaUploadCompleteNotify } from '@/ntqqapi/types'
 import { deflateSync } from 'node:zlib'
 import faceConfig from '@/ntqqapi/helper/face_config.json'
 import { InferProtoModelInput } from '@saltify/typeproto'
 import { stat } from 'node:fs/promises'
 import { createThumb } from '@/common/utils/video'
-import { getMd5HexFromFile, uri2local } from '@/common/utils'
+import { uri2local } from '@/common/utils'
 
 // 最大嵌套深度
 const MAX_FORWARD_DEPTH = 3
@@ -229,7 +229,7 @@ export class MessageEncoder {
         this.innerRaw.push(innerRaw)
 
         // 上传内层合并转发，获取 resid
-        const resid = await this.ctx.app.pmhq.uploadForward(this.peer, innerRaw.multiMsgItems)
+        const resid = await this.ctx.app.pmhq.uploadForward(this.peer.peerUid, this.peer.chatType === ChatType.Group, innerRaw.multiMsgItems)
 
         // 合并内层的待删除文件
         this.deleteAfterSentFiles.push(...innerEncoder.deleteAfterSentFiles)
@@ -305,7 +305,7 @@ export class MessageEncoder {
         })
         this.innerRaw.push(innerRaw)
 
-        const resid = await this.ctx.app.pmhq.uploadForward(this.peer, innerRaw.multiMsgItems)
+        const resid = await this.ctx.app.pmhq.uploadForward(this.peer.peerUid, this.peer.chatType === ChatType.Group, innerRaw.multiMsgItems)
         this.deleteAfterSentFiles.push(...innerEncoder.deleteAfterSentFiles)
         this.children.push(this.packForwardMessage(resid, innerRaw.uuid, innerRaw))
       }

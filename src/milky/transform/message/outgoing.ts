@@ -1,7 +1,7 @@
 import { resolveMilkyUri } from '@/milky/common/download'
 import type { Context } from 'cordis'
 import { OutgoingForwardedMessage, OutgoingSegment } from '@saltify/milky-types'
-import { AtType, Peer, RichMediaUploadCompleteNotify, SendMessageElement } from '@/ntqqapi/types'
+import { AtType, Peer, RichMediaUploadCompleteNotify, RMBizType, SendMessageElement } from '@/ntqqapi/types'
 import { SendElement } from '@/ntqqapi/entities'
 import { selfInfo, TEMP_DIR } from '@/common/globalVars'
 import { unlink, writeFile } from 'node:fs/promises'
@@ -11,7 +11,6 @@ import { Msg, Media } from '@/ntqqapi/proto'
 import faceConfig from '@/ntqqapi/helper/face_config.json'
 import { deflateSync } from 'node:zlib'
 import { InferProtoModelInput } from '@saltify/typeproto'
-import { getMd5HexFromFile } from '@/common/utils'
 import { createThumb } from '@/common/utils/video'
 
 export async function transformOutgoingMessage(
@@ -77,6 +76,51 @@ export async function transformOutgoingMessage(
         const videoElement = await SendElement.video(ctx, tempPath, thumbTempPath)
         elements.push(videoElement)
         deleteAfterSentFiles.push(tempPath)
+      } else if (segment.type === 'forward') {
+        const forwardData = segment.data
+        const raw = await transformOutgoingForwardMessages(
+          ctx,
+          forwardData.messages as OutgoingForwardedMessage[],
+          peerUid,
+          isGroup,
+          {
+            title: forwardData.title,
+            preview: forwardData.preview,
+            summary: forwardData.summary,
+            prompt: forwardData.prompt
+          }
+        )
+        const resid = await ctx.app.pmhq.uploadForward(peerUid, isGroup, raw.multiMsgItems)
+        const uuid = randomUUID()
+        const prompt = raw.prompt
+        const arkElement = SendElement.ark(JSON.stringify({
+          app: 'com.tencent.multimsg',
+          config: {
+            autosize: 1,
+            forward: 1,
+            round: 1,
+            type: 'normal',
+            width: 300,
+          },
+          desc: prompt,
+          extra: JSON.stringify({
+            filename: uuid,
+            tsum: raw.tsum,
+          }),
+          meta: {
+            detail: {
+              news: raw.news,
+              resid,
+              source: raw.source,
+              summary: raw.summary,
+              uniseq: uuid,
+            },
+          },
+          prompt,
+          ver: '0.0.0.5',
+          view: 'contact',
+        }))
+        elements.push(arkElement)
       } else if (segment.type === 'light_app') {
         const arkElement = SendElement.ark(segment.data.json_payload)
         elements.push(arkElement)
@@ -95,7 +139,8 @@ export async function transformOutgoingMessage(
 export async function transformOutgoingForwardMessages(
   ctx: Context,
   messages: OutgoingForwardedMessage[],
-  peer: Peer,
+  peerUid: string,
+  isGroup: boolean,
   options?: {
     title: string | null | undefined
     preview: string[] | null | undefined
@@ -103,14 +148,13 @@ export async function transformOutgoingForwardMessages(
     prompt: string | null | undefined
   }
 ) {
-  const encoder = new ForwardMessageEncoder(ctx, peer)
+  const encoder = new ForwardMessageEncoder(ctx, peerUid, isGroup)
   return await encoder.generate(messages, options)
 }
 
 class ForwardMessageEncoder {
   results: InferProtoModelInput<typeof Msg.Message>[]
   children: InferProtoModelInput<typeof Msg.Elem>[]
-  isGroup: boolean
   seq: number
   tsum: number
   preview: string
@@ -119,10 +163,9 @@ class ForwardMessageEncoder {
   uin?: number
   innerRaws: Awaited<ReturnType<ForwardMessageEncoder['generate']>>[] = []
 
-  constructor(private ctx: Context, private peer: Peer) {
+  constructor(private ctx: Context, private peerUid: string, private isGroup: boolean) {
     this.results = []
     this.children = []
-    this.isGroup = peer.chatType === 2
     this.seq = Math.trunc(Math.random() * 65430)
     this.tsum = 0
     this.preview = ''
@@ -308,13 +351,13 @@ class ForwardMessageEncoder {
         const imageBuffer = await resolveMilkyUri(segment.data.uri)
         const tempPath = path.join(TEMP_DIR, `image-${randomUUID()}`)
         await writeFile(tempPath, imageBuffer)
-        const data = await this.ctx.ntFileApi.uploadRMFileWithoutMsg(tempPath, this.isGroup ? 4 : 3, this.isGroup ? this.peer.peerUid : selfInfo.uid)
+        const data = await this.ctx.ntFileApi.uploadRMFileWithoutMsg(tempPath, this.isGroup ? RMBizType.GroupPic : RMBizType.C2CPic, this.isGroup ? this.peerUid : selfInfo.uid)
         const busiType = segment.data.sub_type === 'sticker' ? 1 : 0
         this.children.push(await this.packImage(data, busiType))
         this.preview += busiType === 1 ? '[动画表情]' : '[图片]'
         unlink(tempPath).catch(e => { })
       } else if (type === 'forward') {
-        const encoder = new ForwardMessageEncoder(this.ctx, this.peer)
+        const encoder = new ForwardMessageEncoder(this.ctx, this.peerUid, this.isGroup)
         const innerRaw = await encoder.generate(data.messages as OutgoingForwardedMessage[], {
           title: data.title,
           preview: data.preview,
@@ -322,7 +365,7 @@ class ForwardMessageEncoder {
           prompt: data.prompt
         })
         this.innerRaws.push(innerRaw)
-        const resid = await this.ctx.app.pmhq.uploadForward(this.peer, innerRaw.multiMsgItems)
+        const resid = await this.ctx.app.pmhq.uploadForward(this.peerUid, this.isGroup, innerRaw.multiMsgItems)
         this.children.push(this.packForwardMessage(resid, innerRaw.uuid, innerRaw))
         this.preview += '[聊天记录]'
       } else if (type === 'video') {
@@ -339,9 +382,9 @@ class ForwardMessageEncoder {
         }
         let data
         if (this.isGroup) {
-          data = await this.ctx.ntFileApi.uploadGroupVideo(this.peer.peerUid, tempPath, thumbTempPath)
+          data = await this.ctx.ntFileApi.uploadGroupVideo(this.peerUid, tempPath, thumbTempPath)
         } else {
-          data = await this.ctx.ntFileApi.uploadC2CVideo(this.peer.peerUid, tempPath, thumbTempPath)
+          data = await this.ctx.ntFileApi.uploadC2CVideo(this.peerUid, tempPath, thumbTempPath)
         }
         this.children.push(this.packVideo(data.msgInfo))
         this.preview += '[视频]'

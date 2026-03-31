@@ -7,7 +7,6 @@ import { ChatType, ElementType, SendMessageElement } from '@/ntqqapi/types'
 import { selfInfo } from '@/common/globalVars'
 import { message2List, createSendElements, createPeer, CreatePeerMode } from '../../helper/createMessage'
 import { MessageEncoder } from '@/onebot11/helper/createMultiMessage'
-import { randomUUID } from 'node:crypto'
 import { MsgInfo } from '../../../main/store'
 import { OB11Entities } from '@/onebot11/entities'
 
@@ -184,7 +183,7 @@ export class SendForwardMsg extends BaseAction<Payload, Response> {
   }): Promise<Response> {
     const encoder = new MessageEncoder(this.ctx, peer)
     const raw = await encoder.generate(nodes, options)
-    const resid = await this.ctx.app.pmhq.uploadForward(peer, raw.multiMsgItems)
+    const resid = await this.ctx.app.pmhq.uploadForward(peer.peerUid, peer.chatType === ChatType.Group, raw.multiMsgItems)
     const prompt = options?.prompt ?? '[聊天记录]'
     try {
       const msg = await this.ctx.app.sendMessage(this.ctx, peer, [{

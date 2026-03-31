@@ -231,7 +231,7 @@ export class MessageEncoder {
           msg: messages
         }
       }, ...this.stack[0].subMultiMsgItems]
-      const resid = await this.ctx.app.pmhq.uploadForward(this.peer, multiMsgItems)
+      const resid = await this.ctx.app.pmhq.uploadForward(this.peer.peerUid, this.peer.chatType === NT.ChatType.Group, multiMsgItems)
       const id = crypto.randomUUID()
       const isGroup = this.peer.chatType === NT.ChatType.Group
       const content = JSON.stringify({

@@ -1,5 +1,5 @@
 import { defineApi, Failed, MilkyApiHandler, Ok } from '@/milky/common/api'
-import { transformOutgoingForwardMessages, transformOutgoingMessage } from '@/milky/transform/message/outgoing'
+import { transformOutgoingMessage } from '@/milky/transform/message/outgoing'
 import { transformIncomingPrivateMessage, transformIncomingGroupMessage, transformIncomingForwardedMessage, transformIncomingTempMessage } from '@/milky/transform/message/incoming'
 import {
   SendPrivateMessageInput,
@@ -17,11 +17,9 @@ import {
   MarkMessageAsReadInput,
   GetForwardedMessagesInput,
   GetForwardedMessagesOutput,
-  OutgoingForwardedMessage,
 } from '@saltify/milky-types'
 import z from 'zod'
 import { ChatType, IMAGE_HTTP_HOST_NT, RawMessage } from '@/ntqqapi/types'
-import { randomUUID } from 'node:crypto'
 import { Media } from '@/ntqqapi/proto'
 
 const SendPrivateMessage = defineApi(
@@ -42,71 +40,18 @@ const SendPrivateMessage = defineApi(
       }
     }
 
-    let result: RawMessage
-    if (payload.message[0].type === 'forward') {
-      const forwardData = payload.message[0].data
-      const raw = await transformOutgoingForwardMessages(
-        ctx,
-        forwardData.messages as OutgoingForwardedMessage[],
-        peer,
-        {
-          title: forwardData.title,
-          preview: forwardData.preview,
-          summary: forwardData.summary,
-          prompt: forwardData.prompt
-        }
-      )
-      const resid = await ctx.app.pmhq.uploadForward(peer, raw.multiMsgItems)
-      const uuid = randomUUID()
-      const prompt = raw.prompt
-      result = await ctx.app.sendMessage(ctx, peer, [{
-        elementType: 10,
-        elementId: '',
-        arkElement: {
-          bytesData: JSON.stringify({
-            app: 'com.tencent.multimsg',
-            config: {
-              autosize: 1,
-              forward: 1,
-              round: 1,
-              type: 'normal',
-              width: 300,
-            },
-            desc: prompt,
-            extra: JSON.stringify({
-              filename: uuid,
-              tsum: raw.tsum,
-            }),
-            meta: {
-              detail: {
-                news: raw.news,
-                resid,
-                source: raw.source,
-                summary: raw.summary,
-                uniseq: uuid,
-              },
-            },
-            prompt,
-            ver: '0.0.0.5',
-            view: 'contact',
-          }),
-        },
-      }], [])
-    } else {
-      const { elements, deleteAfterSentFiles } = await transformOutgoingMessage(
-        ctx,
-        payload.message,
-        uid,
-        false
-      )
-      result = await ctx.app.sendMessage(
-        ctx,
-        peer,
-        elements,
-        deleteAfterSentFiles
-      )
-    }
-
+    const { elements, deleteAfterSentFiles } = await transformOutgoingMessage(
+      ctx,
+      payload.message,
+      uid,
+      false
+    )
+    const result = await ctx.app.sendMessage(
+      ctx,
+      peer,
+      elements,
+      deleteAfterSentFiles
+    )
 
     return Ok({
       message_seq: +result.msgSeq,
@@ -123,70 +68,18 @@ const SendGroupMessage = defineApi(
     const groupCode = payload.group_id.toString()
     const peer = { chatType: 2, peerUid: groupCode, guildId: '' } // ChatType.Group = 2
 
-    let result: RawMessage
-    if (payload.message[0].type === 'forward') {
-      const forwardData = payload.message[0].data
-      const raw = await transformOutgoingForwardMessages(
-        ctx,
-        forwardData.messages as OutgoingForwardedMessage[],
-        peer,
-        {
-          title: forwardData.title,
-          preview: forwardData.preview,
-          summary: forwardData.summary,
-          prompt: forwardData.prompt
-        }
-      )
-      const resid = await ctx.app.pmhq.uploadForward(peer, raw.multiMsgItems)
-      const uuid = randomUUID()
-      const prompt = raw.prompt
-      result = await ctx.app.sendMessage(ctx, peer, [{
-        elementType: 10,
-        elementId: '',
-        arkElement: {
-          bytesData: JSON.stringify({
-            app: 'com.tencent.multimsg',
-            config: {
-              autosize: 1,
-              forward: 1,
-              round: 1,
-              type: 'normal',
-              width: 300,
-            },
-            desc: prompt,
-            extra: JSON.stringify({
-              filename: uuid,
-              tsum: raw.tsum,
-            }),
-            meta: {
-              detail: {
-                news: raw.news,
-                resid,
-                source: raw.source,
-                summary: raw.summary,
-                uniseq: uuid,
-              },
-            },
-            prompt,
-            ver: '0.0.0.5',
-            view: 'contact',
-          }),
-        },
-      }], [])
-    } else {
-      const { elements, deleteAfterSentFiles } = await transformOutgoingMessage(
-        ctx,
-        payload.message,
-        groupCode,
-        true
-      )
-      result = await ctx.app.sendMessage(
-        ctx,
-        peer,
-        elements,
-        deleteAfterSentFiles
-      )
-    }
+    const { elements, deleteAfterSentFiles } = await transformOutgoingMessage(
+      ctx,
+      payload.message,
+      groupCode,
+      true
+    )
+    const result = await ctx.app.sendMessage(
+      ctx,
+      peer,
+      elements,
+      deleteAfterSentFiles
+    )
 
     return Ok({
       message_seq: +result.msgSeq,
