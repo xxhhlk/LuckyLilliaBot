@@ -569,7 +569,7 @@ class OneBot11Adapter extends Service {
               }
               const seqStr = String(target.sequence)
               const targetMsg = await this.ctx.ntMsgApi.getSingleMsg(peer, seqStr)
-              const msg0 = targetMsg.msgList.reduce((a, b) => +a.msgTime <= +b.msgTime ? a : b)
+              const msg0 = targetMsg.msgList[0]
               if (!msg0) {
                 this.ctx.logger.error('解析群表情回应失败：未找到消息')
                 return
