@@ -584,8 +584,8 @@ export interface VasPersonalInfo {
   troopNameColorId?: number | null
   vipNumbers: number[]
   vaDataChangeRand: number
-  vasPersonalNamePlate?: any | null
-  extInfo?: any | null
+  vasPersonalNamePlate?: unknown | null
+  extInfo?: unknown | null
 }
 
 // 群荣誉信息（等级、头衔）
@@ -603,28 +603,28 @@ export interface GroupHonorInfo {
 export interface KingHonorInfo {
   kingHonorLevel: number
   groupInfoFlagEx4: number
-  groupMsgBusiBuf?: any | null
+  groupMsgBusiBuf?: unknown | null
 }
 
 // 消息属性基础字段
 interface MsgAttrBase {
   attrId: string
-  publicAccountAttrs?: any | null
-  sharedMsgInfo?: any | null
-  gameChatSession?: any | null
-  uinInfoAttr?: any | null
-  longMsgAttr?: any | null
-  robotExt?: any | null
-  zPlanMsgInfo?: any | null
-  qqConnectAttr?: any | null
-  extendBusiness?: any | null
-  sendMsgRspTransSvrInfo?: any | null
-  adelieMsgAttr?: any | null
-  feedBackStateInfo?: any | null
-  memoryStateMsgInfo?: any | null
-  attaReportData?: any | null
-  liteAction?: any | null
-  botMetaData?: any | null
+  publicAccountAttrs?: unknown | null
+  sharedMsgInfo?: unknown | null
+  gameChatSession?: unknown | null
+  uinInfoAttr?: unknown | null
+  longMsgAttr?: unknown | null
+  robotExt?: unknown | null
+  zPlanMsgInfo?: unknown | null
+  qqConnectAttr?: unknown | null
+  extendBusiness?: unknown | null
+  sendMsgRspTransSvrInfo?: unknown | null
+  adelieMsgAttr?: unknown | null
+  feedBackStateInfo?: unknown | null
+  memoryStateMsgInfo?: unknown | null
+  attaReportData?: unknown | null
+  liteAction?: unknown | null
+  botMetaData?: unknown | null
 }
 
 // attrType 0: VAS 消息信息
