@@ -389,14 +389,14 @@ export class Sha1Stream {
       data = new Uint8Array(data)
     }
 
-    let len = data.length
+    const len = data.length
     let index = (this._count[0] >>> 3) & 0x3F
 
     this._count[0] += len << 3
     if (this._count[0] < (len << 3)) this._count[1]++
     this._count[1] += len >>> 29
 
-    let partLen = 64 - index
+    const partLen = 64 - index
     let i = 0
 
     if (len >= partLen) {
