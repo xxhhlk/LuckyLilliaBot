@@ -4,6 +4,7 @@ import { transformIncomingPrivateMessage, transformIncomingGroupMessage, transfo
 import { Context } from 'cordis'
 import { selfInfo } from '@/common/globalVars'
 import { Msg, Notify } from '@/ntqqapi/proto'
+import { Event } from '@saltify/milky-types'
 
 /**
  * Transform NTQQ message-created event to Milky message_receive event (private)
@@ -148,7 +149,7 @@ export async function transformGroupNotify(
   ctx: Context,
   notify: GroupNotify,
   doubt: boolean
-): Promise<{ eventType: keyof MilkyEventTypes, data: any } | null> {
+): Promise<{ eventType: keyof MilkyEventTypes, data: Event['data'] } | null> {
   try {
     if (notify.type === GroupNotifyType.RequestJoinNeedAdminiStratorPass && notify.status === GroupNotifyStatus.Unhandle) {
       return {
@@ -196,7 +197,7 @@ export async function transformGroupNotify(
 export async function transformPrivateMessageEvent(
   ctx: Context,
   message: RawMessage
-): Promise<{ eventType: keyof MilkyEventTypes, data: any } | null> {
+): Promise<{ eventType: keyof MilkyEventTypes, data: Event['data'] } | null> {
   try {
     for (const element of message.elements) {
       if (element.grayTipElement?.jsonGrayTipElement?.busiId === '1061') {
@@ -257,7 +258,7 @@ export async function transformPrivateMessageEvent(
 export async function transformGroupMessageEvent(
   ctx: Context,
   message: RawMessage
-): Promise<{ eventType: keyof MilkyEventTypes, data: any } | { eventType: keyof MilkyEventTypes, data: any }[] | null> {
+): Promise<{ eventType: keyof MilkyEventTypes, data: Event['data'] } | { eventType: keyof MilkyEventTypes, data: Event['data'] }[] | null> {
   try {
     for (const element of message.elements) {
       if (
@@ -351,7 +352,7 @@ export async function transformGroupMessageEvent(
 export async function transformSystemMessageEvent(
   ctx: Context,
   data: Buffer
-): Promise<{ eventType: keyof MilkyEventTypes, data: any } | null> {
+): Promise<{ eventType: keyof MilkyEventTypes, data: Event['data'] } | null> {
   try {
     const sysMsg = Msg.Message.decode(data)
     if (!sysMsg.body) {
@@ -440,7 +441,7 @@ export async function transformSystemMessageEvent(
 export async function transformOlpushEvent(
   ctx: Context,
   data: Buffer
-): Promise<{ eventType: keyof MilkyEventTypes, data: any } | null> {
+): Promise<{ eventType: keyof MilkyEventTypes, data: Event['data'] } | null> {
   try {
     const pushMsg = Msg.PushMsg.decode(data)
     if (!pushMsg.message.body) {
