@@ -3,18 +3,23 @@ V7.11.1
 
 * 修复自己发送的合并转发消息无法正确显示
 * 修复合并转发图片可能上传失败
-* OneBot 修复获取群文件列表接口无法拿到 `upload_time`
 * OneBot 当音乐卡片的 `type` 不为 `custom` 时，支持自定义音乐卡片
+* OneBot 支持 set_msg_emoji_like 接口通过 set 参数取消表情回应
+* OneBot 修复获取群文件列表接口无法拿到 `upload_time`
+* OneBot 修复 WebHook 连接方式在响应内容为空时错误触发快速操作
+* OneBot 修复 group_msg_emoji_like 事件可能上报错误的消息 ID
+* OneBot 修复 get_stranger_info 接口偶现报错
 * Milky 修复 SSE 端点未生效配置的前缀
 * Milky 修复获取群文件列表接口无法拿到 `uploaded_time`
-* Milky 修复合并转发可能渲染异常
+* Milky 修复合并转发发送可能内容异常
+* Milky 修复合并转发接收可能未正确上报
 * Milky 给 `GroupEntity` 增加了更多元信息
   * `remark`，表示给群的备注
   * `created_time`，表示群创建的时间
   * `description`，表示群的简介
   * `question`，表示入群问题
   * `announcement`，表示群公告预览（通常是该群最近一次的群公告内容节选）
-* WebQQ 
+* WebQQ
   * 修复群成员列表右键菜单没有管理员相关菜单项
   * 修复点击查看合并转发中图片没有置顶显示
 
