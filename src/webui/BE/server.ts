@@ -27,7 +27,7 @@ import { serve, ServerType } from '@hono/node-server'
 
 // 静态文件服务，指向前端dist目录
 let feDistPath = path.resolve(import.meta.dirname, 'webui/')
-// @ts-ignore
+// @ts-expect-error: TS2339 - Property 'env' does not exist on type 'ImportMeta'
 if (!import.meta.env) {
   feDistPath = path.join(import.meta.dirname, '../../../dist/webui/')
 }
