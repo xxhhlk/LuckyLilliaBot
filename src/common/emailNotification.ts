@@ -6,7 +6,6 @@ import { selfInfo } from '@/common/globalVars.js'
 import { DATA_DIR } from '@/common/globalVars.js'
 import { watch } from 'node:fs'
 import path from 'node:path'
-import { pmhq } from '@/ntqqapi/native/pmhq/index.js'
 
 declare module 'cordis' {
   interface Context {
@@ -15,7 +14,7 @@ declare module 'cordis' {
 }
 
 export class EmailNotificationService extends Service {
-  static inject = ['logger']
+  static inject = ['logger', 'pmhq']
 
   private emailService: EmailService
   private configManager: EmailConfigManager
@@ -47,7 +46,7 @@ export class EmailNotificationService extends Service {
         this.fileWatcher.close()
       }
       if (this.pmhqDisconnectId) {
-        pmhq.offDisconnect(this.pmhqDisconnectId)
+        this.ctx.pmhq.offDisconnect(this.pmhqDisconnectId)
       }
     }
   }
@@ -93,7 +92,7 @@ export class EmailNotificationService extends Service {
   }
 
   private registerPmhqDisconnectCallback() {
-    this.pmhqDisconnectId = pmhq.onDisconnect(10000, (duration) => {
+    this.pmhqDisconnectId = this.ctx.pmhq.onDisconnect(10000, (duration) => {
       if (!this.notificationSent && this.hasLoggedIn) {
         this.ctx.logger.warn(`[EmailNotification] PMHQ disconnected for ${duration}ms`)
         this.onOffline('可能 QQ 已经有点死了')

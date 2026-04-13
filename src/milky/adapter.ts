@@ -33,7 +33,7 @@ declare module 'cordis' {
 }
 
 export class MilkyAdapter extends Service {
-  static inject = ['ntUserApi', 'ntFriendApi', 'ntGroupApi', 'ntMsgApi', 'ntFileApi', 'ntSystemApi', 'ntWebApi', 'app', 'logger']
+  static inject = ['ntUserApi', 'ntFriendApi', 'ntGroupApi', 'ntMsgApi', 'ntFileApi', 'ntSystemApi', 'ntWebApi', 'app', 'logger', 'pmhq']
 
   readonly apiCollection!: MilkyApiCollection
   readonly httpHandler!: MilkyHttpHandler
@@ -220,7 +220,7 @@ export class MilkyAdapter extends Service {
       })
     })
 
-    this.ctx.app.pmhq.addResListener(async (data) => {
+    this.ctx.pmhq.addResListener(async (data) => {
       if (data.type === 'recv' && data.data.cmd === 'trpc.msg.olpush.OlPushService.MsgPush') {
         const result = await transformOlpushEvent(this.ctx, Buffer.from(data.data.pb, 'hex'))
         if (result) {

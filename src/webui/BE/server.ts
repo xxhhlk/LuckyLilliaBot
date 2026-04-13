@@ -3,7 +3,6 @@ import { Config, WebUIConfig } from '@/common/types'
 import { Context, Service } from 'cordis'
 import { TEMP_DIR } from '@/common/globalVars'
 import { getAvailablePort } from '@/common/utils/port'
-import { pmhq } from '@/ntqqapi/native/pmhq'
 import { ChatType, RawMessage, FriendRequest } from '@/ntqqapi/types'
 import { SendElement } from '@/ntqqapi/entities'
 import { existsSync, mkdirSync } from 'node:fs'
@@ -43,12 +42,6 @@ export interface WebuiServerConfig extends WebUIConfig {
 }
 
 export class WebuiServer extends Service {
-  private server: ServerType | null = null
-  private app: Hono = new Hono()
-  private currentPort?: number
-  public port?: number = undefined
-  private sseClients: Set<SSEStreamingApi> = new Set()
-  private uploadDir: string
   static inject = {
     ntLoginApi: true,
     ntFriendApi: true,
@@ -58,8 +51,16 @@ export class WebuiServer extends Service {
     ntUserApi: true,
     ntFileApi: true,
     emailNotification: false,
-    logger: true
+    logger: true,
+    pmhq: true
   }
+
+  private server: ServerType | null = null
+  private app: Hono = new Hono()
+  private currentPort?: number
+  public port?: number = undefined
+  private sseClients: Set<SSEStreamingApi> = new Set()
+  private uploadDir: string
 
   async [Service.init]() {
     await this.start()
@@ -258,7 +259,7 @@ export class WebuiServer extends Service {
   }
 
   private setupEmojiReactionListener() {
-    pmhq.addResListener(async data => {
+    this.ctx.pmhq.addResListener(async data => {
       if (this.sseClients.size === 0) return
       if (data.type !== 'recv' || data.data.cmd !== 'trpc.msg.olpush.OlPushService.MsgPush') return
 
@@ -360,7 +361,7 @@ export class WebuiServer extends Service {
       return
     }
     this.port = await this.startServer()
-    pmhq.tellPort(this.port).catch((err: Error) => {
+    this.ctx.pmhq.tellPort(this.port).catch((err: Error) => {
       this.ctx.logger.error('记录 WebUI 端口失败:', err)
     })
   }
@@ -370,7 +371,7 @@ export class WebuiServer extends Service {
       return
     }
     this.port = await this.startServer(forcePort)
-    pmhq.tellPort(this.port).catch((err: Error) => {
+    this.ctx.pmhq.tellPort(this.port).catch((err: Error) => {
       this.ctx.logger.error('记录 WebUI 端口失败:', err)
     })
   }

@@ -40,12 +40,12 @@ export default class Log implements Exporter {
   private currentEntries: number
   private currentSize: number
 
-  constructor(private ctx: Context, private exportFile: boolean, filename: string) {
+  constructor(private ctx: Context, private exportFile: boolean) {
     this.exporterConsole = new Exporter.Console({
       timestamp: Date.now(),
       colors: 0
     })
-    this.currentFile = path.join(LOG_DIR, filename)
+    this.currentFile = path.join(LOG_DIR, generateLogFilename())
     this.currentEntries = 0
     this.currentSize = 0
 

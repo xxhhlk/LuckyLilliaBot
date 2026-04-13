@@ -12,12 +12,9 @@ import MilkyAdapter from '../milky/adapter'
 import Database from 'minato'
 import SQLiteDriver from '@minatojs/driver-sqlite'
 import Store from './store'
-import { Config as LLOBConfig } from '../common/types'
-import { startHook } from '../ntqqapi/hook'
-import { getConfigUtil } from '../common/config'
+import { Config as LLBotConfig } from '../common/types'
 import { Context } from 'cordis'
 import { selfInfo, LOG_DIR, TEMP_DIR, dbDir } from '../common/globalVars'
-import { logFileName } from '../common/utils/legacyLog'
 import {
   NTQQFileApi,
   NTQQFileCacheApi,
@@ -32,18 +29,19 @@ import {
 import { existsSync, mkdirSync } from 'node:fs'
 import { version } from '../version'
 import { WebuiServer } from '../webui/BE/server'
-import { pmhq } from '@/ntqqapi/native/pmhq'
 import { sleep } from '@/common/utils'
 import EmailNotificationService from '@/common/emailNotification'
 import { EmailConfig } from '@/common/emailConfig'
 import { isDockerEnvironment } from '@/common/utils/environment'
+import { pathToFileURL } from 'node:url'
+import { PMHQ } from './pmhq'
 import LoggerService from '@cordisjs/plugin-logger'
 import TimerService from '@cordisjs/plugin-timer'
-import { pathToFileURL } from 'node:url'
+import ConfigService from './config'
 
 declare module 'cordis' {
   interface Events {
-    'llob/config-updated': (input: LLOBConfig) => void
+    'llob/config-updated': (input: LLBotConfig) => void
     'llbot/email-config-updated': (input: EmailConfig) => void
   }
 }
@@ -59,12 +57,10 @@ async function onLoad() {
 
   const ctx = new Context()
 
-  let config = getConfigUtil().getConfig()
-  config.milky.enable = false
-  config.satori.enable = false
-  config.ob11.enable = false
   ctx.plugin(LoggerService)
   ctx.plugin(TimerService)
+  ctx.plugin(ConfigService)
+  ctx.plugin(PMHQ)
   ctx.plugin(NTQQFileApi)
   ctx.plugin(NTQQFileCacheApi)
   ctx.plugin(NTQQFriendApi)
@@ -74,7 +70,8 @@ async function onLoad() {
   ctx.plugin(NTQQUserApi)
   ctx.plugin(NTQQWebApi)
   ctx.plugin(NTQQSystemApi)
-  ctx.plugin(WebuiServer, config.webui)
+
+  let config: LLBotConfig
 
   const loadPluginAfterLogin = () => {
     ctx.plugin(Database)
@@ -129,7 +126,7 @@ async function onLoad() {
   const checkLogin = async () => {
     let pmhqSelfInfo = { ...selfInfo }
     try {
-      pmhqSelfInfo = await pmhq.call('getSelfInfo', [])
+      pmhqSelfInfo = await ctx.pmhq.call('getSelfInfo', [])
     } catch (e) {
       ctx.logger.info('获取账号信息状态失败', e)
       setTimeout(checkLogin, 1000)
@@ -162,21 +159,28 @@ async function onLoad() {
         ctx.logger.warn('获取登录号昵称失败', e)
       })
     }
-    config = getConfigUtil(true).getConfig()
-    getConfigUtil().listenChange(c => {
+    config = ctx.config.get(false)
+    ctx.config.listenChange(c => {
       ctx.parallel('llob/config-updated', c)
     })
     ctx.parallel('llob/config-updated', config)
     loadPluginAfterLogin()
   }
-  checkLogin()
 
-  ctx.inject({ logger: true }, (ctx) => {
-    ctx.logger.exporter(new Log(ctx, config.log!, logFileName))
+  ctx.inject(['logger'], (ctx) => {
+    ctx.logger.exporter(new Log(ctx, true))
     ctx.logger.info(`LLBot ${version}`)
   })
   // setFFMpegPath(config.ffmpeg || '')
-  startHook()
+  ctx.inject(['pmhq', 'config', 'logger'], (ctx) => {
+    config = ctx.config.get()
+    config.milky.enable = false
+    config.satori.enable = false
+    config.ob11.enable = false
+    ctx.plugin(WebuiServer, config.webui)
+    checkLogin()
+    ctx.pmhq.startHook()
+  })
 }
 
 

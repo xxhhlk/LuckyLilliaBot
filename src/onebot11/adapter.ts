@@ -57,7 +57,7 @@ class Onebot11Adapter extends Service {
     'ntMsgApi', 'ntFileApi', 'ntFileCacheApi',
     'ntFriendApi', 'ntGroupApi', 'ntUserApi',
     'ntWebApi', 'ntSystemApi', 'store', 'app',
-    'logger'
+    'logger', 'pmhq'
   ]
   private connect: (OB11Http | OB11HttpPost | OB11WebSocket | OB11WebSocketReverse)[]
   private actionMap: Map<string, BaseAction<unknown, unknown>>
@@ -552,7 +552,7 @@ class Onebot11Adapter extends Service {
       this.dispatch(event)
     })
 
-    this.ctx.app.pmhq.addResListener(async data => {
+    this.ctx.pmhq.addResListener(async data => {
       try {
         if (data.type === 'recv' && data.data.cmd === 'trpc.msg.olpush.OlPushService.MsgPush') {
           const pushMsg = Msg.PushMsg.decode(Buffer.from(data.data.pb, 'hex'))
