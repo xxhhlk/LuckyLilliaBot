@@ -11,10 +11,10 @@ declare module 'cordis' {
 }
 
 export class NTQQMsgApi extends Service {
-  static inject = ['ntUserApi']
+  static inject = ['ntUserApi', 'logger']
 
   constructor(protected ctx: Context) {
-    super(ctx, 'ntMsgApi', true)
+    super(ctx, 'ntMsgApi')
   }
 
   async getTempChatInfo(chatType: ChatType, peerUid: string) {

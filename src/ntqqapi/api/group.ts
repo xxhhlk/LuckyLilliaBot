@@ -24,7 +24,7 @@ declare module 'cordis' {
 
 export class NTQQGroupApi extends Service {
   constructor(protected ctx: Context) {
-    super(ctx, 'ntGroupApi', true)
+    super(ctx, 'ntGroupApi')
   }
 
   async getGroups(forceFetch = true): Promise<GroupSimpleInfo[]> {

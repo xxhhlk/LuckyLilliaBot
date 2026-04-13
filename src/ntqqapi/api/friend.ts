@@ -13,7 +13,7 @@ export class NTQQFriendApi extends Service {
   static inject = ['ntUserApi', 'ntSystemApi']
 
   constructor(protected ctx: Context) {
-    super(ctx, 'ntFriendApi', true)
+    super(ctx, 'ntFriendApi')
   }
 
   /** reqTime 可为 0 */
@@ -53,7 +53,7 @@ export class NTQQFriendApi extends Service {
         }[]
       }>('nodeIKernelBuddyService/getBuddyListV2', [forceRefresh, 0])
     }
-    
+
     return result
   }
 

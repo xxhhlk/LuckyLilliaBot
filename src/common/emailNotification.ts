@@ -1,4 +1,4 @@
-import { Context, Service } from 'cordis'
+import { Context, Inject, Service } from 'cordis'
 import { EmailService, BotInfo } from './emailService.js'
 import { EmailConfigManager } from './emailConfig.js'
 import { KickedOffLineInfo } from '@/ntqqapi/types/index.js'
@@ -16,7 +16,7 @@ declare module 'cordis' {
 
 export class EmailNotificationService extends Service {
   static inject = ['logger']
-  
+
   private emailService: EmailService
   private configManager: EmailConfigManager
   private notificationSent: boolean = false
@@ -24,9 +24,10 @@ export class EmailNotificationService extends Service {
   private configPath: string
   private fileWatcher: ReturnType<typeof watch> | null = null
   private pmhqDisconnectId: string | null = null
+  private checkLoginStatus: NodeJS.Timeout | null = null
 
   constructor(ctx: Context) {
-    super(ctx, 'emailNotification', true)
+    super(ctx, 'emailNotification')
 
     this.configPath = path.join(DATA_DIR, 'email_config.json')
     this.configManager = new EmailConfigManager(this.configPath, ctx.logger)
@@ -35,6 +36,20 @@ export class EmailNotificationService extends Service {
     this.initializeConfig()
     this.registerEventListeners()
     this.registerPmhqDisconnectCallback()
+  }
+
+  async [Service.init]() {
+    return () => {
+      if (this.checkLoginStatus) {
+        clearInterval(this.checkLoginStatus)
+      }
+      if (this.fileWatcher) {
+        this.fileWatcher.close()
+      }
+      if (this.pmhqDisconnectId) {
+        pmhq.offDisconnect(this.pmhqDisconnectId)
+      }
+    }
   }
 
   private async initializeConfig() {
@@ -56,22 +71,12 @@ export class EmailNotificationService extends Service {
       this.onOffline(info.tipsDesc || info.tipsTitle)
     })
 
-    const checkLoginStatus = setInterval(() => {
+    this.checkLoginStatus = setInterval(() => {
       if (wasOffline && selfInfo.online) {
         this.notificationSent = false
         wasOffline = false
       }
     }, 5000)
-
-    this.ctx.on('dispose', () => {
-      clearInterval(checkLoginStatus)
-      if (this.fileWatcher) {
-        this.fileWatcher.close()
-      }
-      if (this.pmhqDisconnectId) {
-        pmhq.offDisconnect(this.pmhqDisconnectId)
-      }
-    })
   }
 
   private watchConfigFile() {

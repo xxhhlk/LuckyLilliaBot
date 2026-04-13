@@ -16,7 +16,7 @@ import { Config as LLOBConfig } from '../common/types'
 import { startHook } from '../ntqqapi/hook'
 import { getConfigUtil } from '../common/config'
 import { Context } from 'cordis'
-import { selfInfo, LOG_DIR, DATA_DIR, TEMP_DIR, dbDir } from '../common/globalVars'
+import { selfInfo, LOG_DIR, TEMP_DIR, dbDir } from '../common/globalVars'
 import { logFileName } from '../common/utils/legacyLog'
 import {
   NTQQFileApi,
@@ -31,12 +31,15 @@ import {
 } from '../ntqqapi/api'
 import { existsSync, mkdirSync } from 'node:fs'
 import { version } from '../version'
-import { WebUIServer } from '../webui/BE/server'
+import { WebuiServer } from '../webui/BE/server'
 import { pmhq } from '@/ntqqapi/native/pmhq'
 import { sleep } from '@/common/utils'
 import EmailNotificationService from '@/common/emailNotification'
 import { EmailConfig } from '@/common/emailConfig'
 import { isDockerEnvironment } from '@/common/utils/environment'
+import LoggerService from '@cordisjs/plugin-logger'
+import TimerService from '@cordisjs/plugin-timer'
+import { pathToFileURL } from 'node:url'
 
 declare module 'cordis' {
   interface Events {
@@ -60,6 +63,8 @@ async function onLoad() {
   config.milky.enable = false
   config.satori.enable = false
   config.ob11.enable = false
+  ctx.plugin(LoggerService)
+  ctx.plugin(TimerService)
   ctx.plugin(NTQQFileApi)
   ctx.plugin(NTQQFileCacheApi)
   ctx.plugin(NTQQFriendApi)
@@ -69,24 +74,12 @@ async function onLoad() {
   ctx.plugin(NTQQUserApi)
   ctx.plugin(NTQQWebApi)
   ctx.plugin(NTQQSystemApi)
-  ctx.plugin(Log, {
-    enable: config.log!,
-    filename: logFileName,
-  })
-  ctx.plugin(WebUIServer, config.webui)
-
-  // 全局异常处理，防止未捕获的异常导致程序崩溃
-  process.on('uncaughtException', (err) => {
-    ctx.logger.error('[uncaughtException]', err?.message || err)
-  })
-  process.on('unhandledRejection', (reason) => {
-    ctx.logger.error('[unhandledRejection]', reason)
-  })
+  ctx.plugin(WebuiServer, config.webui)
 
   const loadPluginAfterLogin = () => {
     ctx.plugin(Database)
     ctx.plugin(SQLiteDriver, {
-      path: path.join(dbDir, `${selfInfo.uin}.v2.db`),
+      path: pathToFileURL(path.join(dbDir, `${selfInfo.uin}.v2.db`)).href,
     })
     ctx.plugin(Core, config)
     ctx.plugin(OneBot11Adapter, {
@@ -178,12 +171,12 @@ async function onLoad() {
   }
   checkLogin()
 
-  ctx.logger.info(`LLBot ${version}`)
+  ctx.inject({ logger: true }, (ctx) => {
+    ctx.logger.exporter(new Log(ctx, config.log!, logFileName))
+    ctx.logger.info(`LLBot ${version}`)
+  })
   // setFFMpegPath(config.ffmpeg || '')
   startHook()
-  ctx.start().catch(e => {
-    console.error('Start error:', e)
-  })
 }
 
 

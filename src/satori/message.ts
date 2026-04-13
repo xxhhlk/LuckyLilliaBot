@@ -6,7 +6,7 @@ import { Message } from '@satorijs/protocol'
 import { SendElement } from '@/ntqqapi/entities'
 import { decodeMessage, getPeer } from './utils'
 import { ObjectToSnake } from 'ts-case-convert'
-import { uri2local } from '@/common/utils'
+import { sleep, uri2local } from '@/common/utils'
 import { unlink } from 'node:fs/promises'
 import { selfInfo } from '@/common/globalVars'
 import { InferProtoModelInput } from '@saltify/typeproto'
@@ -339,7 +339,7 @@ export class MessageEncoder {
         if (clonedMsg) {
           retMsgIds.push(clonedMsg.msgId)
         }
-        await this.ctx.sleep(100)
+        await sleep(100)
       }
       srcPeer = selfPeer
     } else {

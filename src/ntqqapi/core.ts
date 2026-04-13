@@ -1,6 +1,6 @@
 import { unlink } from 'node:fs/promises'
 import { statSync } from 'node:fs'
-import { Service, Context } from 'cordis'
+import { Service, Context, Inject } from 'cordis'
 import { registerReceiveHook, ReceiveCmdS } from './hook'
 import { Config as LLOBConfig } from '../common/types'
 import {
@@ -56,7 +56,7 @@ declare module 'cordis' {
 }
 
 class Core extends Service {
-  static inject = ['ntMsgApi', 'ntFriendApi', 'ntGroupApi', 'store', 'ntUserApi', 'ntFileApi']
+  static inject = ['ntMsgApi', 'ntFriendApi', 'ntGroupApi', 'store', 'ntUserApi', 'ntFileApi', 'logger']
   public startupTime = 0
   public messageReceivedCount = 0
   public messageSentCount = 0
@@ -64,8 +64,13 @@ class Core extends Service {
   public pmhq
 
   constructor(protected ctx: Context, public config: Core.Config) {
-    super(ctx, 'app', true)
+    super(ctx, 'app')
     this.pmhq = pmhq
+  }
+
+  async [Service.init]() {
+    this.start()
+    return noop
   }
 
   public start() {

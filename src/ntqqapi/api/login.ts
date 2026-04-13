@@ -12,7 +12,7 @@ export class NTLoginApi extends Service {
   static inject = []
 
   constructor(protected ctx: Context) {
-    super(ctx, 'ntLoginApi', true)
+    super(ctx, 'ntLoginApi')
   }
 
   async getQuickLoginList(){

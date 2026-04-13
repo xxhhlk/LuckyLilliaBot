@@ -34,10 +34,12 @@ declare module 'cordis' {
 }
 
 export class NTQQFileApi extends Service {
+  static inject = ['logger']
+
   rkeyManager: RkeyManager
 
   constructor(protected ctx: Context) {
-    super(ctx, 'ntFileApi', true)
+    super(ctx, 'ntFileApi')
     this.rkeyManager = new RkeyManager(ctx, 'https://llob.linyuchen.net/rkey')
   }
 
@@ -629,7 +631,7 @@ export class NTQQFileApi extends Service {
 
 export class NTQQFileCacheApi extends Service {
   constructor(protected ctx: Context) {
-    super(ctx, 'ntFileCacheApi', true)
+    super(ctx, 'ntFileCacheApi')
   }
 
   async setCacheSilentScan(isSilent: boolean = true) {

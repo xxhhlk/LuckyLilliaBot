@@ -9,7 +9,7 @@ declare module 'cordis' {
 
 export class NTQQSystemApi extends Service {
   constructor(protected ctx: Context) {
-    super(ctx, 'ntSystemApi', true)
+    super(ctx, 'ntSystemApi')
   }
 
   async restart() {

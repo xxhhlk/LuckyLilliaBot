@@ -24,6 +24,7 @@ import { Hono } from 'hono'
 import { SSEStreamingApi } from 'hono/streaming'
 import { serveStatic } from '@hono/node-server/serve-static'
 import { serve, ServerType } from '@hono/node-server'
+import { noop } from 'cosmokit'
 
 // 静态文件服务，指向前端dist目录
 let feDistPath = path.resolve(import.meta.dirname, 'webui/')
@@ -34,14 +35,14 @@ if (!import.meta.env) {
 
 declare module 'cordis' {
   interface Context {
-    webuiServer: WebUIServer
+    webuiServer: WebuiServer
   }
 }
 
-export interface WebUIServerConfig extends WebUIConfig {
+export interface WebuiServerConfig extends WebUIConfig {
 }
 
-export class WebUIServer extends Service {
+export class WebuiServer extends Service {
   private server: ServerType | null = null
   private app: Hono = new Hono()
   private currentPort?: number
@@ -49,34 +50,24 @@ export class WebUIServer extends Service {
   private sseClients: Set<SSEStreamingApi> = new Set()
   private uploadDir: string
   static inject = {
-    ntLoginApi: {
-      required: true
-    },
-    ntFriendApi: {
-      required: true
-    },
-    ntGroupApi: {
-      required: true
-    },
-    ntSystemApi: {
-      required: true
-    },
-    ntMsgApi: {
-      required: true
-    },
-    ntUserApi: {
-      required: true
-    },
-    ntFileApi: {
-      required: true
-    },
-    emailNotification: {
-      required: false
-    }
+    ntLoginApi: true,
+    ntFriendApi: true,
+    ntGroupApi: true,
+    ntSystemApi: true,
+    ntMsgApi: true,
+    ntUserApi: true,
+    ntFileApi: true,
+    emailNotification: false,
+    logger: true
   }
 
-  constructor(ctx: Context, public config: WebUIServerConfig) {
-    super(ctx, 'webuiServer', true)
+  async [Service.init]() {
+    await this.start()
+    return noop
+  }
+
+  constructor(ctx: Context, public config: WebuiServerConfig) {
+    super(ctx, 'webuiServer')
     this.uploadDir = path.join(TEMP_DIR, 'webqq-uploads')
     if (!existsSync(this.uploadDir)) {
       mkdirSync(this.uploadDir, { recursive: true })

@@ -13,10 +13,10 @@ declare module 'cordis' {
 }
 
 export class NTQQUserApi extends Service {
-  static inject = ['ntGroupApi']
+  static inject = ['ntGroupApi', 'logger']
 
   constructor(protected ctx: Context) {
-    super(ctx, 'ntUserApi', true)
+    super(ctx, 'ntUserApi')
   }
 
   async setSelfAvatar(path: string) {
