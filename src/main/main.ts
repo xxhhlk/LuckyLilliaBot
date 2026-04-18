@@ -57,7 +57,9 @@ async function onLoad() {
 
   const ctx = new Context()
 
-  ctx.plugin(LoggerService)
+  ctx.plugin(LoggerService, {
+    bufferSize: 0
+  })
   ctx.plugin(TimerService)
   ctx.plugin(ConfigService)
   ctx.plugin(PMHQ)
