@@ -22,7 +22,7 @@ jobs:
       - name: Install dependencies
         run: |
           corepack enable
-          yarn install
+          YARN_ENABLE_HARDENED_MODE=0 yarn install
           cd src/webui/FE && npm install
 
       - name: Run unit tests
@@ -46,7 +46,7 @@ jobs:
       - name: Install dependencies
         run: |
           corepack enable
-          yarn install
+          YARN_ENABLE_HARDENED_MODE=0 yarn install
           cd src/webui/FE && npm install
 
       - name: Build LLBot
@@ -82,7 +82,7 @@ jobs:
       - name: Install dependencies
         run: |
           corepack enable
-          yarn install
+          YARN_ENABLE_HARDENED_MODE=0 yarn install
           cd src/webui/FE && npm install
 
       - name: Write llbot configs
