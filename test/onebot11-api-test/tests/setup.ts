@@ -3,6 +3,7 @@
  * 提供统一的测试初始化和清理逻辑
  */
 
+import path from 'node:path';
 import { ConfigLoader } from '../config/ConfigLoader';
 import { AccountManager } from '../core/AccountManager';
 import { TwoAccountTest } from '../utils/TwoAccountTest';
@@ -24,7 +25,7 @@ export interface MessageTestContext {
  * @returns 测试上下文对象
  */
 export async function setupMessageTest(): Promise<MessageTestContext> {
-  const config = ConfigLoader.load('./config/test.config.json');
+  const config = ConfigLoader.load(path.resolve(import.meta.dirname, '../config/test.config.json'));
   const testTimeout = config.timeout || 30000;
   const accountManager = new AccountManager(config);
   const twoAccountTest = new TwoAccountTest(accountManager);
