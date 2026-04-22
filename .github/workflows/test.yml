@@ -21,7 +21,8 @@ jobs:
 
       - name: Install dependencies
         run: |
-          npm install
+          corepack enable
+          yarn install
           cd src/webui/FE && npm install
 
       - name: Run unit tests
@@ -44,7 +45,8 @@ jobs:
 
       - name: Install dependencies
         run: |
-          npm install
+          corepack enable
+          yarn install
           cd src/webui/FE && npm install
 
       - name: Build LLBot
@@ -79,7 +81,8 @@ jobs:
 
       - name: Install dependencies
         run: |
-          npm install
+          corepack enable
+          yarn install
           cd src/webui/FE && npm install
 
       - name: Write llbot configs
