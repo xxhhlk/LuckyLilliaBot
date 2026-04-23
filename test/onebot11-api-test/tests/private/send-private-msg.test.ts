@@ -9,11 +9,11 @@ import {
   OB11MessageText,
   OB11MessageDataType,
   OB11MessageData
-} from '@llbot/onebot11/types';
+} from '@/types/onebot11';
 import { setupMessageTest, teardownMessageTest, MessageTestContext } from '../setup';
 import { Assertions } from '@/utils/Assertions';
 import { MediaPaths } from '../media';
-import { ActionName } from '@llbot/onebot11/action/types';
+import { ActionName } from '@/types/onebot11';
 
 describe('send_private_msg - 发送私聊消息', () => {
   let context: MessageTestContext;

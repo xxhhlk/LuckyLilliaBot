@@ -5,7 +5,7 @@
 
 import { setupMessageTest, teardownMessageTest, MessageTestContext } from '../setup';
 import { Assertions } from '@/utils/Assertions';
-import { ActionName } from '@llbot/onebot11/action/types';
+import { ActionName } from '@/types/onebot11';
 
 describe('group_file_operations - 群文件操作', () => {
   let context: MessageTestContext;

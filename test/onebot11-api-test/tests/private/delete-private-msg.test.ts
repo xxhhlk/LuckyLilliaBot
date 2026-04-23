@@ -7,7 +7,7 @@
 
 import { setupMessageTest, teardownMessageTest, sleep, MessageTestContext } from '../setup';
 import { Assertions } from '../../utils/Assertions';
-import { ActionName } from '@llbot/onebot11/action/types';
+import { ActionName } from '@/types/onebot11';
 
 describe('delete_msg - 撤回私聊消息', () => {
   let context: MessageTestContext;

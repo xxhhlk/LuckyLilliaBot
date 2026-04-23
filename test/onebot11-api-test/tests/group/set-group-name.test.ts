@@ -7,7 +7,7 @@
 
 import { setupMessageTest, teardownMessageTest, MessageTestContext } from '../setup';
 import { Assertions } from '@/utils/Assertions';
-import { ActionName } from '@llbot/onebot11/action/types';
+import { ActionName } from '@/types/onebot11';
 
 describe('set_group_name - 设置群名称', () => {
   let context: MessageTestContext;

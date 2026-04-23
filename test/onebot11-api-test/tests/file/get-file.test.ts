@@ -5,8 +5,8 @@
 
 import { setupMessageTest, teardownMessageTest, MessageTestContext } from '../setup';
 import { Assertions } from '@/utils/Assertions';
-import { ActionName } from '@llbot/onebot11/action/types';
-import { OB11MessageDataType, OB11MessageData } from '@llbot/onebot11/types';
+import { ActionName } from '@/types/onebot11';
+import { OB11MessageDataType, OB11MessageData } from '@/types/onebot11';
 import { MediaPaths } from '../media';
 
 describe('get_file - 获取文件信息', () => {

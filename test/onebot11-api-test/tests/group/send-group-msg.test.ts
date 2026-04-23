@@ -10,11 +10,11 @@ import {
   OB11MessageDataType,
   OB11MessageData,
   OB11MessageAt
-} from '@llbot/onebot11/types';
+} from '@/types/onebot11';
 import { setupMessageTest, teardownMessageTest, MessageTestContext } from '../setup';
 import { Assertions } from '@/utils/Assertions';
 import { MediaPaths } from '../media';
-import { ActionName } from '@llbot/onebot11/action/types';
+import { ActionName } from '@/types/onebot11';
 
 describe('send_group_msg - 发送群消息', () => {
   let context: MessageTestContext;

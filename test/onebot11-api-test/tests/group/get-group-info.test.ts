@@ -5,7 +5,7 @@
 
 import { setupMessageTest, teardownMessageTest, MessageTestContext } from '../setup';
 import { Assertions } from '@/utils/Assertions';
-import { ActionName } from '@llbot/onebot11/action/types';
+import { ActionName } from '@/types/onebot11';
 
 describe('get_group_info - 获取群信息', () => {
   let context: MessageTestContext;

@@ -4,8 +4,6 @@ export default {
   extensionsToTreatAsEsm: ['.ts'],
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/$1',
-    '^@llbot/(.*)$': '<rootDir>/../../src/$1',
-    '^@llonebot/(.*)$': '<rootDir>/../../src/$1',
     '^(\\.{1,2}/.*)\\.js$': '$1',
   },
   transform: {

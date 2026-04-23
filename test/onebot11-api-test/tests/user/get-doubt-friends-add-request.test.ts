@@ -5,7 +5,7 @@
 
 import { setupMessageTest, teardownMessageTest, MessageTestContext } from '../setup';
 import { Assertions } from '@/utils/Assertions';
-import { ActionName } from '@llbot/onebot11/action/types';
+import { ActionName } from '@/types/onebot11';
 
 describe('get_doubt_friends_add_request - 获取可疑好友请求', () => {
   let context: MessageTestContext;

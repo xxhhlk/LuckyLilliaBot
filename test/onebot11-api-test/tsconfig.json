@@ -17,8 +17,7 @@
     "types": ["jest", "node"],
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./*"],
-      "@llbot/*": ["../../src/*"]
+      "@/*": ["./*"]
     }
   },
   "include": [
