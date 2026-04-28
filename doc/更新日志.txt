@@ -1,3 +1,10 @@
+V7.12.6
+更新时间 2026-04-28
+
+* OneBot 修复 _get_group_notice API 获取不到发给新成员的公告
+* OneBot 支持 _get_group_notice API 获取群公告是否置顶
+
+=================
 V7.12.5
 更新时间 2026-04-27
 

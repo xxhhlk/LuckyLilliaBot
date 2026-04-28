@@ -21,6 +21,7 @@ interface Notice {
     is_show_edit_card: boolean
     tip_window: boolean
     confirm_required: boolean
+    pinned: boolean
   }
 }
 
@@ -33,7 +34,7 @@ export class GetGroupNotice extends BaseAction<Payload, Notice[]> {
   protected async _handle(payload: Payload) {
     const data = await this.ctx.ntGroupApi.getGroupBulletinList(payload.group_id.toString())
     const result: Notice[] = []
-    for (const feed of data.feeds) {
+    for (const feed of [...data.feeds, ...data.inst]) {
       result.push({
         notice_id: feed.feedId,
         sender_id: +feed.uin,
@@ -51,9 +52,13 @@ export class GetGroupNotice extends BaseAction<Payload, Notice[]> {
         settings: {
           is_show_edit_card: !!feed.settings.isShowEditCard,
           tip_window: !feed.settings.tipWindowType,
-          confirm_required: !!feed.settings.confirmRequired
+          confirm_required: !!feed.settings.confirmRequired,
+          pinned: !!feed.pinned
         }
       })
+    }
+    if (data.inst.length > 0) {
+      return result.sort((a, b) => b.publish_time - a.publish_time)
     }
     return result
   }
