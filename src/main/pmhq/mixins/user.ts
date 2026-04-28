@@ -9,12 +9,14 @@ export function UserMixin<T extends new (...args: any[]) => PMHQBase>(Base: T) {
         uin,
         keys: [
           { key: 102 },  // 个性签名
+          { key: 103 },  // 备注
           { key: 104 },  // 标签
           { key: 105 },  // 等级
           { key: 20002 },  // 昵称
           { key: 20003 },  // 国家
           { key: 20009 },  // 性别
           { key: 20020 },  // 城市
+          { key: 20021 },  // 学校
           { key: 20026 },  // 注册时间
           { key: 20031 },  // 生日
           { key: 20037 },  // 年龄
@@ -47,6 +49,8 @@ export function UserMixin<T extends new (...args: any[]) => PMHQBase>(Base: T) {
         birthdayMonth: bytes[20031]?.[2] ?? 0,
         birthdayDay: bytes[20031]?.[3] ?? 0,
         labels: bytes[104] ? Misc.UserInfoLabel.decode(bytes[104]).labels.map(e => e.content) : [],
+        school: bytes[20021]?.toString() ?? '',
+        remark: bytes[103]?.toString() ?? '',
       }
     }
 

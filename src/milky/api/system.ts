@@ -80,29 +80,19 @@ const GetUserProfile = defineApi(
   GetUserProfileInput,
   GetUserProfileOutput,
   async (ctx, payload) => {
-    const userInfo = await ctx.ntUserApi.getUserDetailInfoByUin(payload.user_id.toString())
-    if (userInfo.result !== 0) {
-      return Failed(-500, userInfo.errMsg)
-    }
-    const profile = {
-      nickname: userInfo.detail.simpleInfo.coreInfo.nick,
-      qid: userInfo.detail.simpleInfo.baseInfo.qid,
-      age: userInfo.detail.simpleInfo.baseInfo.age,
-      sex: transformGender(userInfo.detail.simpleInfo.baseInfo.sex),
-      remark: userInfo.detail.simpleInfo.coreInfo.remark,
-      bio: userInfo.detail.simpleInfo.baseInfo.longNick,
-      level: userInfo.detail.commonExt?.qqLevel ?
-        (userInfo.detail.commonExt.qqLevel.penguinNum * 256 + userInfo.detail.commonExt.qqLevel.crownNum * 64 +
-          userInfo.detail.commonExt.qqLevel.sunNum * 16 + userInfo.detail.commonExt.qqLevel.moonNum * 4 +
-          userInfo.detail.commonExt.qqLevel.starNum) : 0,
-      country: userInfo.detail.commonExt?.country || '',
-      city: userInfo.detail.commonExt?.city || '',
-      school: userInfo.detail.commonExt?.college || '',
-    }
-    if (profile.level === 0) {
-      profile.level = (await ctx.pmhq.fetchUserInfo(payload.user_id)).level
-    }
-    return Ok(profile)
+    const info = await ctx.pmhq.fetchUserInfo(payload.user_id)
+    return Ok({
+      nickname: info.nick,
+      qid: info.qid,
+      age: info.age,
+      sex: transformGender(info.sex),
+      remark: info.remark,
+      bio: info.longNick,
+      level: info.level,
+      country: info.country,
+      city: info.city,
+      school: info.school,
+    })
   }
 )
 
