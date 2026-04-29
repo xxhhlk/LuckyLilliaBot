@@ -1,3 +1,40 @@
+V7.12.9
+更新时间 2026-04-29
+
+* OneBot 修复 get_group_member_info API 可能获取不到性别与年龄
+* OneBot 支持 get_stranger_info API 获取是否会员、是否年费会员、会员等级、备注
+
+=================
+V7.12.8
+更新时间 2026-04-28
+
+* OneBot 支持 _get_group_notice API 获取群公告是否发送给新成员
+* OneBot 支持 _send_group_notice API 设置群公告是否发送给新成员
+
+=================
+V7.12.6
+更新时间 2026-04-28
+
+* OneBot 修复 _get_group_notice API 获取不到发给新成员的公告
+* OneBot 支持 _get_group_notice API 获取群公告是否置顶
+
+=================
+V7.12.5
+更新时间 2026-04-27
+
+* OneBot 支持 upload_group_album API 上传视频
+* OneBot 支持 _send_group_notice API 设置群公告是否弹窗展示、引导修改群昵称
+* OneBot 支持 _get_group_notice API 获取群公告相关设置
+
+=================
+V7.12.4
+更新时间 2026-04-25
+
+* OneBot 修复发送合并转发包含 `reply` 消息段时可能无法查看合并转发内消息
+* OneBot 修复 get_stranger_info API 偶现报错
+* Milky 修复临时会话没有上报消息撤回事件
+
+=================
 V7.12.3
 更新时间 2026-04-24
 
