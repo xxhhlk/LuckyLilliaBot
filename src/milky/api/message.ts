@@ -289,7 +289,7 @@ const GetResourceTempUrl = defineApi(
       const url = `${IMAGE_HTTP_HOST_NT}/download?appid=${appid}&fileid=${payload.resource_id}&spec=0${rkey}`
       return Ok({ url })
     } else if (appid === 1413 || appid === 1415) {
-      const url = await ctx.ntFileApi.getVideoUrlByPacket(payload.resource_id, appid === 1415)
+      const url = await ctx.ntFileApi.getVideoUrl(payload.resource_id, appid === 1415)
       return Ok({ url })
     } else {
       ctx.logger.warn(`GetResourceTempUrl: not yet supported appid: ${appid}`)

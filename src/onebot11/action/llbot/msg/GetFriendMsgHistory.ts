@@ -42,7 +42,7 @@ export class GetFriendMsgHistory extends BaseAction<Payload, Response> {
           rawMsg = msg
         }
       }
-      return OB11Entities.message(this.ctx, rawMsg, undefined, undefined, config)
+      return OB11Entities.message(this.ctx, rawMsg, config)
     }))
     return { list: filterNullable(ob11MsgList), seq: +msgList[0].msgSeq }
   }

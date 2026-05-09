@@ -54,10 +54,10 @@ declare module 'cordis' {
 
 class Onebot11Adapter extends Service {
   static inject = [
-    'ntMsgApi', 'ntFileApi', 'ntFileCacheApi',
-    'ntFriendApi', 'ntGroupApi', 'ntUserApi',
-    'ntWebApi', 'ntSystemApi', 'store', 'app',
-    'logger', 'pmhq', 'timer', 'config'
+    'ntMsgApi', 'ntFileApi', 'ntFriendApi',
+    'ntGroupApi', 'ntUserApi', 'ntWebApi',
+    'ntSystemApi', 'store', 'app', 'logger',
+    'pmhq', 'timer', 'config'
   ]
   private connect: (OB11Http | OB11HttpPost | OB11WebSocket | OB11WebSocketReverse)[]
   private actionMap: Map<string, BaseAction<unknown, unknown>>

@@ -352,4 +352,50 @@ export namespace Oidb {
       nextIndex: ProtoField(13, 'uint32')
     })
   })
+
+  export const ImageOcrReq = ProtoMessage.of({
+    version: ProtoField(1, 'uint32'),
+    client: ProtoField(2, 'uint32'),
+    entrance: ProtoField(3, 'uint32'),
+    ocrReqBody: ProtoField(10, {
+      imageUrl: ProtoField(1, 'string'),
+      languageType: ProtoField(2, 'uint32'),
+      scene: ProtoField(3, 'uint32'),
+      originMd5: ProtoField(10, 'string'),
+      afterCompressMd5: ProtoField(11, 'string'),
+      afterCompressFileSize: ProtoField(12, 'string'),
+      afterCompressWeight: ProtoField(13, 'string'),
+      afterCompressHeight: ProtoField(14, 'string'),
+      isCut: ProtoField(15, 'bool')
+    })
+  })
+
+  export const ImageOcrResp = ProtoMessage.of({
+    retCode: ProtoField(1, 'int32', 'optional'),
+    errMsg: ProtoField(2, 'string'),
+    wording: ProtoField(3, 'string', 'optional'),
+    ocrRspBody: ProtoField(10, {
+      textDetections: ProtoField(1, {
+        detectedText: ProtoField(1, 'string'),
+        confidence: ProtoField(2, 'uint32'),
+        polygon: ProtoField(3, {
+          coordinates: ProtoField(1, {
+            x: ProtoField(1, 'int32'),
+            y: ProtoField(2, 'int32')
+          }, 'repeated')
+        }),
+        advancedInfo: ProtoField(4, 'string')
+      }, 'repeated'),
+      language: ProtoField(2, 'string'),
+      requestId: ProtoField(3, 'string'),
+      ocrLanguageList: ProtoField(101, 'string', 'repeated'),
+      dstTranslateLanguageList: ProtoField(102, 'string', 'repeated'),
+      languageList: ProtoField(103, {
+        languageCode: ProtoField(1, 'string'),
+        languageDesc: ProtoField(2, 'string')
+      }, 'repeated'),
+      afterCompressWeight: ProtoField(111, 'uint32'),
+      afterCompressHeight: ProtoField(112, 'uint32')
+    })
+  })
 }

@@ -102,7 +102,7 @@ async function decodeElement(ctx: Context, data: NT.RawMessage, quoted = false) 
       }
     } else if (v.picElement) {
       // img
-      const src = await ctx.ntFileApi.getImageUrl(v.picElement)
+      const src = await ctx.ntFileApi.getImageUrl(v.picElement.originImageUrl, v.picElement.md5HexStr)
       buffer.push(h.img(src, {
         width: v.picElement.picWidth,
         height: v.picElement.picHeight,
@@ -114,11 +114,7 @@ async function decodeElement(ctx: Context, data: NT.RawMessage, quoted = false) 
       buffer.push(h.audio(src, { duration: v.pttElement.duration }))
     } else if (v.videoElement) {
       // video
-      const src = (await ctx.ntFileApi.getVideoUrl({
-        chatType: data.chatType,
-        peerUid: data.peerUid,
-        guildId: ''
-      }, data.msgId, v.elementId)) || pathToFileURL(v.videoElement.filePath).href
+      const src = await ctx.ntFileApi.getVideoUrl(v.videoElement.fileUuid, data.chatType === NT.ChatType.Group)
       buffer.push(h.video(src))
     } else if (v.marketFaceElement) {
       // llonebot:market-face

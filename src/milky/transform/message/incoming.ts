@@ -115,7 +115,7 @@ export async function transformIncomingSegments(ctx: Context, message: RawMessag
           type: 'image',
           data: {
             resource_id: element.picElement!.fileUuid,
-            temp_url: await ctx.ntFileApi.getImageUrl(element.picElement!),
+            temp_url: await ctx.ntFileApi.getImageUrl(element.picElement!.originImageUrl, element.picElement!.md5HexStr),
             width: element.picElement!.picWidth,
             height: element.picElement!.picHeight,
             summary: element.picElement!.summary || '[图片]',
@@ -140,7 +140,7 @@ export async function transformIncomingSegments(ctx: Context, message: RawMessag
           type: 'video',
           data: {
             resource_id: element.videoElement!.fileUuid,
-            temp_url: await ctx.ntFileApi.getVideoUrlByPacket(element.videoElement!.fileUuid, message.chatType === ChatType.Group),
+            temp_url: await ctx.ntFileApi.getVideoUrl(element.videoElement!.fileUuid, message.chatType === ChatType.Group),
             width: element.videoElement!.thumbWidth,
             height: element.videoElement!.thumbHeight,
             duration: element.videoElement!.fileTime,
@@ -260,7 +260,7 @@ export async function transformIncomingForwardedMessage(ctx: Context, message: I
         } else if (serviceType === 48 && (businessType === 11 || businessType === 21)) {
           const { msgInfoBody } = Media.MsgInfo.decode(elem.commonElem.pbElem)
           const { index } = msgInfoBody[0]
-          const url = await ctx.ntFileApi.getVideoUrlByPacket(index.fileUuid, businessType === 21)
+          const url = await ctx.ntFileApi.getVideoUrl(index.fileUuid, businessType === 21)
           segments.push({
             type: 'video',
             data: {
