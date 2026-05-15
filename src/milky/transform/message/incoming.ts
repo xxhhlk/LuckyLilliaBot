@@ -207,25 +207,28 @@ export async function transformIncomingSegments(ctx: Context, message: RawMessag
 
       case ElementType.Ark: {
         const { arkElement } = element
-        const data = JSON.parse(arkElement!.bytesData)
-        if (data.app === 'com.tencent.multimsg' && data.meta.detail.resid) {
-          segments.push({
-            type: 'forward',
-            data: {
-              forward_id: data.meta.detail.resid,
-              title: data.meta.detail.source,
-              preview: data.meta.detail.news.map((item: { text: string }) => item.text),
-              summary: data.meta.detail.summary,
-            },
-          })
-        } else {
-          segments.push({
-            type: 'light_app',
-            data: {
-              app_name: data.app,
-              json_payload: arkElement!.bytesData,
-            },
-          })
+        const match = arkElement!.bytesData.match(/"app"\s*:\s*"([^"]*)"/)
+        if (match?.[1]) {
+          if (match[1] === 'com.tencent.multimsg') {
+            const data = JSON.parse(arkElement!.bytesData)
+            segments.push({
+              type: 'forward',
+              data: {
+                forward_id: data.meta.detail.resid,
+                title: data.meta.detail.source,
+                preview: data.meta.detail.news.map((item: { text: string }) => item.text),
+                summary: data.meta.detail.summary,
+              },
+            })
+          } else {
+            segments.push({
+              type: 'light_app',
+              data: {
+                app_name: match[1],
+                json_payload: arkElement!.bytesData,
+              },
+            })
+          }
         }
         break
       }
