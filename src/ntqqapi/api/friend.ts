@@ -1,6 +1,5 @@
 import { Category, Friend } from '../types'
 import { Context, Service } from 'cordis'
-import { GeneralCallResult } from '../services'
 import { selfInfo } from '@/common/globalVars'
 
 declare module 'cordis' {
@@ -11,15 +10,11 @@ declare module 'cordis' {
 
 export class NTQQFriendApi extends Service {
   static inject = ['ntUserApi', 'ntSystemApi', 'pmhq']
-  friendsCache: Friend[] = []
-  categoriesCache: Map<number, Category> = new Map()
+  private friendsCache: Friend[] = []
+  private categoriesCache: Map<number, Category> = new Map()
 
   constructor(protected ctx: Context) {
     super(ctx, 'ntFriendApi')
-  }
-
-  async approvalFriendRequest(friendUid: string, accept: boolean) {
-    await this.ctx.pmhq.setFriendRequest(friendUid, accept ? 3 : 5)
   }
 
   async getFriendList(forceUpdate: boolean) {
@@ -27,6 +22,16 @@ export class NTQQFriendApi extends Service {
       const res = await this.ctx.pmhq.fetchFriends()
       this.friendsCache = res.friendList.map(friend => {
         const biz = friend.subBiz.get(1)!
+        let statusId = biz.numData.get(27372)!
+        if (statusId >= 268435456) {
+          statusId -= 268435456
+        }
+        if (statusId > 14878464) {
+          statusId -= 14878464
+        }
+        if (statusId === 0) {
+          statusId = 2
+        }
         return {
           uid: friend.uid,
           uin: friend.uin,
@@ -40,6 +45,7 @@ export class NTQQFriendApi extends Service {
           birthdayYear: (biz.data.get(20031)![0] << 8) | biz.data.get(20031)![1],
           birthdayMonth: biz.data.get(20031)![2],
           birthdayDay: biz.data.get(20031)![3],
+          status: statusId * 10
         }
       })
       this.categoriesCache.clear()
@@ -100,52 +106,38 @@ export class NTQQFriendApi extends Service {
     return ark
   }
 
-  async setBuddyRemark(uid: string, remark = '') {
-    return await this.ctx.pmhq.invoke('nodeIKernelBuddyService/setBuddyRemark', [
-      { uid, remark },
-    ])
+  async setFriendRemark(uid: string, remark = '') {
+    return await this.ctx.pmhq.setFriendRemark(uid, remark)
   }
 
-  async delBuddy(friendUid: string) {
-    return await this.ctx.pmhq.invoke('nodeIKernelBuddyService/delBuddy', [{
-      friendUid,
-      tempBlock: false,
-      tempBothDel: true,
-    }])
+  async deleteFriend(targetUid: string, block = false, bothDelete = true) {
+    return await this.ctx.pmhq.deleteFriend(targetUid, block, bothDelete)
   }
 
-  async setBuddyCategory(uid: string, categoryId: number) {
-    return await this.ctx.pmhq.invoke('nodeIKernelBuddyService/setBuddyCategory', [uid, categoryId])
+  async setFriendCategory(uid: string, categoryId: number) {
+    return await this.ctx.pmhq.setFriendCategory(uid, categoryId)
   }
 
   async clearBuddyReqUnreadCnt() {
     return await this.ctx.pmhq.invoke('nodeIKernelBuddyService/clearBuddyReqUnreadCnt', [])
   }
 
-  async getDoubtBuddyReq(reqNum: number) {
-    const reqId = Date.now().toString()
-    return await this.ctx.pmhq.invoke(
-      'nodeIKernelBuddyService/getDoubtBuddyReq',
-      [reqId, reqNum, ''],
-      {
-        resultCmd: 'nodeIKernelBuddyListener/onDoubtBuddyReqChange',
-        resultCb: payload => payload.reqId === reqId
-      }
-    )
+  async getFriendRequests(limit: number) {
+    const { info } = await this.ctx.pmhq.fetchFriendRequests(selfInfo.uid, limit)
+    return info.requests
+  }
+
+  async getDoubtFriendRequests(limit: number) {
+    const { info } = await this.ctx.pmhq.fetchFilteredFriendRequests(limit)
+    return info.requests
+  }
+
+  async approvalFriendRequest(friendUid: string, accept: boolean) {
+    await this.ctx.pmhq.setFriendRequest(friendUid, accept ? 3 : 5)
   }
 
   async approvalDoubtFriendRequest(requestUid: string) {
     return await this.ctx.pmhq.setFilteredFriendRequestReq(selfInfo.uid, requestUid)
-  }
-
-  async getBuddyReq() {
-    return await this.ctx.pmhq.invoke(
-      'nodeIKernelBuddyService/getBuddyReq',
-      [],
-      {
-        resultCmd: 'nodeIKernelBuddyListener/onBuddyReqChange'
-      }
-    )
   }
 
   async getCategoryById(categoryId: number) {

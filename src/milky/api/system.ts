@@ -231,7 +231,7 @@ const GetPeerPins = defineApi(
   z.object({}),
   GetPeerPinsOutput,
   async (ctx) => {
-    const result = await ctx.ntSystemApi.getPins()
+    const result = await ctx.ntMsgApi.getPins()
     return Ok({
       friends: await Promise.all(
         result.friends.map(async (e) => {

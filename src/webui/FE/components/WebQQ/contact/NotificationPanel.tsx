@@ -210,7 +210,7 @@ const FriendRequestCard: React.FC<{ item: FriendRequestItem; time: number }> = (
     }
   }
 
-  const avatarUrl = item.friendAvatarUrl || getUserAvatar(item.friendUin)
+  const avatarUrl = getUserAvatar(item.friendUin)
 
   return (
     <div className="flex items-start gap-3 px-3 py-3 hover:bg-theme-item-hover transition-colors">
@@ -272,7 +272,7 @@ const DoubtBuddyCard: React.FC<{ item: DoubtBuddyItem; time: number }> = ({ item
       if (action === 'approve') {
         await approveDoubtBuddy(item.uid)
       } else {
-        await handleFriendRequest(`${item.uid}|${item.reqTime}`, 'reject')
+        await handleFriendRequest(item.uid, 'reject')
       }
       updateNotificationStatus('doubt-buddy', item.flag, 0)
       setDecided(true)

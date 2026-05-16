@@ -12,8 +12,8 @@ export function createMockContext() {
         friends: [],
         categories: new Map()
       })),
-      getBuddyReq: vi.fn(() => Promise.resolve({ buddyReqs: [] })),
-      getDoubtBuddyReq: vi.fn(() => Promise.resolve({ doubtList: [] })),
+      getFriendRequests: vi.fn(() => Promise.resolve([])),
+      getDoubtFriendRequests: vi.fn(() => Promise.resolve([])),
       approvalDoubtFriendRequest: vi.fn(() => Promise.resolve()),
       approvalFriendRequest: vi.fn(() => Promise.resolve()),
     },

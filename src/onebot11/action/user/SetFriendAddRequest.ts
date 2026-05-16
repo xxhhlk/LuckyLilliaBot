@@ -19,10 +19,7 @@ export default class SetFriendAddRequest extends BaseAction<Payload, null> {
   protected async _handle(payload: Payload) {
     await this.ctx.ntFriendApi.approvalFriendRequest(payload.flag, payload.approve)
     if (payload.remark) {
-      const res = await this.ctx.ntFriendApi.setBuddyRemark(payload.flag, payload.remark)
-      if (res.result !== 0) {
-        throw new Error(res.errMsg)
-      }
+      await this.ctx.ntFriendApi.setFriendRemark(payload.flag, payload.remark)
     }
     return null
   }

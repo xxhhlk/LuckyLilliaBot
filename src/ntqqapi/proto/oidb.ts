@@ -467,10 +467,95 @@ export namespace Oidb {
   export const GetFriendRecommendContactArkReq = ProtoMessage.of({
     uin: ProtoField(1, 'uint32'),
     phoneNumber: ProtoField(2, 'string'),
-    jumpUrl: ProtoField(3, 'string'),
+    jumpUrl: ProtoField(3, 'string')
   })
 
   export const GetFriendRecommendContactArkResp = ProtoMessage.of({
     ark: ProtoField(1, 'string')
+  })
+
+  /** OidbSvcTrpcTcp.0x10cc_1 */
+  export const SetFriendRemarkReq = ProtoMessage.of({
+    uid: ProtoField(1, 'string'),
+    remark: ProtoField(2, 'string')
+  })
+
+  /** OidbSvcTrpcTcp.0x126b_0 */
+  export const DeleteFriendReq = ProtoMessage.of({
+    field1: ProtoField(1, {
+      targetUid: ProtoField(1, 'string'),
+      field2: ProtoField(2, {
+        field1: ProtoField(1, 'uint32'),
+        field2: ProtoField(2, 'uint32'),
+        field3: ProtoField(3, {
+          field1: ProtoField(1, 'uint32'),
+          field2: ProtoField(2, 'uint32'),
+          field3: ProtoField(3, 'uint32')
+        })
+      }),
+      block: ProtoField(3, 'bool'),
+      bothDelete: ProtoField(4, 'bool')
+    })
+  })
+
+  /** OidbSvcTrpcTcp.0x10eb_1 */
+  export const SetFriendCategoryReq = ProtoMessage.of({
+    uid: ProtoField(1, 'string'),
+    categoryId: ProtoField(2, 'uint32')
+  })
+
+  /** OidbSvcTrpcTcp.0x5cf_11 */
+  export const FetchFriendRequestsReq = ProtoMessage.of({
+    version: ProtoField(1, 'int32'),
+    type: ProtoField(3, 'int32'),
+    selfUid: ProtoField(4, 'string'),
+    startIndex: ProtoField(5, 'int32'),
+    reqNum: ProtoField(6, 'int32'),
+    getFlag: ProtoField(8, 'int32'),
+    startTime: ProtoField(9, 'int32'),
+    needCommFriend: ProtoField(12, 'int32'),
+    field22: ProtoField(22, 'int32')
+  })
+
+  export const FetchFriendRequestsResp = ProtoMessage.of({
+    field1: ProtoField(1, 'int32'),
+    field2: ProtoField(2, 'int32'),
+    info: ProtoField(3, {
+      field2: ProtoField(2, 'int32'),
+      count: ProtoField(3, 'int32'),
+      requests: ProtoField(7, {
+        selfUid: ProtoField(1, 'string'),
+        friendUid: ProtoField(2, 'string'),
+        state: ProtoField(3, 'int32'),
+        timestamp: ProtoField(4, 'uint32'),
+        comment: ProtoField(5, 'string'),
+        source: ProtoField(6, 'string'),
+        sourceId: ProtoField(7, 'int32'),
+        subSourceId: ProtoField(8, 'int32'),
+        isInitiator: ProtoField(20, 'bool')
+      }, 'repeated')
+    })
+  })
+
+  /** OidbSvcTrpcTcp.0xd69_0 */
+  export const FetchFilteredFriendRequestsReq = ProtoMessage.of({
+    field1: ProtoField(1, 'int32'),
+    field2: ProtoField(2, {
+      count: ProtoField(1, 'int32')
+    })
+  })
+
+  export const FetchFilteredFriendRequestsResp = ProtoMessage.of({
+    info: ProtoField(2, {
+      requests: ProtoField(1, {
+        sourceUid: ProtoField(1, 'string'),
+        sourceNickname: ProtoField(2, 'string'),
+        comment: ProtoField(5, 'string'),
+        source: ProtoField(6, 'string'),
+        warningInfo: ProtoField(7, 'string'),
+        timestamp: ProtoField(8, 'uint32'),
+        groupCode: ProtoField(9, 'uint32')
+      }, 'repeated')
+    })
   })
 }

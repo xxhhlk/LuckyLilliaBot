@@ -261,6 +261,7 @@ export interface Friend {
   birthdayYear: number
   birthdayMonth: number
   birthdayDay: number
+  status: number
 }
 
 export interface Category {

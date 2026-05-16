@@ -63,36 +63,32 @@ describe('notification routes', () => {
 
   describe('GET /notifications/friend', () => {
     it('returns friend requests excluding initiator', async () => {
-      ctx.ntFriendApi.getBuddyReq.mockResolvedValue({
-        buddyReqs: [
-          { friendUid: 'u1', isInitiator: false, friendNick: 'A', reqTime: '100', extWords: '', reqType: 1 },
-          { friendUid: 'u2', isInitiator: true, friendNick: 'B', reqTime: '200', extWords: '', reqType: 1 },
-        ],
-      })
+      ctx.ntFriendApi.getFriendRequests.mockResolvedValue([
+        { selfUid: '', friendUid: 'u1', state: 1, timestamp: 100, comment: '', source: '', sourceId: 0, subSourceId: 0, isInitiator: false },
+        { selfUid: '', friendUid: 'u2', state: 1, timestamp: 200, comment: '', source: '', sourceId: 0, subSourceId: 0, isInitiator: true },
+      ])
       const app = createTestApp(createNotificationRoutes(ctx))
 
       const res = await app.request('/notifications/friend')
       expect(res.status).toBe(200)
       const body = await res.json()
       expect(body.data).toHaveLength(1)
-      expect(body.data[0].friendNick).toBe('A')
+      expect(body.data[0].friendUid).toBe('u1')
     })
   })
 
   describe('GET /notifications/friend/doubt', () => {
     it('returns doubt friend requests', async () => {
-      ctx.ntFriendApi.getDoubtBuddyReq.mockResolvedValue({
-        doubtList: [
-          { uid: 'u1', nick: 'Test', age: 20, sex: 1, reqTime: '100', msg: 'hi', source: '', reason: '', groupCode: '', commFriendNum: 0 },
-        ],
-      })
+      ctx.ntFriendApi.getDoubtFriendRequests.mockResolvedValue([
+        { sourceUid: 'u1', sourceNickname: 'Test', comment: 'hi', source: '', warningInfo: '', timestamp: 100, groupCode: '' },
+      ])
       const app = createTestApp(createNotificationRoutes(ctx))
 
       const res = await app.request('/notifications/friend/doubt')
       expect(res.status).toBe(200)
       const body = await res.json()
       expect(body.data).toHaveLength(1)
-      expect(body.data[0].flag).toBe('doubt|u1|100')
+      expect(body.data[0].flag).toBe('u1')
     })
   })
 

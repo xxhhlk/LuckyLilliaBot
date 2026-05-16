@@ -80,7 +80,7 @@ export function FriendMixin<T extends new (...args: any[]) => PMHQBase>(Base: T)
         requestBiz: [{
           bizType: 1,
           bizData: {
-            extBusi: [102, 103, 20002, 20009, 20031, 20037, 27394]
+            extBusi: [102, 103, 20002, 20009, 20031, 20037, 27372, 27394]
           }
         }]
       })
@@ -108,6 +108,96 @@ export function FriendMixin<T extends new (...args: any[]) => PMHQBase>(Base: T)
       const res = await this.httpSendPB('OidbSvcTrpcTcp.0x12b6_0', data)
       const oidbRespBody = Oidb.Base.decode(Buffer.from(res.pb, 'hex')).body
       return Oidb.GetFriendRecommendContactArkResp.decode(oidbRespBody)
+    }
+
+    async setFriendRemark(uid: string, remark: string) {
+      const body = Oidb.SetFriendRemarkReq.encode({
+        uid,
+        remark,
+      })
+      const data = Oidb.Base.encode({
+        command: 0x10cc,
+        subCommand: 1,
+        body,
+      })
+      await this.httpSendPB('OidbSvcTrpcTcp.0x10cc_1', data)
+    }
+
+    async deleteFriend(targetUid: string, block: boolean, bothDelete: boolean) {
+      const body = Oidb.DeleteFriendReq.encode({
+        field1: {
+          targetUid,
+          field2: {
+            field1: 130,
+            field2: 109,
+            field3: {
+              field1: 8,
+              field2: 8,
+              field3: 50,
+            },
+          },
+          block,
+          bothDelete
+        },
+      })
+      const data = Oidb.Base.encode({
+        command: 0x126b,
+        subCommand: 0,
+        body,
+      })
+      await this.httpSendPB('OidbSvcTrpcTcp.0x126b_0', data)
+    }
+
+    async setFriendCategory(uid: string, categoryId: number) {
+      const body = Oidb.SetFriendCategoryReq.encode({
+        uid,
+        categoryId,
+      })
+      const data = Oidb.Base.encode({
+        command: 0x10eb,
+        subCommand: 1,
+        body,
+      })
+      await this.httpSendPB('OidbSvcTrpcTcp.0x10eb_1', data)
+    }
+
+    async fetchFriendRequests(selfUid: string, reqNum: number) {
+      const body = Oidb.FetchFriendRequestsReq.encode({
+        version: 1,
+        type: 6,
+        selfUid,
+        startIndex: 0,
+        reqNum,
+        getFlag: 2,
+        startTime: 0,
+        needCommFriend: 1,
+        field22: 1,
+      })
+      const data = Oidb.Base.encode({
+        command: 0x5cf,
+        subCommand: 11,
+        body,
+      })
+      const res = await this.httpSendPB('OidbSvcTrpcTcp.0x5cf_11', data)
+      const oidbRespBody = Oidb.Base.decode(Buffer.from(res.pb, 'hex')).body
+      return Oidb.FetchFriendRequestsResp.decode(oidbRespBody)
+    }
+
+    async fetchFilteredFriendRequests(count: number) {
+      const body = Oidb.FetchFilteredFriendRequestsReq.encode({
+        field1: 1,
+        field2: {
+          count,
+        },
+      })
+      const data = Oidb.Base.encode({
+        command: 0xd69,
+        subCommand: 0,
+        body,
+      })
+      const res = await this.httpSendPB('OidbSvcTrpcTcp.0xd69_0', data)
+      const oidbRespBody = Oidb.Base.decode(Buffer.from(res.pb, 'hex')).body
+      return Oidb.FetchFilteredFriendRequestsResp.decode(oidbRespBody)
     }
   }
 }

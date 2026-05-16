@@ -32,7 +32,7 @@ export function getSelfUin(): string | null {
 }
 
 // 获取头像 URL
-export function getUserAvatar(uin: string): string {
+export function getUserAvatar(uin: string | number): string {
   return `https://q1.qlogo.cn/g?b=qq&nk=${uin}&s=640`
 }
 
@@ -55,36 +55,30 @@ export async function getLoginInfo(): Promise<{ uid: string; uin: string; nick: 
 // 获取好友列表（带分组）
 export async function getFriends(): Promise<FriendCategory[]> {
   // 获取带分组的好友列表
-  const buddyV2Result = await ntCall<{ data: unknown[] }>('ntFriendApi', 'getBuddyV2', [true])
-  const buddyList = await ntCall<any[]>('ntFriendApi', 'getBuddyList', [])
-
-  // 创建 uid -> SimpleInfo 的映射
-  const buddyMap = new Map<string, unknown>()
-  for (const buddy of buddyList) {
-    buddyMap.set(buddy.uid, buddy)
-  }
+  const result = await ntCall<{
+    friends: any[],
+    categories: Record<number, any>
+  }>('ntFriendApi', 'getFriendList', [true])
 
   // 构建分组数据
-  const categories = (buddyV2Result.data || []).map((category: any) => {
-    const friends = (category.buddyUids || [])
-      .map((uid: string) => buddyMap.get(uid))
-      .filter((buddy: unknown) => buddy)
-      .map((buddy: any) => ({
-        uid: buddy.uid,
-        uin: buddy.uin,
-        nickname: buddy.coreInfo?.nick || '',
-        remark: buddy.coreInfo?.remark || '',
-        avatar: getUserAvatar(buddy.uin),
-        online: buddy.status?.status === 10 || false,
-        topTime: buddy.relationFlags?.topTime || '0'
+  const categories = Object.values(result.categories).map((category) => {
+    const friends = result.friends
+      .filter((friend) => friend.categoryId === category.categoryId)
+      .map((friend) => ({
+        uid: friend.uid,
+        uin: friend.uin.toString(),
+        nickname: friend.nick,
+        remark: friend.remark,
+        avatar: getUserAvatar(friend.uin),
+        online: friend.status !== 20
       }))
 
     return {
       categoryId: category.categoryId,
-      categoryName: category.categroyName || '我的好友',
+      categoryName: category.categoryName,
       categorySort: category.categorySortId,
-      onlineCount: category.onlineCount || 0,
-      memberCount: category.categroyMbCount || friends.length,
+      onlineCount: friends.filter(friend => friend.online).length,
+      memberCount: category.categoryMemberCount,
       friends
     }
   })
@@ -109,21 +103,31 @@ export async function getGroups(): Promise<GroupItem[]> {
   }))
 }
 
+// 获取置顶列表
+export async function getPins(): Promise<{ friends: string[], groups: string[] }> {
+  const pins = await ntCall<{ friends: any[], groups: any[] }>('ntMsgApi', 'getPins')
+  return {
+    friends: pins.friends.map(item => item.uid),
+    groups: pins.groups.map(item => item.groupCode.toString())
+  }
+}
+
 // 获取最近会话列表
 export async function getRecentChats(): Promise<RecentChatItem[]> {
   const result = await ntCall<{ info: { changedList: any[] } }>('ntUserApi', 'getRecentContactListSnapShot', [50])
 
   // 获取群列表和好友列表的置顶信息
-  const [groupsData, friendsData] = await Promise.all([
+  const [groupsData, friendsData, pinsData] = await Promise.all([
     getGroups(),
-    getFriends()
+    getFriends(),
+    getPins()
   ])
 
   // 创建置顶信息映射
   const topMap = new Map<string, boolean>()
 
   // 群聊置顶信息（排除 msgMask === 2 的群）
-  const toppedGroups = []
+  const toppedGroups: any[] = []
   groupsData.forEach(group => {
     // 群助手的群（msgMask === 2）不应该出现在最近联系列表
     if (group.msgMask === 2) {
@@ -136,10 +140,10 @@ export async function getRecentChats(): Promise<RecentChatItem[]> {
   })
 
   // 好友置顶信息
-  const toppedFriends = []
+  const toppedFriends: any[] = []
   friendsData.forEach(category => {
     category.friends.forEach(friend => {
-      const isTop = !!friend.topTime && friend.topTime !== '0'
+      const isTop = pinsData.friends.includes(friend.uid)
       topMap.set(`1_${friend.uin}`, isTop)
       if (isTop) {
         toppedFriends.push(friend)

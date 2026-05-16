@@ -1,5 +1,5 @@
 import { Context } from 'cordis'
-import { GroupRequestOperateTypes } from '@/ntqqapi/types'
+import { BuddyReqType, GroupRequestOperateTypes } from '@/ntqqapi/types'
 import { Hono } from 'hono'
 
 export function createNotificationRoutes(ctx: Context): Hono {
@@ -36,20 +36,20 @@ export function createNotificationRoutes(ctx: Context): Hono {
   // 获取好友申请历史
   router.get('/notifications/friend', async (c) => {
     try {
-      const result = await ctx.ntFriendApi.getBuddyReq()
-      const buddyReqs = (result.buddyReqs || []).filter((reqItem) => !reqItem.isInitiator)
+      const result = await ctx.ntFriendApi.getFriendRequests(50)
+      const buddyReqs = result.filter((reqItem) => !reqItem.isInitiator)
       const enriched = await Promise.all(buddyReqs.map(async (reqItem) => {
-        const uin = reqItem.friendUid ? await ctx.ntUserApi.getUinByUid(reqItem.friendUid).catch(() => '') : ''
+        const uin = await ctx.ntUserApi.getUinByUid(reqItem.friendUid).catch(() => '')
+        const nick = await ctx.ntUserApi.getUserSimpleInfo(reqItem.friendUid).then(e => e.coreInfo.nick).catch(() => '')
         return {
           friendUid: reqItem.friendUid,
           friendUin: uin,
-          friendNick: reqItem.friendNick,
-          friendAvatarUrl: reqItem.friendAvatarUrl,
-          reqTime: reqItem.reqTime,
-          extWords: reqItem.extWords,
-          isDecide: reqItem.isDecide,
-          reqType: reqItem.reqType,
-          addSource: reqItem.addSource || '',
+          friendNick: nick,
+          reqTime: reqItem.timestamp.toString(),
+          extWords: reqItem.comment,
+          isDecide: ![BuddyReqType.PeerInitiator, BuddyReqType.MeInitiatorWaitPeerConfirm].includes(reqItem.state),
+          reqType: reqItem.state,
+          addSource: reqItem.source,
           flag: reqItem.friendUid
         }
       }))
@@ -63,20 +63,16 @@ export function createNotificationRoutes(ctx: Context): Hono {
   // 获取被过滤的好友申请
   router.get('/notifications/friend/doubt', async (c) => {
     try {
-      const result = await ctx.ntFriendApi.getDoubtBuddyReq(50)
-      const doubtList = result.doubtList || []
-      const enriched = doubtList.map((item) => ({
-        uid: item.uid,
-        nick: item.nick,
-        age: item.age,
-        sex: item.sex,
-        reqTime: item.reqTime,
-        msg: item.msg,
+      const result = await ctx.ntFriendApi.getDoubtFriendRequests(50)
+      const enriched = result.map((item) => ({
+        uid: item.sourceUid,
+        nick: item.sourceNickname,
+        reqTime: item.timestamp.toString(),
+        msg: item.comment,
         source: item.source,
-        reason: item.reason,
+        reason: item.warningInfo,
         groupCode: item.groupCode,
-        commFriendNum: item.commFriendNum,
-        flag: `doubt|${item.uid}|${item.reqTime}`
+        flag: item.sourceUid
       }))
       return c.json({ success: true, data: enriched })
     } catch (e) {

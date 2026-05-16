@@ -210,7 +210,6 @@ export class WebuiServer extends Service {
             friendUid: req.friendUid,
             friendUin: uin,
             friendNick: req.friendNick,
-            friendAvatarUrl: req.friendAvatarUrl,
             reqTime: req.reqTime,
             extWords: req.extWords,
             isDecide: req.isDecide,

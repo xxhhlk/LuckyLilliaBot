@@ -445,4 +445,8 @@ export class NTQQMsgApi extends Service {
   async sendShowInputStatusReq(chatType: ChatType, eventType: number, toUid: string) {
     return await this.ctx.pmhq.invoke('nodeIKernelMsgService/sendShowInputStatusReq', [chatType, eventType, toUid])
   }
+
+  async getPins() {
+    return await this.ctx.pmhq.fetchPins()
+  }
 }

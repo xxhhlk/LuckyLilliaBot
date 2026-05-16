@@ -24,17 +24,17 @@ export class GetDoubtFriendsAddRequest extends BaseAction<Payload, Item[]> {
   })
 
   async _handle(payload: Payload) {
-    const res = await this.ctx.ntFriendApi.getDoubtBuddyReq(+payload.count)
-    return await Promise.all(res.doubtList.map(async e => {
+    const res = await this.ctx.ntFriendApi.getDoubtFriendRequests(+payload.count)
+    return await Promise.all(res.map(async e => {
       return {
-        flag: e.uid,
-        uin: await this.ctx.ntUserApi.getUinByUid(e.uid),
-        nick: e.nick,
+        flag: e.sourceUid,
+        uin: await this.ctx.ntUserApi.getUinByUid(e.sourceUid),
+        nick: e.sourceNickname,
         source: e.source,
-        reason: e.reason,
-        msg: e.msg,
-        group_code: e.groupCode,
-        time: e.reqTime,
+        reason: e.warningInfo,
+        msg: e.comment,
+        group_code: e.groupCode.toString(),
+        time: e.timestamp.toString(),
         type: 'doubt'
       }
     }))

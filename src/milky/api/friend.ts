@@ -11,7 +11,6 @@ import {
 import z from 'zod'
 import { selfInfo } from '@/common/globalVars'
 import { BuddyReqType } from '@/ntqqapi/types'
-import { GeneralCallResult } from '@/ntqqapi/services'
 
 const SendFriendNudge = defineApi(
   'send_friend_nudge',
@@ -50,10 +49,7 @@ const DeleteFriend = defineApi(
     if (!uid) {
       return Failed(-404, 'User not found')
     }
-    const result = await ctx.ntFriendApi.delBuddy(uid)
-    if (result.result !== 0) {
-      return Failed(-500, result.errMsg)
-    }
+    await ctx.ntFriendApi.deleteFriend(uid)
     return Ok({})
   }
 )
@@ -64,34 +60,28 @@ const GetFriendRequests = defineApi(
   GetFriendRequestsOutput,
   async (ctx, payload) => {
     if (payload.is_filtered) {
-      const result = await ctx.ntFriendApi.getDoubtBuddyReq(payload.limit)
+      const result = await ctx.ntFriendApi.getDoubtFriendRequests(payload.limit)
       return Ok({
-        requests: await Promise.all(result.doubtList.map(async e => {
-          return {
-            time: Number(e.reqTime),
-            initiator_id: Number(await ctx.ntUserApi.getUinByUid(e.uid)),
-            initiator_uid: e.uid,
-            target_user_id: Number(selfInfo.uin),
-            target_user_uid: selfInfo.uid,
-            state: 'pending',
-            comment: e.msg,
-            via: e.source,
-            is_filtered: true
-          }
-        }))
+        requests: await Promise.all(result.map(async e => ({
+          time: e.timestamp,
+          initiator_id: Number(await ctx.ntUserApi.getUinByUid(e.sourceUid)),
+          initiator_uid: e.sourceUid,
+          target_user_id: Number(selfInfo.uin),
+          target_user_uid: selfInfo.uid,
+          state: 'pending',
+          comment: e.comment,
+          via: e.source,
+          is_filtered: true
+        })))
       })
     } else {
-      const result = await ctx.ntFriendApi.getBuddyReq()
-      let buddyReqs = result.buddyReqs
-      if (buddyReqs.length > payload.limit) {
-        buddyReqs = buddyReqs.slice(0, payload.limit)
-      }
+      const result = await ctx.ntFriendApi.getFriendRequests(payload.limit)
       return Ok({
-        requests: await Promise.all(buddyReqs.map(async e => {
+        requests: await Promise.all(result.map(async e => {
           const friendId = Number(await ctx.ntUserApi.getUinByUid(e.friendUid))
           const selfId = Number(selfInfo.uin)
           return {
-            time: Number(e.reqTime),
+            time: e.timestamp,
             initiator_id: e.isInitiator ? selfId : friendId,
             initiator_uid: e.isInitiator ? selfInfo.uid : e.friendUid,
             target_user_id: e.isInitiator ? friendId : selfId,
@@ -99,14 +89,16 @@ const GetFriendRequests = defineApi(
             state: ({
               [BuddyReqType.PeerInitiator]: 'pending',
               [BuddyReqType.MeInitiatorWaitPeerConfirm]: 'pending',
-              [BuddyReqType.PeerAgreed]: 'accepted',
               [BuddyReqType.MeAgreed]: 'accepted',
+              [BuddyReqType.MeAgreedAndAdded]: 'accepted',
+              [BuddyReqType.PeerAgreed]: 'accepted',
+              [BuddyReqType.PeerAgreedAndAdded]: 'accepted',
               [BuddyReqType.PeerRefused]: 'rejected',
               [BuddyReqType.MeRefused]: 'rejected'
-            } as const)[e.reqType as number] ?? 'pending',
-            comment: e.extWords,
-            via: e.addSource ?? '',
-            is_filtered: e.isDoubt
+            } as const)[e.state] ?? 'pending',
+            comment: e.comment,
+            via: e.source,
+            is_filtered: false
           }
         }))
       })

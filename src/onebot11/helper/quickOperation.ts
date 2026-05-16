@@ -117,7 +117,7 @@ async function handleFriendRequest(ctx: Context, request: OB11FriendRequestEvent
   if (!isNullable(quickAction.approve)) {
     await ctx.ntFriendApi.approvalFriendRequest(request.flag, quickAction.approve).catch(e => ctx.logger.error(e))
     if (!isNullable(quickAction.remark)) {
-      ctx.ntFriendApi.setBuddyRemark(request.flag, quickAction.remark).catch(e => ctx.logger.error(e))
+      await ctx.ntFriendApi.setFriendRemark(request.flag, quickAction.remark).catch(e => ctx.logger.error(e))
     }
   }
 }

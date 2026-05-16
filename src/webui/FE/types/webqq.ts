@@ -45,7 +45,6 @@ export interface FriendItem {
   remark: string
   avatar: string
   online: boolean
-  topTime?: string
 }
 
 // 好友分组
@@ -65,7 +64,7 @@ export interface GroupItem {
   remarkName?: string
   avatar: string
   memberCount: number
-  isTop?: boolean
+  isTop: boolean
   msgMask?: number
 }
 
@@ -118,7 +117,7 @@ export interface MessagesResponse {
 export interface SendMessageRequest {
   chatType: WebChatType
   peerId: string
-  content: { 
+  content: {
     type: 'text' | 'image' | 'reply' | 'at' | 'face' | 'file'
     text?: string
     imagePath?: string
@@ -188,7 +187,6 @@ export interface FriendRequestItem {
   friendUid: string
   friendUin: string
   friendNick: string
-  friendAvatarUrl: string
   reqTime: string
   extWords: string
   isDecide: boolean
@@ -201,14 +199,11 @@ export interface FriendRequestItem {
 export interface DoubtBuddyItem {
   uid: string
   nick: string
-  age: number
-  sex: number
   reqTime: string
   msg: string
   source: string
   reason: string
   groupCode: string
-  commFriendNum: number
   flag: string
 }
 
