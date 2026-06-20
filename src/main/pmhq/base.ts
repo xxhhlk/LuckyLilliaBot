@@ -272,6 +272,8 @@ export class PMHQBase extends Service {
       if (!this.hasConnectedOnce) {
         this.hasConnectedOnce = true
         this.startDisconnectMonitoring()
+      } else {
+        this.ctx.parallel('pmhq/reconnect').then()
       }
     }
   }

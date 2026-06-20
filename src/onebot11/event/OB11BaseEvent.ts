@@ -10,7 +10,7 @@ export enum EventType {
 
 export abstract class OB11BaseEvent {
   [index: string]: any
-  time = Math.floor(Date.now() / 1000)
+  time: number = Math.floor(Date.now() / 1000)
   self_id = +selfInfo.uin
   abstract post_type: EventType
 

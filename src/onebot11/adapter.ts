@@ -120,6 +120,7 @@ class Onebot11Adapter extends Service {
   private async handleGroupNotify(notify: GroupNotify, doubt: boolean) {
     try {
       const flag = `${notify.group.groupCode}|${notify.seq}|${notify.type}|${doubt ? '1' : '0'}`
+      const notifyTime = Math.trunc(+notify.seq / 1000 / 1000)
       if (notify.type === GroupNotifyType.RequestJoinNeedAdminiStratorPass && notify.status === GroupNotifyStatus.Unhandle) {
         this.ctx.logger.info('有加群请求')
         const requestUin = await this.ctx.ntUserApi.getUinByUid(notify.user1.uid)
@@ -129,6 +130,7 @@ class Onebot11Adapter extends Service {
           flag,
           notify.postscript,
         )
+        event.time = notifyTime
         this.dispatch(event)
       }
       else if (notify.type === GroupNotifyType.InvitedByMember && notify.status === GroupNotifyStatus.Unhandle) {
@@ -142,6 +144,7 @@ class Onebot11Adapter extends Service {
           notify.postscript,
           +notify.invitationExt.groupCode,
         )
+        event.time = notifyTime
         this.dispatch(event)
       }
       else if (notify.type === GroupNotifyType.InvitedNeedAdminiStratorPass && notify.status === GroupNotifyStatus.Unhandle) {
@@ -155,11 +158,35 @@ class Onebot11Adapter extends Service {
           notify.postscript,
           +invitorId,
         )
+        event.time = notifyTime
         this.dispatch(event)
       }
     } catch (e) {
       this.ctx.logger.error('解析群通知失败', (e as Error).stack)
     }
+  }
+
+  private getNoticeDedupKey(event: any): string | undefined {
+    const t = event.notice_type
+    if (t === 'group_increase' || t === 'group_decrease') {
+      return `notice:${t}:${event.group_id}:${event.user_id}`
+    }
+    if (t === 'group_ban') {
+      return `notice:${t}:${event.group_id}:${event.user_id}:${event.sub_type}`
+    }
+    if (t === 'group_admin') {
+      return `notice:${t}:${event.group_id}:${event.user_id}:${event.sub_type}`
+    }
+    if (t === 'group_upload') {
+      return `notice:${t}:${event.group_id}:${event.file?.id}`
+    }
+    if (t === 'poke') {
+      return `notice:poke:${event.target_id}:${event.sender_id}`
+    }
+    if (t === 'friend_add') {
+      return `notice:friend_add:${event.user_id}`
+    }
+    return undefined
   }
 
   private async handleMsg(message: RawMessage, self: boolean, offline: boolean) {
@@ -181,21 +208,26 @@ class Onebot11Adapter extends Service {
       this.dispatchMessageLike(msg, self, offline)
     }).catch(e => this.ctx.logger.error('handling incoming messages', e))
 
-    OB11Entities.groupEvent(this.ctx, message).then(groupEvent => {
+    OB11Entities.groupEvent(this.ctx, message).then(async groupEvent => {
       if (groupEvent) {
-        if (Array.isArray(groupEvent)) {
-          for (const item of groupEvent) {
-            this.dispatchMessageLike(item, self, offline)
-          }
-        } else {
-          this.dispatchMessageLike(groupEvent, self, offline)
+        const msgTime = Number(message.msgTime)
+        const events = Array.isArray(groupEvent) ? groupEvent : [groupEvent]
+        for (const item of events) {
+          item.time = msgTime
+          const dedupKey = this.getNoticeDedupKey(item)
+          if (dedupKey && await this.ctx.store.checkAndMarkDedup(dedupKey)) continue
+          this.dispatchMessageLike(item, self, offline)
         }
       }
     }).catch(e => this.ctx.logger.error('handling incoming group events', e))
 
-    OB11Entities.privateEvent(this.ctx, message).then(privateEvent => {
+    OB11Entities.privateEvent(this.ctx, message).then(async privateEvent => {
       if (privateEvent) {
-        this.dispatchMessageLike(privateEvent, self, offline)
+        privateEvent.time = Number(message.msgTime)
+        const dedupKey = this.getNoticeDedupKey(privateEvent)
+        if (!dedupKey || !(await this.ctx.store.checkAndMarkDedup(dedupKey))) {
+          this.dispatchMessageLike(privateEvent, self, offline)
+        }
       }
     }).catch(e => this.ctx.logger.error('handling incoming buddy events', e))
 
@@ -215,6 +247,7 @@ class Onebot11Adapter extends Service {
               sendMemberName,
               oldCard
             )
+            groupCardEvent.time = Number(message.msgTime)
             this.dispatch(groupCardEvent)
           }
         }
@@ -230,6 +263,7 @@ class Onebot11Adapter extends Service {
       chatType: message.chatType,
       guildId: ''
     }
+    const msgTime = Number(message.msgTime)
     // 解析撤回戳一戳
     const grayTipElement = message.elements.find(el => el.grayTipElement)?.grayTipElement
     if (grayTipElement && grayTipElement.jsonGrayTipElement?.busiId == JsonGrayTipBusId.Poke) {
@@ -244,6 +278,7 @@ class Onebot11Adapter extends Service {
       else {
         recallEvent = new OB11FriendPokeRecallEvent(+fromUserUin, +toUserUin, json)
       }
+      recallEvent.time = msgTime
       return this.dispatch(recallEvent)
     }
     // OB11Entities.privateEvent(this.ctx, message).then(privateEvent => {
@@ -255,6 +290,7 @@ class Onebot11Adapter extends Service {
     const shortId = this.ctx.store.createMsgShortId(message)
 
     OB11Entities.recallEvent(this.ctx, message, shortId).then((recallEvent) => {
+      recallEvent.time = msgTime
       this.dispatch(recallEvent)
     }).catch(e => this.ctx.logger.error('handling recall events', e))
   }
@@ -268,6 +304,7 @@ class Onebot11Adapter extends Service {
       flag,
       req.addSource ?? ''
     )
+    friendRequestEvent.time = +req.reqTime
     this.dispatch(friendRequestEvent)
   }
 

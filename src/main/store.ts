@@ -32,6 +32,10 @@ declare module 'minato' {
       userId: string
       card: string
     }
+    dedup: {
+      key: string
+      time: number
+    }
   }
 }
 
@@ -99,6 +103,12 @@ class Store extends Service {
       card: 'string(60)'
     }, {
       primary: ['groupId', 'userId']
+    })
+    this.ctx.model.extend('dedup', {
+      key: 'string(128)',
+      time: 'unsigned'
+    }, {
+      primary: 'key'
     })
   }
 
@@ -247,6 +257,24 @@ class Store extends Service {
       userId,
       card
     }])
+  }
+
+  async checkAndMarkDedup(key: string): Promise<boolean> {
+    const existing = await this.ctx.database.get('dedup', { key })
+    if (existing.length > 0) {
+      return true
+    }
+    this.ctx.database.upsert('dedup', [{ key, time: Math.trunc(Date.now() / 1000) }]).then().catch(e => this.ctx.logger.error('dedup database error:', e))
+    return false
+  }
+
+  async cleanupDedup() {
+    const cutoff = Math.trunc(Date.now() / 1000) - 168 * 3600
+    try {
+      await this.ctx.database.remove('dedup', { time: { $lt: cutoff } })
+    } catch (e) {
+      this.ctx.logger.error('dedup cleanup error:', e)
+    }
   }
 }
 
