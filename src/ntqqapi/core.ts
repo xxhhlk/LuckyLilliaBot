@@ -422,9 +422,10 @@ class Core extends Service {
             if (msgTime < minMsgTime) continue
             if (message.msgType === MsgType.GrayTips && message.chatType !== ChatType.Group) continue
 
+            // 在线期间已处理的消息（message表）或已补偿过的离线消息（dedup表）都跳过
+            if (await this.ctx.store.checkMsgExist(message)) continue
             const dedupKey = `msg:${message.chatType}-${message.peerUid}-${message.msgSeq}-${message.msgRandom}-${message.msgTime}`
-            const existing = await this.ctx.store.checkAndMarkDedup(dedupKey)
-            if (existing) continue
+            if (await this.ctx.store.checkAndMarkDedup(dedupKey)) continue
 
             roundFetched++
             totalFetched++
