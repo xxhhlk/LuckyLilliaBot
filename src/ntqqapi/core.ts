@@ -71,6 +71,10 @@ class Core extends Service {
     return noop
   }
 
+  private shouldReportOfflineMessage(): boolean {
+    return this.config.ob11?.connect?.some(c => c.reportOfflineMessage) ?? false
+  }
+
   public start() {
     this.startupTime = Math.trunc(Date.now() / 1000)
     this.registerListener()
@@ -80,7 +84,9 @@ class Core extends Service {
       setFFMpegPath(input.ffmpeg || '')
     })
     // 冷启动时 QQ 可能已在线，Core 加载前推送的离线消息已丢失，主动拉取补偿
-    this.fetchMissedOfflineMessages(this.startupTime)
+    if (this.shouldReportOfflineMessage()) {
+      this.fetchMissedOfflineMessages(this.startupTime)
+    }
   }
 
   public async sendMessage(
@@ -336,7 +342,9 @@ class Core extends Service {
       const newStartupTime = Math.trunc(Date.now() / 1000)
       this.ctx.logger.info('PMHQ 重连，更新 startupTime', this.startupTime, '->', newStartupTime)
       this.startupTime = newStartupTime
-      this.fetchMissedOfflineMessages(newStartupTime)
+      if (this.shouldReportOfflineMessage()) {
+        this.fetchMissedOfflineMessages(newStartupTime)
+      }
     })
   }
 
@@ -414,12 +422,13 @@ class Core extends Service {
             if (msgTime < minMsgTime) continue
             if (message.msgType === MsgType.GrayTips && message.chatType !== ChatType.Group) continue
 
-            const existing = await this.ctx.store.checkMsgExist(message)
-            if (!existing) {
-              roundFetched++
-              totalFetched++
-              this.ctx.parallel('nt/offline-message-created', message).then()
-            }
+            const dedupKey = `msg:${message.chatType}-${message.peerUid}-${message.msgSeq}-${message.msgRandom}-${message.msgTime}`
+            const existing = await this.ctx.store.checkAndMarkDedup(dedupKey)
+            if (existing) continue
+
+            roundFetched++
+            totalFetched++
+            this.ctx.parallel('nt/offline-message-created', message).then()
           }
         } catch (e) {
           this.ctx.logger.warn('离线消息补偿: 拉取消息失败', peer.peerUid, e)
