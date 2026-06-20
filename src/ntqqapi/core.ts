@@ -397,7 +397,7 @@ class Core extends Service {
 
     // 冷启动时 QQ 可能还没同步消息，需要重试
     // 找到消息后不能立刻结束——欢迎消息等可能稍晚才同步到
-    const delays = [3000, 6000, 9000]
+    const delays = [7000, 14000, 21000, 28000]
     let lastDelay = 0
     for (const delay of delays) {
       await new Promise(resolve => setTimeout(resolve, delay - lastDelay))
